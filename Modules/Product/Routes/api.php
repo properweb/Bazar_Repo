@@ -59,6 +59,9 @@ Route::prefix('product')->group(function () {
     Route::GET('importshopify', 'ProductController@ImportShopify');
 });
 Route::prefix('product')->group(function () {
+    Route::GET('/importwordpress', 'ProductController@Importwordpress');
+});
+Route::prefix('product')->group(function () {
     Route::GET('fetch-products', 'ProductController@FetchProducts');
 });
 Route::prefix('product')->group(function () {

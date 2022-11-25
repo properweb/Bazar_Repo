@@ -2,7 +2,6 @@
 
 namespace Modules\Product\Http\Controllers;
 
-use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Redis;
@@ -13,9 +12,11 @@ use Illuminate\Support\Str;
 use Modules\Product\Entities\Products;
 use Modules\Product\Entities\Video;
 use Modules\Product\Entities\ProductVariation;
+use Modules\Product\Entities\Brandstore;
 use Modules\Product\Entities\ProductImage;
 use Modules\Product\Entities\ProductPrepack;
 use Modules\Product\Entities\Category;
+
 
 class ProductController extends Controller
 {
@@ -27,8 +28,6 @@ class ProductController extends Controller
     public function create(Request $request)
     {
         $vndr_upload_path = '/uploads/products/';
-        $folderPath = public_path() . $vndr_upload_path;
-        $product_images = $_FILES['product_images'];
         $usd_wholesale_price = $request->input('usd_wholesale_price') && !in_array($request->input('usd_wholesale_price'), array('undefined', 'null')) ? $request->input('usd_wholesale_price') : 0;
         $usd_retail_price = $request->input('usd_retail_price') && !in_array($request->input('usd_wholesale_price'), array('undefined', 'null')) ? $request->input('usd_retail_price') : 0;
         $cad_wholesale_price = $request->input('cad_wholesale_price') && !in_array($request->input('cad_wholesale_price'), array('undefined', 'null')) ? $request->input('cad_wholesale_price') : 0;
@@ -124,7 +123,7 @@ class ProductController extends Controller
                 $img = rand() . time() . '.' . $ext;
                 $target_path = $target_path . $img;
                 move_uploaded_file($_FILES['video_url']['tmp_name'][$i], $target_path);
-                if ($ext != "") {
+                if (!empty($ext)) {
                     $imgurl = url('/') . '/public/uploads/products/' . $img;
                 } else {
                     $imgurl = '';
@@ -137,9 +136,7 @@ class ProductController extends Controller
         }
 
         $variation_images = [];
-        $featured_key = isset($request->featured_image) && $request->featured_image != "" ? (int)$request->featured_image : 0;
-        $target_path = public_path() . $vndr_upload_path . "/";
-        $folderPath = public_path() . $vndr_upload_path . "/";
+        $featured_key = isset($request->featured_image) && !empty($request->featured_image) ? (int)$request->featured_image : 0;
         $excel_file_names = $_FILES['product_images']['name'];
         if (is_countable($excel_file_names) && count($excel_file_names) > 0) {
             $folderPath = public_path() . $vndr_upload_path . "/";
@@ -149,7 +146,7 @@ class ProductController extends Controller
                 $extension = end($tmp_arr);
                 $file_url = Str::random(10) . '.' . $extension;
                 move_uploaded_file($_FILES["product_images"]["tmp_name"][$i], $folderPath . $file_url);
-                if ($extension != "") {
+                if (!empty($extension)) {
                     $productimgurl = url('/') . '/public/uploads/products/' . $file_url;
                 } else {
                     $productimgurl = '';
@@ -183,9 +180,9 @@ class ProductController extends Controller
                 if (!in_array($color['name'], $colors)) {
                     $colors[] = $color['name'];
                     $swatch_image = $color["img"];
-                    if (isset($swatch_image) && $swatch_image != "") {
+                    if (isset($swatch_image) && !empty($swatch_image)) {
                         $image_64 = $swatch_image;
-                        $extension = explode('/', explode(':', substr($image_64, 0, strpos($image_64, ';')))[1])[1];   // .jpg .png .pdf
+                        $extension = explode('/', explode(':', substr($image_64, 0, strpos($image_64, ';')))[1])[1];
                         $replace = substr($image_64, 0, strpos($image_64, ',') + 1);
                         $image = str_replace($replace, '', $image_64);
                         $image = str_replace(' ', '+', $image);
@@ -290,7 +287,6 @@ class ProductController extends Controller
 
     public function fetchProductBySort(Request $request)
     {
-        $redis = Redis::connection();
         $result_array = array();
         $redis = Redis::connection();
         $search = $request->search_key && !in_array($request->search_key, array('undefined', 'null')) ? $request->search_key : '';
@@ -318,9 +314,6 @@ class ProductController extends Controller
                     break;
             }
             switch ($request->sort_key) {
-                case 1:
-                    $query->orderBy('name', 'ASC');
-                    break;
                 case 2:
                     $query->orderBy('name', 'DESC');
                     break;
@@ -333,7 +326,7 @@ class ProductController extends Controller
                     $query->orderBy('name', 'ASC');
                     break;
             }
-            if ($request->search_key && $request->search_key != '' && !in_array($request->search_key, array('undefined', 'null'))) {
+            if ($request->search_key && !in_array($request->search_key, array('undefined', 'null'))) {
                 $query->where('name', 'Like', '%' . $request->search_key . '%');
             }
             $products = $query->paginate(10);
@@ -383,6 +376,461 @@ class ProductController extends Controller
             $response = ['res' => true, 'msg' => "", 'data' => $data];
         }
 
+
+        return response()->json($response);
+    }
+
+    public function FetchProducts(Request $request)
+    {
+        $result_array = array();
+        $redis = Redis::connection();
+
+        $search = $request->search_key && !in_array($request->search_key, array('undefined', 'null')) ? $request->search_key : '';
+        $existredis = Redis::exists("brandproduct:FetchProducts:" . $request->page . ":" . $search . ":" . $request->user_id . ":" . $request->status);
+        if ($existredis > 0) {
+            $cachedproducts = Redis::get("brandproduct:FetchProducts:" . $request->page . ":" . $search . ":" . $request->user_id . ":" . $request->status);
+            $allfetchproduct = json_decode($cachedproducts, false);
+            $response = ['res' => true, 'msg' => "", 'data' => $allfetchproduct];
+        } else {
+            $product_variations_tbl = DB::raw("(SELECT product_id,id as variant_id,value1,value2,value3,sku as vsku,stock as vstock,image as vimage
+		FROM product_variations WHERE status='1') as pv");// Raw query is needed as nested query using for this function with alias.
+            $products_sql = DB::table('products as p')
+                ->select('p.*', 'pv.*')
+                ->leftjoin($product_variations_tbl, 'pv.product_id', '=', 'p.id')
+                ->where('p.user_id', $request->user_id)
+                ->orderBy('p.order_by', 'ASC');
+
+
+            $all_products_count = $products_sql->count();
+
+            switch ($request->status) {
+                case 'instock':
+                    $products_sql->where('p.stock', '>', 0)->orWhere('pv.vstock', '>', 0);
+                    break;
+                case 'outofstock':
+                    $products_sql->where('p.stock', '<', 1)->where('pv.vstock', '<', 1);
+                    break;
+                default:
+                    break;
+            }
+
+            if ($request->search_key && !in_array($request->search_key, array('undefined', 'null'))) {
+                $products_sql->where('p.name', 'Like', '%' . $request->search_key . '%');
+            }
+
+            $isprdct_query = DB::table('products as p')
+                ->select('p.*', 'pv.*')
+                ->leftjoin($product_variations_tbl, 'pv.product_id', '=', 'p.id')
+                ->where('p.user_id', $request->user_id)->where('p.stock', '>', 0)->orWhere('pv.vstock', '>', 0);
+            $instock_products_count = $isprdct_query->count();
+
+
+            $osprdct_query = DB::table('products as p')
+                ->select('p.*', 'pv.*')
+                ->leftjoin($product_variations_tbl, 'pv.product_id', '=', 'p.id')
+                ->where('p.user_id', $request->user_id)->where('p.stock', '<', 1)->where('pv.vstock', '<', 1);
+            $outstock_products_count = $osprdct_query->count();
+            $products = $products_sql->paginate(10);
+
+            foreach ($products as $v) {
+                $image = !empty($v->vimage) ? $v->vimage : $v->featured_image;
+                $sku = !empty($v->vsku) ? $v->vsku : $v->sku;
+                $stock = !empty($v->vstock) ? $v->vstock : $v->stock;
+                $variable_arr = [];
+                if (!empty($v->value1)) {
+                    $variable_arr[] = $v->value1;
+                }
+                if (!empty($v->value2)) {
+                    $variable_arr[] = $v->value2;
+                }
+                if (!empty($v->value3)) {
+                    $variable_arr[] = $v->value3;
+                }
+                $result_array[] = array(
+                    'id' => $v->id,
+                    'variant_id' => $v->variant_id,
+                    'variant' => implode('/', $variable_arr),
+                    'name' => $v->name,
+                    'sku' => $sku,
+                    'featured_image' => $image,
+                    'stock' => $stock
+                );
+            }
+
+            $data = array(
+                "products" => $result_array,
+                "instckprdcts_count" => $instock_products_count,
+                "outstckprdcts_count" => $outstock_products_count,
+                "allprdcts_count" => $all_products_count
+            );
+
+            $allfetchproduct = $redis->set("brandproduct:FetchProducts:" . $request->page . ":" . $search . ":" . $request->user_id . ":" . $request->status, json_encode($data));
+            $response = ['res' => true, 'msg' => "", 'data' => $data];
+        }
+        return response()->json($response);
+    }
+
+    public function Importwordpress(Request $request)
+    {
+        include(app_path() . '/Classes/class-wc-api-client.php');
+        $user_id = $request->user_id;
+        $consumer_key = $request->consumer_key;
+        $website = $request->website;
+        $consumer_secret = $request->consumer_secret;
+        $user_query_uri = $website;
+        $user_query_uri = preg_replace("#^[^:/.]*[:/]+#i", "", $user_query_uri);
+        $results_website = Brandstore::where('website', $user_query_uri)->get();
+        if (count($results_website) > 0) {
+            $response = ['res' => true, 'msg' => "Already Imported", 'data' => ""];
+        } else {
+            $wc_api = new \WC_API_Client($consumer_key, $consumer_secret, $website);
+            $products_obj = $wc_api->get_products()->products;
+            $products_arr = json_decode(json_encode($products_obj), true);
+            if (!empty($products_arr)) {
+                foreach ($products_arr as $product) {
+                    if (!empty($product['description'])) {
+                        $desc = $product['description'];
+                    } else {
+                        $desc = $product['short_description'];
+                    }
+                    if (empty($product['stock_quantity'])) {
+                        $product['stock_quantity'] = 0;
+                    }
+
+                    $title = str_replace("'", "`", $product['title']);
+                    $desc = str_replace("'", "`", $desc);
+                    $product_key = 'p_' . Str::lower(Str::random(10));
+                    $product_slug = Str::slug($title, '-');
+                    $ProductAdd = new Products();
+                    $ProductAdd->product_key = $product_key;
+                    $ProductAdd->slug = $product_slug;
+                    $ProductAdd->name = addslashes($title);
+                    $ProductAdd->user_id = $request->input('user_id');
+                    $ProductAdd->status = "unpublish";
+                    $ProductAdd->description = addslashes($desc);
+                    $ProductAdd->sku = $product['sku'];
+                    $ProductAdd->stock = $product['stock_quantity'];
+                    $ProductAdd->product_id = $product['id'];
+                    $ProductAdd->website = $user_query_uri;
+                    $ProductAdd->featured_image = $product['featured_src'];
+                    $ProductAdd->import_type = 'wordpress';
+                    $ProductAdd->default_currency = 'USD';
+                    $ProductAdd->created_at = date('Y-m-d H:i:s');
+                    $ProductAdd->updated_at = date('Y-m-d H:i:s');
+                    $ProductAdd->save();
+                    $last_product_id = DB::getPdo()->lastInsertId();
+                    $images = $product['images'];
+                    if (!empty($images)) {
+
+                        foreach ($images as $img) {
+
+                            if ($img['src'] == $product['featured_src']) {
+                                $feature_key = 1;
+                            } else {
+                                $feature_key = 0;
+                            }
+                            $Imagedd = new ProductImage();
+                            $Imagedd->product_id = $last_product_id;
+                            $Imagedd->images = $img['src'];
+                            $Imagedd->feature_key = $feature_key;
+                            $Imagedd->save();
+                        }
+                    }
+
+
+                    $variations = $product['variations'];
+                    if (!empty($variations)) {
+                        foreach ($variations as $vars) {
+                            if (empty($vars['stock_quantity'])) {
+                                $vars['stock_quantity'] = 0;
+                            }
+                            $variant_key = 'v_' . Str::lower(Str::random(10));
+                            $productvariation = new ProductVariation();
+                            $productvariation->variant_key = $variant_key;
+                            $productvariation->image = $vars['image'][0]['src'];
+                            $productvariation->product_id = $last_product_id;
+                            $productvariation->price = 0;
+                            $productvariation->options1 = $vars['attributes'][0]['name'];
+                            $productvariation->options2 = $vars['attributes'][1]['name'];
+                            $productvariation->sku = $vars['sku'];
+                            $productvariation->value1 = $vars['attributes'][0]['option'];
+                            $productvariation->value2 = $vars['attributes'][1]['option'];
+                            $productvariation->website_product_id = $product['id'];
+                            $productvariation->website = $user_query_uri;
+                            $productvariation->stock = $vars['stock_quantity'];
+                            $productvariation->variation_id = $vars['id'];
+                            $productvariation->save();
+                        }
+                    }
+                }
+                $Brandstore = new Brandstore();
+                $Brandstore->brand_id = $request->user_id;
+                $Brandstore->website = $user_query_uri;
+                $Brandstore->api_key = $consumer_key;
+                $Brandstore->api_password = $consumer_secret;
+                $Brandstore->types = 'wordpress';
+                $Brandstore->save();
+                $response = ['res' => true, 'msg' => "Successfully Imported", 'data' => ""];
+                Redis::connection();
+                Redis::flushDB();
+                $response = ['res' => true, 'msg' => "Imported Successfully", 'data' => ""];
+            } else {
+                $response = ['res' => false, 'msg' => "Enter valid information", 'data' => ""];
+            }
+        }
+
+        return response()->json($response);
+    }
+
+    public function ImportShopify(Request $request)
+    {
+        $API_KEY = $request->api_key;
+        $PASSWORD = $request->api_password;
+        $STORE_URL = $request->store_url;
+        $user_query_uri = $STORE_URL;
+        $user_query_uri = preg_replace("#^[^:/.]*[:/]+#i", "", $user_query_uri);
+
+        $url = 'https://' . $API_KEY . ':' . $PASSWORD . '@' . $STORE_URL . '/admin/shop.json';
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
+        $headers = array();
+        $headers[] = 'Content-Type: application/json';
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        $result = curl_exec($ch);
+        $error_c = json_decode($result, true);
+        if (!empty($error_c['errors'])) {
+            $response = ['res' => false, 'msg' => "Please enter valid information.", 'data' => ""];
+            return response()->json($response);
+            exit;
+        }
+        $default_c = json_decode($result, true);
+        $default_currency = $default_c['shop']['currency'];
+        $results_website = Brandstore::where('website', $user_query_uri)->get();
+        if (count($results_website) == 0) {
+            $url = 'https://' . $API_KEY . ':' . $PASSWORD . '@' . $STORE_URL . '/admin/products/count.json';
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
+            $headers = array();
+            $headers[] = 'Content-Type: application/json';
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+            $result = curl_exec($ch);
+            $countss = json_decode($result, true);
+            $totalcount = ceil($countss['count'] / 250);
+            $newproduct = '';
+            for ($ks = 1; $ks <= $totalcount; $ks++) {
+                $sinc_id = $newproduct;
+                if ($ks == 1) {
+                    $url = 'https://' . $API_KEY . ':' . $PASSWORD . '@' . $STORE_URL . '/admin/products.json?limit=250';
+                } else {
+                    $url = 'https://' . $API_KEY . ':' . $PASSWORD . '@' . $STORE_URL . '/admin/products.json?limit=250&since_id=' . $sinc_id;
+                }
+
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $url);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
+                $headers = array();
+                $headers[] = 'Content-Type: application/json';
+                curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+                $result = curl_exec($ch);
+                $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE); //can check status code, requst successfully processed if return 200
+
+                if (curl_errno($ch)) {
+                    $response = ['res' => false, 'msg' => curl_error($ch), 'data' => ""];
+                } else {
+                    $result_arr = json_decode($result, true);
+                    $imagemain = '';
+                    $products_arr = $result_arr['products'];
+                    foreach ($products_arr as $product) {
+                        if (empty($product['image'])) {
+                            $imagemain = '';
+                        } else {
+                            $imagemain = $product['image']['src'];
+                        }
+
+                        if (empty($product['variants'][0]['inventory_quantity'])) {
+                            $stock = 0;
+                        } else {
+                            $stock = $product['variants'][0]['inventory_quantity'];
+                        }
+
+                        $product_key = 'p_' . Str::lower(Str::random(10));
+                        $product_slug = Str::slug($product['title']);
+                        $ProductAdd = new Products();
+                        $ProductAdd->product_key = $product_key;
+                        $ProductAdd->slug = $product_slug;
+                        $ProductAdd->name = addslashes($product['title']);
+                        $ProductAdd->user_id = $request->input('user_id');
+                        $ProductAdd->status = "unpublish";
+                        $ProductAdd->description = addslashes($product['body_html']);
+                        $ProductAdd->sku = $product['variants'][0]['sku'];
+                        $ProductAdd->stock = $stock;
+                        $ProductAdd->product_id = $product['id'];
+                        $ProductAdd->website = $user_query_uri;
+                        $ProductAdd->featured_image = $imagemain;
+                        $ProductAdd->import_type = 'shopify';
+                        $ProductAdd->default_currency = $default_currency;
+                        $ProductAdd->created_at = date('Y-m-d H:i:s');
+                        $ProductAdd->updated_at = date('Y-m-d H:i:s');
+                        $ProductAdd->save();
+                        $last_product_id = DB::getPdo()->lastInsertId();
+
+                        $images = $product['images'];
+                        if (!empty($images)) {
+                            foreach ($images as $img) {
+                                if ($img['src'] == $imagemain) {
+                                    $feature_key = 1;
+                                } else {
+                                    $feature_key = 0;
+                                }
+
+                                $Imagedd = new ProductImage();
+                                $Imagedd->product_id = $last_product_id;
+                                $Imagedd->images = $img['src'];
+                                $Imagedd->image_id = $img['id'];
+                                $Imagedd->feature_key = $feature_key;
+                                $Imagedd->save();
+
+                            }
+                        }
+
+                        $variations = count($product['variants']);
+
+                        if ($variations > 0) {
+                            foreach ($product['variants'] as $vars) {
+                                $options = count($product['options']);
+
+                                $variant_key = 'v_' . Str::lower(Str::random(10));
+
+                                if (empty($vars['inventory_quantity'])) {
+                                    $stock = 0;
+                                } else {
+                                    $stock = $vars['inventory_quantity'];
+                                }
+                                if (!empty($product['options'][0]['name'])) {
+                                    $productvariation = new ProductVariation();
+                                    $productvariation->variant_key = $variant_key;
+                                    $productvariation->image = $imagemain;
+                                    $productvariation->product_id = $last_product_id;
+                                    $productvariation->price = 0;
+                                    $productvariation->options1 = $product['options'][0]['name'];
+                                    $productvariation->options2 = $product['options'][1]['name'];
+                                    $productvariation->options3 = $product['options'][2]['name'];
+                                    $productvariation->sku = $vars['sku'];
+                                    $productvariation->value1 = $vars['option1'];
+                                    $productvariation->value2 = $vars['option2'];
+                                    $productvariation->value3 = $vars['option3'];
+                                    $productvariation->image_id = $vars['image_id'];
+                                    $productvariation->website_product_id = $product['id'];
+                                    $productvariation->website = $user_query_uri;
+                                    $productvariation->stock = $stock;
+                                    $productvariation->variation_id = $vars['id'];
+                                    $productvariation->inventory_item_id = $vars['inventory_item_id'];
+                                    $productvariation->save();
+                                }
+                            }
+                        }
+                    }
+                }
+                $newproduct = $product['id'];
+                curl_close($ch);
+            }
+            $Brandstore = new Brandstore();
+            $Brandstore->brand_id = $request->user_id;
+            $Brandstore->website = $user_query_uri;
+            $Brandstore->api_key = $API_KEY;
+            $Brandstore->api_password = $PASSWORD;
+            $Brandstore->types = 'shopify';
+            $Brandstore->save();
+            $response = ['res' => true, 'msg' => "Successfully Imported", 'data' => ""];
+            Redis::connection();
+            Redis::flushDB();
+        } else {
+            $response = ['res' => true, 'msg' => "Already import", 'data' => ""];
+        }
+
+        return response()->json($response);
+    }
+
+    public function fetchproductbyvendor(Request $request)
+    {
+        $result_array = array();
+        $redis = Redis::connection();
+
+        $existredis = Redis::exists("fetchproductbyvendor:" . $request->user_id);
+        if ($existredis > 0) {
+            $cachedproducts = Redis::get("fetchproductbyvendor:" . $request->user_id);
+            $allfetchproduct = json_decode($cachedproducts, false);
+            $response = ['res' => true, 'msg' => "", 'data' => $allfetchproduct];
+        }
+
+        $products = Products::where('user_id', $request->user_id)
+            ->orderBy('order_by', 'ASC')
+            ->get();
+
+
+        foreach ($products as $v) {
+            $product_variations = ProductVariation::where('product_id', $v->id)->where('status', '1')->get();
+            $product_variations_count = $product_variations->count();
+            $availability = 'out of stock';
+            if ($product_variations_count > 0) {
+                $variant_minprice = ProductVariation::where('product_id', $v->id)->min('price');
+                $price = $variant_minprice . '+';
+                $variant_stock = ProductVariation::where('product_id', $v->id)->sum('price');
+                $availability = $variant_stock > 0 ? 'in stock' : 'out of stock';
+            } else {
+                $price = $v->usd_wholesale_price;
+                $availability = $v->stock > 0 ? 'in stock' : 'out of stock';
+            }
+            $result_array[] = array(
+                'id' => $v->id,
+                'product_key' => $v->product_key,
+                'import_type' => $v->import_type,
+                'name' => $v->name,
+                'category' => $v->category,
+                'status' => $v->status,
+                'description' => strip_tags($v->description),
+                'country' => $v->country,
+                'case_quantity' => $v->case_quantity,
+                'min_order_qty' => $v->min_order_qty,
+                'min_order_qty_type' => $v->min_order_qty_type,
+                'sku' => $v->sku,
+                'usd_wholesale_price' => $v->usd_wholesale_price,
+                'usd_retail_price' => $v->usd_retail_price,
+                'cad_wholesale_price' => $v->cad_wholesale_price,
+                'cad_retail_price' => $v->cad_retail_price,
+                'gbr_wholesale_price' => $v->gbr_wholesale_price,
+                'gbr_retail_price' => $v->gbr_retail_price,
+                'eur_wholesale_price' => $v->eur_wholesale_price,
+                'eur_retail_price' => $v->eur_retail_price,
+                'usd_tester_price' => $v->usd_tester_price,
+                'fabric_content' => $v->fabric_content,
+                'care_instruction' => $v->care_instruction,
+                'season' => $v->season,
+                'Occasion' => $v->Occasion,
+                'Aesthetic' => $v->Aesthetic,
+                'Fit' => $v->Fit,
+                'Secondary_Occasion' => $v->Secondary_Occasion,
+                'Secondary_Aesthetic' => $v->Secondary_Aesthetic,
+                'Secondary_Fit' => $v->Secondary_Fit,
+                'Preorder' => $v->Preorder,
+                'slug' => $v->slug,
+                'featured_image' => $v->featured_image,
+                'stock' => $v->stock,
+                'default_currency' => $v->default_currency,
+                'options_count' => $product_variations_count > 0 ? $product_variations_count : 1,
+                'variations_count' => $product_variations_count,
+                'price' => $price,
+                'availability' => $availability,
+                'website' => $v->website,
+            );
+            $allfetchproduct = $redis->set("fetchproductbyvendor:" . $request->user_id, json_encode($result_array));
+            $response = ['res' => true, 'msg' => "", 'data' => $result_array];
+        }
 
         return response()->json($response);
     }
@@ -537,7 +985,7 @@ class ProductController extends Controller
                     $allvariations[$key]['variation_values'] = $variation_values;
 
 
-                    if (!in_array($var->swatch_image, $swatch_imgs) && $var->swatch_image != '') {
+                    if (!in_array($var->swatch_image, $swatch_imgs) && !empty($var->swatch_image)) {
                         $swatch_imgs[] = $var->swatch_image;
                     }
                 }
@@ -684,6 +1132,19 @@ class ProductController extends Controller
         return response()->json($response);
     }
 
+    public function productsreorder(Request $request)
+    {
+        $items = $request->items;
+
+        foreach ($items as $k => $v) {
+            $product = Products::find($v);
+            $product->order_by = $k;
+            $product->save();
+        }
+        Redis::connection();
+        Redis::flushDB();
+    }
+
     public function updateproduct(Request $request)
     {
         $vndr_upload_path = '/uploads/products/';
@@ -783,7 +1244,7 @@ class ProductController extends Controller
                 $img = rand() . time() . '.' . $ext;
                 $target_path = $target_path . $img;
                 move_uploaded_file($_FILES['video_url']['tmp_name'][$i], $target_path);
-                if ($ext != "") {
+                if (!empty($ext)) {
                     $imgurl = url('/') . '/public/uploads/products/' . $img;
                 } else {
                     $imgurl = '';
@@ -803,10 +1264,8 @@ class ProductController extends Controller
             }
         }
 
-        $featured_key = isset($request->featured_image) && $request->featured_image != "" ? (int)$request->featured_image : 0;
+        $featured_key = isset($request->featured_image) && !empty($request->featured_image) ? (int)$request->featured_image : 0;
         $target_path = public_path() . $vndr_upload_path . "/";
-        $folderPath = public_path() . $vndr_upload_path . "/";
-
         if (isset($_FILES['product_images']['name'])) {
             $excel_file_names = $_FILES['product_images']['name'];
             $folderPath = public_path() . $vndr_upload_path . "/";
@@ -816,7 +1275,7 @@ class ProductController extends Controller
                 $extension = end($tmp_arr);
                 $file_url = Str::random(10) . '.' . $extension;
                 if (move_uploaded_file($_FILES["product_images"]["tmp_name"][$i], $folderPath . $file_url)) {
-                    if ($extension != "") {
+                    if (!empty($extension)) {
                         $productimgurl = url('/') . '/public/uploads/products/' . $file_url;
                     } else {
                         $productimgurl = '';
@@ -829,7 +1288,6 @@ class ProductController extends Controller
                     $Imagedd->save();
                     $variation_images[] = $productimgurl;
 
-                    $variation_images[] = $productimgurl;
                 }
             }
         }
@@ -858,7 +1316,7 @@ class ProductController extends Controller
                 if (!in_array($color['name'], $colors)) {
                     $colors[] = $color['name'];
                     $swatch_image = $color["img"];
-                    if (isset($swatch_image) && $swatch_image != "" && filter_var($swatch_image, FILTER_VALIDATE_URL) === false) {
+                    if (isset($swatch_image) && !empty($swatch_image) && filter_var($swatch_image, FILTER_VALIDATE_URL) === false) {
                         $image_64 = $swatch_image; //your base64 encoded data
                         $extension = explode('/', explode(':', substr($image_64, 0, strpos($image_64, ';')))[1])[1];   // .jpg .png .pdf
                         $replace = substr($image_64, 0, strpos($image_64, ',') + 1);
@@ -963,7 +1421,7 @@ class ProductController extends Controller
                 Products::where('id', $product_id)->update(array('sell_type' => '3'));
                 foreach ($pre_packs as $pre_pack) {
                     $active = $pre_pack['active'];
-                    if (isset($pre_pack['id']) && $pre_pack['id'] != '') {
+                    if (isset($pre_pack['id']) && !empty($pre_pack['id'])) {
                         if (isset($pre_pack['status']) && $pre_pack['status'] == 'deleted') {
                             ProductPrepack::where('id', $pre_pack['id'])->delete();
                         } else {
@@ -1089,9 +1547,19 @@ class ProductController extends Controller
         return response()->json($response);
     }
 
+    public function UpdateProductsStock(Request $request)
+    {
+        if ($request->variant_id) {
+            ProductVariation::where('id', $request->variant_id)->update(array('stock' => $request->stock));
+        } else {
+            Products::where('id', $request->input('id'))->update(array('stock' => $request->stock));
+        }
+        Redis::connection();
+        Redis::flushDB();
+    }
+
     public function allcategory(Request $request)
     {
-
 
         $redis = Redis::connection();
         $existredis = Redis::exists("allcategory");
@@ -1173,7 +1641,6 @@ class ProductController extends Controller
 
     public function convertprice(Request $request, $price)
     {
-        //return response()->json('What are looking for ?');
         $req_url = 'https://api.exchangerate.host/latest?base=USD&symbols=USD,CAD,GBP,AUD,EUR&places=2&amount=' . $price;
         $response_json = file_get_contents($req_url);
         if (false !== $response_json) {
