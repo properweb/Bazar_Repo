@@ -15,40 +15,28 @@ use File;
 use Mail;
 use DB;
 
-class BrandController extends Controller {
+class BrandController extends Controller
+{
 
-    /**
-     * Display a listing of the resource.
-     * @return Renderable
-     */
-    public function index() {
+    public function index()
+    {
         return view('brand::index');
     }
 
-    public function register(Request $request) {
+    public function register(Request $request)
+    {
 
 
         $validator = Validator::make($request->all(), [
-                    'email' => 'string|email|required|unique:users,email',
-                    'password' => 'required|min:6',
+            'email' => 'string|email|required|unique:users,email',
+            'password' => 'required|min:6',
         ]);
         if ($validator->fails()) {
             $response = ['res' => false, 'msg' => $validator->errors()->first(), 'data' => ""];
         } else {
-            $data = (array) $request->all();
-            $user = User::create([ 'email' => $data['email'], 'first_name' => $data['first_name'], 'last_name' => $data['last_name'], 'password' => Hash::make($data['password']), 'role' => 'brand']);
+            $data = (array)$request->all();
+            $user = User::create(['email' => $data['email'], 'first_name' => $data['first_name'], 'last_name' => $data['last_name'], 'password' => Hash::make($data['password']), 'role' => 'brand']);
             if ($user) {
-
-                //$token = Str::random(64);
-//                $url = url("/").'dev/verify-email/' . $token;
-//                Mail::send('email.emailVerify', ['url' => $url, 'site_url' => 'https://demoupdates.com/updates/new-bazar/dev/', 'site_name' => 'BAZAR', 'name' => $user->first_name . ' ' . $user->last_name], function($message) use($user) {
-//                    $message->to($user->email);
-//                    $message->from("info@bazarcenter.ca");
-//                    $message->subject('Bazar:Verify Email');
-//                });
-                //$user->token = $token;
-                //$user->save();
-
                 $userId = $user->id;
                 $rand_key = 'b_' . Str::lower(Str::random(10));
                 request()->merge(array(
@@ -67,8 +55,9 @@ class BrandController extends Controller {
         return response()->json($response);
     }
 
-    public function create(Request $request) {
-        $data = (array) $request->all();
+    public function create(Request $request)
+    {
+        $data = (array)$request->all();
         $request->bazaar_direct_link = Str::slug($request->bazaar_direct_link, '-');
         $request->brand_slug = Str::slug($request->brand_name, '-');
         $vendor = Brand::updateOrCreate(['user_id' => request()->user_id], $request->except(['email', 'password', 'first_name', 'last_name', 'featured_image', 'profile_photo', 'cover_image']));
@@ -175,16 +164,6 @@ class BrandController extends Controller {
             $status = $vendor->save();
         }
 
-//        if ($vendor->step_count == 12) {
-//            mail("sushobhon@properbounce.com","My subject","Bazar Test Email");
-//            Mail::send('email.signUp', ['site_url' => 'https://demoupdates.com/updates/new-bazar/dev/', 'site_name' => 'BAZAR', 'name' => $request->first_name . ' ' . $request->last_name], function($message) use($request) {
-//                $message->to('sushobhon@properbounce.com');
-//                $message->from("sender@demoupdates.com");
-//                $message->subject('Sign Up');
-//            });
-//        }
-
-
         $response = ['res' => true, 'msg' => "", 'data' => $data];
         return response()->json($response);
     }
@@ -194,7 +173,8 @@ class BrandController extends Controller {
      * @param int $id
      * @return Renderable
      */
-    public function edit($id) {
+    public function edit($id)
+    {
         $user = User::find($id);
         $brand = Brand::where('user_id', $user->id)->first();
 
@@ -218,15 +198,16 @@ class BrandController extends Controller {
      * @param int $id
      * @return Renderable
      */
-    public function update(Request $request) {
+    public function update(Request $request)
+    {
 
         $user_id = request()->user_id;
         $brand = Brand::where('user_id', $request->user_id)->first();
         $brand_id = $brand->id;
         $request->brand_slug = Str::slug($request->brand_name, '-');
         $validator = Validator::make($request->all(), [
-                    'email' => 'string|email|unique:users,email,' . $user_id . ',id',
-                    'brand_slug' => 'string|unique:brands,brand_slug,' . $brand_id . ',id'
+            'email' => 'string|email|unique:users,email,' . $user_id . ',id',
+            'brand_slug' => 'string|unique:brands,brand_slug,' . $brand_id . ',id'
         ]);
         if ($validator->fails()) {
             $response = ['res' => false, 'msg' => $validator->errors()->first(), 'data' => ""];
@@ -340,29 +321,5 @@ class BrandController extends Controller {
         return response()->json($response);
     }
 
-    public function category() {
-        $states = DB::table('category')
-                ->where('parent_id', 0)
-                ->orderBy('name', 'ASC')
-                ->get();
-
-        foreach ($states as $state) {
-            $data[] = array(
-                'cat_id' => $state->id,
-                'category' => $state->name
-            );
-        }
-        $response = ['res' => true, 'msg' => "", 'data' => $data];
-        return response()->json($response);
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     * @param int $id
-     * @return Renderable
-     */
-    public function destroy($id) {
-        //
-    }
 
 }
