@@ -23,50 +23,52 @@ Route::prefix('product')->group(function () {
     Route::get('/countries', 'ProductController@countries');
 });
 Route::prefix('product')->group(function () {
-    Route::get('/allcategory', 'ProductController@allcategory');
+    Route::get('/allcategory', 'ProductController@category');
 });
 Route::prefix('product')->group(function () {
-    Route::get('/convertprice/{price}', 'ProductController@convertprice');
+    Route::get('/convertprice/{price}', 'ProductController@convertPrice');
 });
 Route::prefix('product')->group(function () {
     Route::get('/fetchproductbysort', 'ProductController@fetchproductbysort');
 });
 Route::prefix('product')->group(function () {
-    Route::get('/productdetails', 'ProductController@productdetails');
+    Route::get('/productdetails', 'ProductController@productDetails');
 });
 Route::prefix('product')->group(function () {
-    Route::post('/updateproduct', 'ProductController@updateproduct');
+    Route::post('/updateproduct', 'ProductController@update');
 });
 Route::prefix('product')->group(function () {
-    Route::get('/statusproduct', 'ProductController@statusproduct');
+    Route::get('/statusproduct', 'ProductController@changeStatus');
 });
 Route::prefix('product')->group(function () {
-    Route::get('/deleteproduct', 'ProductController@deleteproduct');
+    Route::get('/deleteproduct', 'ProductController@delete');
 });
 Route::prefix('product')->group(function () {
-    Route::get('/deleteproductimage', 'ProductController@deleteproductimage');
+    Route::get('/deleteproductimage', 'ProductController@deleteProductImage');
 });
 Route::prefix('product')->group(function () {
-    Route::get('/deleteproductvideo', 'ProductController@deleteproductvideo');
+    Route::get('/deleteproductvideo', 'ProductController@deleteProductVideo');
 });
 Route::prefix('product')->group(function () {
-    Route::get('/fetchproductbyvendor', 'ProductController@fetchproductbyvendor');
+    Route::get('/fetchproductbyvendor', 'ProductController@fetchProductByVendor');
 });
 Route::prefix('product')->group(function () {
-    Route::post('/productsreorder', 'ProductController@productsreorder');
+    Route::post('/productsreorder', 'ProductController@productsReorder');
 });
 Route::prefix('product')->group(function () {
-    Route::GET('importshopify', 'ProductController@ImportShopify');
+    Route::GET('importshopify', 'ProductController@importShopify');
 });
 Route::prefix('product')->group(function () {
-    Route::GET('/importwordpress', 'ProductController@Importwordpress');
+    Route::GET('/importwordpress', 'ProductController@importWordpress');
 });
 Route::prefix('product')->group(function () {
-    Route::GET('fetch-products', 'ProductController@FetchProducts');
+    Route::GET('fetch-products', 'ProductController@fetchProducts');
 });
 Route::prefix('product')->group(function () {
-    Route::post('/update-products-stock', 'ProductController@UpdateProductsStock');
+    Route::post('/update-products-stock', 'ProductController@updateProductsStock');
 });
+
 Route::prefix('product')->group(function () {
-    Route::GET('/synctoshopify', 'ProductController@SyncToShopify');
+    Route::GET('/synclist', 'ProductController@syncList');
 });
+
