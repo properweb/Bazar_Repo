@@ -91,19 +91,18 @@ class RetailerController extends Controller
             $user = User::find($request->user_id);
             $user->first_name = $request->first_name;
             $user->last_name = $request->last_name;
-            $retailer = Retailer::where('user_id', $request->user_id)->first();
-            $retailer->country_code = $request->country_code;
-            $retailer->country = $request->country;
-            $retailer->phone_number = $request->phone_number;
-            $retailer->language = $request->language;
-            $retailer->store_name = $request->store_name;
-            $retailer->store_type = $request->store_type;
-            $retailer->sign_up_for_email = $request->sign_up_for_email;
-            $retailer->website_url = $request->website_url;
-            $retailer->save();
-
             $status = $user->save();
             if ($status) {
+                $retailer = Retailer::where('user_id', $request->user_id)->first();
+                $retailer->country_code = $request->country_code;
+                $retailer->country = $request->country;
+                $retailer->phone_number = $request->phone_number;
+                $retailer->language = $request->language;
+                $retailer->store_name = $request->store_name;
+                $retailer->store_type = $request->store_type;
+                $retailer->sign_up_for_email = $request->sign_up_for_email;
+                $retailer->website_url = $request->website_url;
+                $retailer->save();
                 if ($request->new_password != '') {
                     $validator2 = Validator::make($request->all(), [
                         'old_password' => 'required',
