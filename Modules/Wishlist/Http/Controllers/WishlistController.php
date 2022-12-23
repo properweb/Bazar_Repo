@@ -283,7 +283,8 @@ class WishlistController extends Controller
                         $brandArr[$brandk]['products'][$prdctK]['id'] = $prdctV['id'];
                         $brandArr[$brandk]['products'][$prdctK]['product_id'] = $product->id;
                         $brandArr[$brandk]['products'][$prdctK]['product_name'] = $product->name;
-                        $brandArr[$brandk]['products'][$prdctK]['product_price'] = $prdctV['price'];
+                        $brandArr[$brandk]['products'][$prdctK]['product_wholesale_price'] = $productWholeSalePrice;
+                        $brandArr[$brandk]['products'][$prdctK]['product_retail_price'] =  $productRetailPrice;
                         $brandArr[$brandk]['products'][$prdctK]['product_qty'] = $prdctV['quantity'];
                         $brandArr[$brandk]['products'][$prdctK]['style_name'] = $prdctV['style_name'];
                         $brandArr[$brandk]['products'][$prdctK]['style_group_name'] = $prdctV['style_group_name'];
