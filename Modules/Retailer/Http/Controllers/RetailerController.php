@@ -22,19 +22,6 @@ class RetailerController extends Controller
 
     public function register(Request $request)
     {
-
-
-//        return $request->all();
-        //$validator = $this->validate($request, [
-//            'name' => 'string|required|min:2',
-        //'email' => 'string|email|required|unique:users,email',
-//            'password' => 'required|min:6|confirmed',
-        //]);
-//        Mail::send('email.signUp', ['site_url' => 'https://demoupdates.com/updates/new-bazar/dev/', 'site_name' => 'BAZAR', 'name' => $request->first_name . ' ' . $request->last_name], function($message) use($request) {
-//            $message->to($request->email);
-//            $message->from("sender@demoupdates.com");
-//            $message->subject('Sign Up');
-//        });
         if ($request->retailer_id) {
             $validator = Validator::make($request->all(), []);
         } else {
@@ -145,7 +132,6 @@ class RetailerController extends Controller
         return response()->json($response);
     }
 
-
     public function orders(Request $request)
     {
         $rorders = [];
@@ -191,7 +177,7 @@ class RetailerController extends Controller
                         $shippingDetailsArr[] = $country->name;
                     }
                     $shippingDetailsStr = implode(',', $shippingDetailsArr);
-                    switch ($order->status){
+                    switch ($order->status) {
                         case 'new':
                             $orderStatus = 'open';
                             break;
@@ -323,11 +309,6 @@ class RetailerController extends Controller
                 'related_orders' => $related_orders
             );
         }
-
-//        echo '<pre>';
-//        print_r($cart_arr);
-//        exit;
-        //dd($user);
         $response = ['res' => true, 'msg' => "", 'data' => $data];
         return response()->json($response);
     }
