@@ -328,6 +328,7 @@ class BrandProductController extends Controller
             }
 
 
+
             $featuredImage = ProductImage::where('product_id', $request->id)->where('feature_key', '1')->get()->first();
             $featuredImageKey = ($featuredImage) ? $featuredImage->image_sort : 0;
 

@@ -2,34 +2,32 @@
 
 namespace Modules\Cart\Http\Controllers;
 
-
+use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Cart\Entities\Cart;
+use Modules\Wishlist\Entities\Wishlist;
 use Modules\User\Entities\User;
 use Modules\Brand\Entities\Brand;
 use Modules\Product\Entities\Products;
 use Modules\Product\Entities\ProductVariation;
 use Modules\Product\Entities\ProductPrepack;
 
-class CartController extends Controller
-{
+class CartController extends Controller {
     protected $product = null;
     protected $variant = null;
 
-    public function __construct(Products $product)
-    {
+    public function __construct(Products $product) {
         $this->product = $product;
     }
 
-    public function add(Request $request)
-    {
+    public function add(Request $request) {
         if (empty($request->product_id)) {
             $response = ['res' => false, 'msg' => 'Invalid Product', 'data' => ""];
             return response()->json($response);
         }
         $product = Products::find($request->product_id);
-
+        // return $product;
         $productType = 'SINGLE_PRODUCT';
         $productName = $product->name;
         $productSKU = $product->sku;
@@ -55,12 +53,12 @@ class CartController extends Controller
         } else {
             $alreadyCart = Cart::where('user_id', $request->user_id)->where('order_id', null)->where('product_id', $product->id)->where('type', $productType)->first();
         }
-
+        // return $alreadyCart;
         if ($alreadyCart) {
-
-            $alreadyCart->quantity = $alreadyCart->quantity + (int)$request->quantity;
+            // dd($alreadyCart);
+            $alreadyCart->quantity = $alreadyCart->quantity + (int) $request->quantity;
             $alreadyCart->amount = $product->price + $alreadyCart->amount;
-
+            // return $alreadyCart->quantity;
             if (!empty($request->variant_id) && $variant) {
                 if ($productType == 'OPEN_SIZING') {
                     $options_arr = [];
@@ -144,8 +142,9 @@ class CartController extends Controller
             $cart->brand_id = $product->user_id;
             $cart->product_name = $productName;
             $cart->product_sku = $productSKU;
-
-            $cart->quantity = (int)$request->quantity;
+            //$cart->price = ($product->usd_wholesale_price - ($product->usd_wholesale_price * $product->discount) / 100);
+            //$cart->price = $product->usd_wholesale_price;
+            $cart->quantity = (int) $request->quantity;
 
             if (!empty($request->variant_id) && $variant) {
                 $cart->price = $variant->price;
@@ -168,7 +167,7 @@ class CartController extends Controller
                             if ($variant->options3 == 'Size') {
                                 $size_variant = ProductVariation::where('product_id', $product->id)->where('options3', "Size")->where('value3', $size['value'])->where('value2', $variant->value2)->where('value1', $variant->value1)->first();
                             }
-
+//                            $size_variant = DB::table('product_variations')->where('product_id', $product->id)->where('options1', "Size")->where('value1', $size['value'])->where('value2', $variant->value2)->where('value3', $variant->value3)->first();
                             if ($size_variant->stock < $cart->quantity || $size_variant->stock <= 0) {
                                 $response = ['res' => false, 'msg' => 'Stock not sufficient!.', 'data' => ""];
                                 return response()->json($response);
@@ -235,14 +234,13 @@ class CartController extends Controller
             $cart->amount = $cart->price * $cart->quantity;
             $cart->type = $productType;
             $cart->save();
-
+            $wishlist = Wishlist::where('user_id', $request->user_id)->where('cart_id', null)->update(['cart_id' => $cart->id]);
         }
         $response = ['res' => true, 'msg' => 'Product successfully added to cart', 'data' => ""];
         return response()->json($response);
     }
 
-    public function delete(Request $request, $id)
-    {
+    public function delete(Request $request, $id) {
         $cart = Cart::find($id);
         if ($cart) {
             $cart->delete();
@@ -253,35 +251,36 @@ class CartController extends Controller
         return response()->json($response);
     }
 
-    public function update(Request $request)
-    {
+    public function update(Request $request) {
         // dd($request->all());
         if ($request->quant) {
             $error = array();
             $success = '';
-
+            // return $request->quant;
             foreach ($request->quant as $k => $quant) {
-
+                // return $k;
                 $id = $request->qty_id[$k];
-
+                // return $id;
                 $cart = Cart::find($id);
-
+                // return $cart;
                 if ($quant > 0 && $cart) {
+                    // return $quant;
 
                     if ($cart->product->stock < $quant) {
                         request()->session()->flash('error', 'Out of stock');
                         return back();
                     }
                     $cart->quantity = ($cart->product->stock > $quant) ? $quant : $cart->product->stock;
+                    // return $cart;
 
                     if ($cart->product->stock <= 0)
                         continue;
                     $after_price = ($cart->product->price - ($cart->product->price * $cart->product->discount) / 100);
                     $cart->amount = $after_price * $quant;
-
+                    // return $cart->price;
                     $cart->save();
                     $success = 'Cart successfully updated!';
-                } else {
+                }else {
                     $error[] = 'Cart Invalid!';
                 }
             }
@@ -291,8 +290,7 @@ class CartController extends Controller
         }
     }
 
-    public function fetch(Request $request, $id)
-    {
+    public function fetch(Request $request, $id) {
         $cartCount = 0;
         $cart_arr = [];
         $user = User::find($id);
@@ -326,12 +324,14 @@ class CartController extends Controller
                 }
             }
         }
-
+//        echo '<pre>';
+//        print_r($cart_arr);
+//        exit;
         $data = array(
             'cart_count' => $cartCount,
             'cart_arr' => $cart_arr,
         );
-
+        //dd($user);
         $response = ['res' => true, 'msg' => "", 'data' => $data];
         return response()->json($response);
     }

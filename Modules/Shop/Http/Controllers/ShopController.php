@@ -2,7 +2,7 @@
 
 namespace Modules\Shop\Http\Controllers;
 
-
+use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\User\Entities\User;
@@ -17,11 +17,13 @@ use Modules\Product\Entities\Category;
 use Modules\Country\Entities\Country;
 use DB;
 
-class ShopController extends Controller
-{
+class ShopController extends Controller {
 
-    public function brand(Request $request, $id)
-    {
+    /**
+     * Display a listing of the resource.
+     * @return Renderable
+     */
+    public function brand(Request $request, $id) {
         $data = [];
         $brand = Brand::where('bazaar_direct_link', $id)->first();
         if ($brand) {
@@ -31,13 +33,13 @@ class ShopController extends Controller
             $brand->logo_image = $brand->logo_image != '' ? asset('public') . '/' . $brand->logo_image : asset('public/img/logo-image.png');
             $brand->tools_used = $brand->tools_used != '' ? explode(',', $brand->tools_used) : array();
             $brand->tag_shop_page = $brand->tag_shop_page != '' ? explode(',', $brand->tag_shop_page) : array();
-
+            //country
             $country = Country::where('id', $brand->country)->first();
             $brand->country = $country->name;
-
+            //headquater
             $headquatered = Country::where('id', $brand->headquatered)->first();
             $brand->headquatered = $headquatered->name;
-
+            //shipped from
             $productShipped = Country::where('id', $brand->product_shipped)->first();
             $brand->product_shipped = $productShipped->name;
             $data = $brand;
@@ -47,8 +49,7 @@ class ShopController extends Controller
         return response()->json($response);
     }
 
-    public function products(Request $request)
-    {
+    public function products(Request $request) {
 
         $product_arr = [];
         $categories = [];
@@ -57,10 +58,10 @@ class ShopController extends Controller
         $brandDetails = Brand::where('bazaar_direct_link', $request->brand_id)->where('go_live', '2')->first();
         if ($brandDetails) {
             $brndUsrId = $brandDetails->user_id;
-
+            //all products count
             $allProductsCount = Products::where('user_id', $brndUsrId)->where('status', 'publish')->count();
 
-
+            //new products count
             $newProductsCount = Products::where('user_id', $brndUsrId)->where('status', 'publish')->where('created_at', '>', now()->subDays(7)->endOfDay())->count();
 
 
@@ -99,6 +100,9 @@ class ShopController extends Controller
 
                 $categories[] = $cat_array;
             }
+//        echo '<pre>';
+//        print_r($categories);
+//        exit;
 
 
             $allPrdctQuery = Products::where('user_id', $brndUsrId)->where('status', 'publish');
@@ -115,7 +119,9 @@ class ShopController extends Controller
                 case 4:
                     $allPrdctQuery->orderBy('usd_retail_price', 'DESC');
                     break;
-
+                default:
+                    $allPrdctQuery->orderBy('order_by', 'ASC');
+                    break;
             }
             switch ($request->sort_cat) {
                 case 'all':
@@ -151,7 +157,7 @@ class ShopController extends Controller
                 foreach ($products as $v) {
                     $stock = $v->stock;
                     $prdctOptionsCount = ProductVariation::where('product_id', $v->id)->where('status', '1')->count();
-
+                    //return count of product options if any
                     if ($prdctOptionsCount > 0) {
                         $prdctOptionsCount = ProductVariation::where('product_id', $v->id)->where('status', '1')->sum('stock');
                         $stock = $prdctOptionsCount;
@@ -198,6 +204,7 @@ class ShopController extends Controller
         }
 
 
+
         $data = array(
             "categories" => $categories,
             "allprdcts_count" => $allProductsCount,
@@ -210,8 +217,7 @@ class ShopController extends Controller
         return response()->json($response);
     }
 
-    public function product(Request $request)
-    {
+    public function product(Request $request) {
 
         $data = array();
 
@@ -357,21 +363,25 @@ class ShopController extends Controller
 
             if (!empty($values1)) {
                 foreach ($values1 as $value1) {
-                    $values[0][] = (object)["display" => $value1, "value" => $value1];
+                    $values[0][] = (object) ["display" => $value1, "value" => $value1];
                 }
             }
 
             if (!empty($values2)) {
                 foreach ($values2 as $value2) {
-                    $values[1][] = (object)["display" => $value2, "value" => $value2];
+                    $values[1][] = (object) ["display" => $value2, "value" => $value2];
                 }
             }
 
             if (!empty($values3)) {
                 foreach ($values3 as $value3) {
-                    $values[2][] = (object)["display" => $value3, "value" => $value3];
+                    $values[2][] = (object) ["display" => $value3, "value" => $value3];
                 }
             }
+
+//            echo '<pre>';
+//            print_r($values);
+//            print_r($options);
 
 
             $variationOptions = [];
@@ -388,7 +398,9 @@ class ShopController extends Controller
                         case 2:
                             $values = $values3;
                             break;
-
+                        default:
+                            $values = $values1;
+                            break;
                     }
                     if ($option == 'Color') {
                         $variationColors = $swatches;
@@ -402,6 +414,7 @@ class ShopController extends Controller
             $data['options'] = $options;
             $data['variation_options'] = $variationOptions;
             $data['variation_colors'] = $variationColors;
+            $relatedProducts = [];
             $relatedProducts = Products::where('user_id', $productDetails->user_id)->where('id', '!=', $productDetails->id)->where('main_category', $productDetails->main_category)->where('status', 'publish')->inRandomOrder()->limit(9)->get();
             $data['related_products'] = $relatedProducts;
 
