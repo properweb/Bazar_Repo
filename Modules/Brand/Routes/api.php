@@ -67,6 +67,12 @@ Route::prefix('brand')->group(function () {
 Route::prefix('brand')->group(function () {
     Route::post('/order/cancel', 'BrandController@cancelOrder');
 });
+Route::prefix('brand')->group(function () {
+    Route::get('/customers', 'BrandController@customers');
+});
+Route::prefix('brand')->group(function () {
+    Route::post('/add-customer', 'BrandController@addCustomer');
+});
 
 
 

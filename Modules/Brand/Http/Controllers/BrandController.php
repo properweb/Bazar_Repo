@@ -2,7 +2,7 @@
 
 namespace Modules\Brand\Http\Controllers;
 
-
+use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Hash;
@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 use Modules\Brand\Entities\Catalog;
 use Modules\User\Entities\User;
 use Modules\Brand\Entities\Brand;
+use Modules\Brand\Entities\BrandCustomer;
 use Modules\Retailer\Entities\Retailer;
 use Modules\Product\Entities\Products;
 use Modules\Cart\Entities\Cart;
@@ -19,35 +20,31 @@ use File;
 use Mail;
 use DB;
 
-class BrandController extends Controller
-{
+class BrandController extends Controller {
 
     private $brandAbsPath = "";
     private $brandRelPath = "";
 
-    public function __construct()
-    {
+    public function __construct() {
         $this->brandAbsPath = public_path('uploads/brands');
         $this->brandRelPath = 'uploads/brands/';
     }
 
-    public function index()
-    {
+    public function index() {
         return view('brand::index');
     }
 
-    public function register(Request $request)
-    {
+    public function register(Request $request) {
 
 
         $validator = Validator::make($request->all(), [
-            'email' => 'string|email|required|unique:users,email',
-            'password' => 'required|min:6',
+                    'email' => 'string|email|required|unique:users,email',
+                    'password' => 'required|min:6',
         ]);
         if ($validator->fails()) {
             $response = ['res' => false, 'msg' => $validator->errors()->first(), 'data' => ""];
         } else {
-            $data = (array)$request->all();
+            $data = (array) $request->all();
             $user = User::create(['email' => $data['email'], 'first_name' => $data['first_name'], 'last_name' => $data['last_name'], 'password' => Hash::make($data['password']), 'role' => 'brand', 'verified' => '1']);
             if ($user) {
                 $userId = $user->id;
@@ -68,9 +65,8 @@ class BrandController extends Controller
         return response()->json($response);
     }
 
-    public function create(Request $request)
-    {
-        $data = (array)$request->all();
+    public function create(Request $request) {
+        $data = (array) $request->all();
         $request->bazaar_direct_link = Str::slug($request->bazaar_direct_link, '-');
         $request->brand_slug = Str::slug($request->brand_name, '-');
         $brand = Brand::updateOrCreate(['user_id' => request()->user_id], $request->except(['email', 'password', 'first_name', 'last_name', 'featured_image', 'profile_photo', 'cover_image']));
@@ -135,8 +131,12 @@ class BrandController extends Controller
         return response()->json($response);
     }
 
-    public function edit($id)
-    {
+    /**
+     * Show the form for editing the specified resource.
+     * @param int $id
+     * @return Renderable
+     */
+    public function edit($id) {
         $user = User::find($id);
         $brand = Brand::where('user_id', $user->id)->first();
 
@@ -155,13 +155,17 @@ class BrandController extends Controller
         return response()->json($response);
     }
 
-
-    public function updateAccount(Request $request)
-    {
+    /**
+     * Update the specified resource in storage.
+     * @param Request $request
+     * @param int $id
+     * @return Renderable
+     */
+    public function updateAccount(Request $request) {
         $validator = Validator::make($request->all(), [
-            'first_name' => 'required',
-            'last_name' => 'required',
-            'phone_number' => 'required',
+                    'first_name' => 'required',
+                    'last_name' => 'required',
+                    'phone_number' => 'required',
         ]);
         if ($validator->fails()) {
             $response = ['res' => false, 'msg' => $validator->errors()->first(), 'data' => ""];
@@ -179,9 +183,9 @@ class BrandController extends Controller
             if ($status) {
                 if ($request->new_password != '') {
                     $validator2 = Validator::make($request->all(), [
-                        'old_password' => 'required',
-                        'new_password' => 'required|min:6|different:old_password',
-                        'confirm_password' => 'required|same:new_password'
+                                'old_password' => 'required',
+                                'new_password' => 'required|min:6|different:old_password',
+                                'confirm_password' => 'required|same:new_password'
                     ]);
                     if ($validator2->fails()) {
                         $response = ['res' => false, 'msg' => $validator2->errors()->first(), 'data' => ""];
@@ -205,15 +209,20 @@ class BrandController extends Controller
         return response()->json($response);
     }
 
-    public function updateShop(Request $request)
-    {
+    /**
+     * Update the specified resource in storage.
+     * @param Request $request
+     * @param int $id
+     * @return Renderable
+     */
+    public function updateShop(Request $request) {
         $userId = request()->user_id;
         $brand = Brand::where('user_id', $request->user_id)->first();
         $brandId = $brand->id;
         $request->brand_slug = Str::slug($request->brand_name, '-');
         $validator = Validator::make($request->all(), [
-            'email' => 'string|email|unique:users,email,' . $userId . ',id',
-            'brand_slug' => 'string|unique:brands,brand_slug,' . $brandId . ',id'
+                    'email' => 'string|email|unique:users,email,' . $userId . ',id',
+                    'brand_slug' => 'string|unique:brands,brand_slug,' . $brandId . ',id'
         ]);
         if ($validator->fails()) {
             $response = ['res' => false, 'msg' => $validator->errors()->first(), 'data' => ""];
@@ -257,8 +266,7 @@ class BrandController extends Controller
         return response()->json($response);
     }
 
-    public function goLive(Request $request)
-    {
+    public function goLive(Request $request) {
 
         $brand = Brand::where('user_id', $request->user_id)->first();
         if ($brand) {
@@ -266,7 +274,11 @@ class BrandController extends Controller
             if ($user && $user->verified == '1') {
                 $token = Str::random(64);
                 $brandName = $brand->brand_name;
-
+//                Mail::send('email.goLive', ['site_url' => 'https://demoupdates.com/updates/new-bazar/dev/', 'site_name' => 'BAZAR', 'name' => $brand_name], function($message) use($request) {
+//                    $message->to('me.manager07@gmail.com');
+//                    $message->from("sender1@demoupdates.com");
+//                    $message->subject('Activate Shop');
+//                });
                 $brand->go_live = '2';
                 $brand->save();
                 $response = ['res' => true, 'msg' => "We will notify you once your shop is activated", 'data' => ''];
@@ -280,8 +292,7 @@ class BrandController extends Controller
         return response()->json($response);
     }
 
-    public function all($id)
-    {
+    public function all($id) {
         $user = User::find($id);
         if ($user) {
             $brandUsers = User::where('country_id', $user->country_id)->where('role', 'brand')->get()->toArray();
@@ -301,8 +312,7 @@ class BrandController extends Controller
         return response()->json($response);
     }
 
-    public function orders(Request $request)
-    {
+    public function orders(Request $request) {
         $rorders = [];
         $data = [];
         $brand = Brand::where('user_id', $request->user_id)->first();
@@ -359,8 +369,7 @@ class BrandController extends Controller
         }
     }
 
-    public function order(Request $request, $order_number)
-    {
+    public function order(Request $request, $order_number) {
         $orders = [];
         $data = [];
         $order = Order::where('order_number', $order_number)->first();
@@ -395,14 +404,14 @@ class BrandController extends Controller
             $cart = Cart::where('brand_id', $brand->user_id)->where('order_id', $orderId)->get();
             if ($cart) {
                 foreach ($cart as $cartitem) {
-                    $sub_total = (float)$cartitem->price * (int)$cartitem->quantity;
-                    $total_qty += (int)$cartitem->quantity;
+                    $sub_total = (float) $cartitem->price * (int) $cartitem->quantity;
+                    $total_qty += (int) $cartitem->quantity;
                     $total_price += $sub_total;
                     $product = Products::where('id', $cartitem->product_id)->first();
                     $cartitem->product_id = $product->id;
                     $cartitem->product_name = $product->name;
-                    $cartitem->product_price = (float)$cartitem->price;
-                    $cartitem->product_qty = (int)$cartitem->quantity;
+                    $cartitem->product_price = (float) $cartitem->price;
+                    $cartitem->product_qty = (int) $cartitem->quantity;
                     $cartitem->product_image = $product->featured_image != '' ? $product->featured_image : asset('public/admin/dist/img/logo-image.png');
                 }
             }
@@ -439,12 +448,15 @@ class BrandController extends Controller
             );
         }
 
+//        echo '<pre>';
+//        print_r($cart_arr);
+//        exit;
+        //dd($user);
         $response = ['res' => true, 'msg' => "", 'data' => $data];
         return response()->json($response);
     }
 
-    public function ordersPackingSlip(Request $request)
-    {
+    public function ordersPackingSlip(Request $request) {
         $orders = [];
         $data = [];
         if ($request->items) {
@@ -480,8 +492,8 @@ class BrandController extends Controller
                             $product = Products::where('id', $cartitem->product_id)->first();
                             $cartitem->product_id = $product->id;
                             $cartitem->product_name = $product->name;
-                            $cartitem->product_price = (float)$cartitem->price;
-                            $cartitem->product_qty = (int)$cartitem->quantity;
+                            $cartitem->product_price = (float) $cartitem->price;
+                            $cartitem->product_qty = (int) $cartitem->quantity;
                             $cartitem->product_image = $product->featured_image != '' ? $product->featured_image : asset('public/admin/dist/img/logo-image.png');
                         }
                     }
@@ -496,23 +508,26 @@ class BrandController extends Controller
             }
         }
 
+//        echo '<pre>';
+//        print_r($cart_arr);
+//        exit;
+        //dd($user);
         $response = ['res' => true, 'msg' => "", 'data' => $data];
         return response()->json($response);
     }
 
-    public function acceptOrder(Request $request)
-    {
+    public function acceptOrder(Request $request) {
         $validator = Validator::make($request->all(), [
-            'brand_address1' => 'string|required',
-            'brand_address2' => 'string|nullable',
-            'brand_phone' => 'numeric|required',
-            'brand_post_code' => 'string|nullable',
+                    'brand_address1' => 'string|required',
+                    'brand_address2' => 'string|nullable',
+                    'brand_phone' => 'numeric|required',
+                    'brand_post_code' => 'string|nullable',
         ]);
         if ($validator->fails()) {
             $response = ['res' => false, 'msg' => $validator->errors()->first(), 'data' => ""];
             return response()->json($response);
         } else {
-
+            // return $request->all();
             if (empty(Order::where('order_number', $request->ord_no)->first())) {
                 $response = ['res' => false, 'msg' => 'Order is Empty !', 'data' => ""];
                 return response()->json($response);
@@ -535,17 +550,20 @@ class BrandController extends Controller
             $brand = Brand::where('user_id', $order->brand_id)->first();
             $msg = "Your orders with " . $brand->brand_name . " having order number <strong>#" . $order->order_number . "</strong> has been processing.";
             $data = array('email' => $retailer_user->email, 'order_number' => $order->order_number);
-
+//            Mail::send('email.orderStatus', ['msg' => $msg, 'site_url' => 'https://demoupdates.com/updates/new-bazar/dev/', 'site_name' => 'BAZAR', 'name' => $retailer_user->first_name . ' ' . $retailer_user->last_name], function($message) use($data) {
+//                $message->to($data['email']);
+//                $message->from("sender@demoupdates.com");
+//                $message->subject('Bazar:' . $data["order_number"] . ' Status');
+//            });
             $data = [];
 
-
+            // dd($users);        
             $response = ['res' => true, 'msg' => '', 'data' => $data];
         }
         return response()->json($response);
     }
 
-    public function changeDateOrder(Request $request)
-    {
+    public function changeDateOrder(Request $request) {
         $orders = [];
         $data = [];
         if ($request->items) {
@@ -561,25 +579,31 @@ class BrandController extends Controller
                     $retailer_user = User::find($retailerId);
                     $msg = "Your order's ship date with " . $brand->brand_name . " having order number <strong>#" . $order->order_number . "</strong> has been changed to " . $request->ship_date;
                     $data = array('email' => $retailer_user->email, 'order_number' => $order->order_number);
-
-
+//                    Mail::send('email.orderStatus', ['msg' => $msg, 'site_url' => 'https://demoupdates.com/updates/new-bazar/dev/', 'site_name' => 'BAZAR', 'name' => $retailer_user->first_name . ' ' . $retailer_user->last_name], function($message) use($data) {
+//                        $message->to($data['email']);
+//                        $message->from("sender@demoupdates.com");
+//                        $message->subject('Bazar:' . $data["order_number"] . ' Status');
+//                    });
                 }
             }
         }
 
+//        echo '<pre>';
+//        print_r($cart_arr);
+//        exit;
+        //dd($user);
         $response = ['res' => true, 'msg' => "", 'data' => $data];
         return response()->json($response);
     }
 
-    public function changeAddressOrder(Request $request)
-    {
+    public function changeAddressOrder(Request $request) {
         $data = [];
         $validator = Validator::make($request->all(), [
-            'name' => 'string|required',
-            'address1' => 'string|required',
-            'address2' => 'string|nullable',
-            'phone' => 'numeric|required',
-            'post_code' => 'string|nullable',
+                    'name' => 'string|required',
+                    'address1' => 'string|required',
+                    'address2' => 'string|nullable',
+                    'phone' => 'numeric|required',
+                    'post_code' => 'string|nullable',
         ]);
         if ($validator->fails()) {
             $response = ['res' => false, 'msg' => $validator->errors()->first(), 'data' => ""];
@@ -600,8 +624,7 @@ class BrandController extends Controller
         return response()->json($response);
     }
 
-    public function cancelOrder(Request $request)
-    {
+    public function cancelOrder(Request $request) {
         $order = Order::find($request->order_id);
         if ($order) {
 
@@ -611,26 +634,226 @@ class BrandController extends Controller
             $order->save();
             $brand = Brand::where('user_id', $order->brand_id)->first();
             $prdct_arr = Cart::where('order_id', $order->id)->get();
-
+            //sync stock to external sites
+            //$this->syncExternal($prdct_arr, $brand->user_id);
 
             $retailerId = $order->user_id;
             $retailer_user = User::find($retailerId);
             $msg = "Your order with " . $brand->brand_name . " having order number <strong>#" . $order->order_number . "</strong> has been cancelled.<br>";
-            $msg .= "<strong>Reason for cancelling</strong><br>";
+            $msg .="<strong>Reason for cancelling</strong><br>";
             $msg .= $request->cancel_reason_title . "<br>";
             $msg .= $request->cancel_reason_desc . "<br>";
             $data = array('email' => $retailer_user->email, 'order_number' => $order->order_number);
+//            Mail::send('email.orderStatus', ['msg' => $msg, 'site_url' => 'https://demoupdates.com/updates/new-bazar/dev/', 'site_name' => 'BAZAR', 'name' => $retailer_user->first_name . ' ' . $retailer_user->last_name], function($message) use($data) {
+//                $message->to($data['email']);
+//                $message->from("sender@demoupdates.com");
+//                $message->subject('Bazar:' . $data["order_number"] . ' Status');
+//            });
         }
         $response = ['res' => true, 'msg' => "", 'data' => ""];
         return response()->json($response);
     }
 
+    public function syncExternal($prdct_arr, $brand_id) {
 
-    public function splitOrder(Request $request)
-    {
+        $result_array = array();
+        $brand_id = $brand_id;
+        $prdct_arr = $prdct_arr;
+
+        if (!empty($prdct_arr)) {
+            foreach ($prdct_arr as $prdct) {
+                switch ($prdct->type) {
+                    case 'OPEN_SIZING':
+                        $reference_arr = unserialize($prdct->reference);
+                        if (!empty($reference_arr)) {
+                            foreach ($reference_arr as $refk => $refv) {
+                                $variant_id = $refk;
+                                $ordered_qty = (int) $refv;
+                                $variant = DB::table('product_variations')->where('id', $variant_id)->first();
+                                $stock = (int) $variant->stock + $ordered_qty;
+                                DB::UPDATE("UPDATE product_variations SET stock='" . $stock . "' WHERE id='" . $variant->id . "'");
+                            }
+                        }
+                        break;
+                    case 'PREPACK':
+                        break;
+                    case 'SINGLE_PRODUCT':
+                        if (!empty($prdct->variant_id)) {
+                            $variant = DB::table('product_variations')->where('id', $prdct->variant_id)->first();
+                            $stock = (int) $variant->stock + $prdct->quantity;
+                            DB::UPDATE("UPDATE product_variations SET stock='" . $stock . "' WHERE id='" . $variant->id . "'");
+                            $user_count = DB::table('product_variations')->where('product_id', $prdct->product_id)->count();
+                            if ($user_count == 1) {
+                                DB::table("products")->where('id', $prdct->product_id)->update(array("stock" => $stock));
+                            }
+                        } else {
+                            $product = DB::table('products')->where('id', $prdct->product_id)->first();
+                            $stock = (int) $product->stock + $prdct->quantity;
+                            DB::UPDATE("UPDATE products SET stock='" . $stock . "' WHERE id='" . $variant->id . "'");
+                        }
+                        break;
+                    default:
+                        break;
+                }
+                $product = Products::where('id', $prdct->product_id)->first();
+
+                $syncs = DB::table('brand_store_import_tbl')
+                                ->where('brand_id', $brand_id)
+                                ->where('website', $product->website)
+                                ->get()->first();
+
+                $types = $syncs->types;
+                if ($types == 'wordpress') {
+                    // include(app_path() . '/Classes/class-sw-api-client.php');
+
+
+                    $consumer_key = $syncs->api_key;
+
+                    $website = 'https://' . $syncs->website;
+                    $consumer_secret = $syncs->api_password;
+
+
+
+
+                    $prdct_qry = "SELECT * FROM products WHERE id='" . $product->product_id . "'";
+                    $prdct_res = DB::select($prdct_qry);
+
+                    $url = "" . $website . "/wp-json/wc/v3/products/" . $prdct_res[0]->product_id . "";
+
+                    $headers = array(
+                        'Authorization' => 'Basic ' . base64_encode($consumer_key . ':' . $consumer_secret)
+                    );
+                    $data = array(
+                        'stock_quantity' => $prdct_res[0]->stock,
+                    );
+
+                    $curl = curl_init();
+                    curl_setopt($curl, CURLOPT_URL, $url);
+                    curl_setopt($curl, CURLOPT_POST, true);
+                    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($curl, CURLOPT_TIMEOUT, 30);
+
+                    curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+                    curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($data));
+//for debug only!
+                    curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+                    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+                    curl_setopt($curl, CURLOPT_USERPWD, "$consumer_key:$consumer_secret");
+                    $resp = curl_exec($curl);
+                    $status_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+                    curl_close($curl);
+
+
+                    $qry = "SELECT * FROM product_variations WHERE website='" . $syncs->website . "' AND product_id='" . $product->product_id . "'";
+                    $res = DB::select($qry);
+                    if (count($res) > 0) {
+                        foreach ($res as $var) {
+                            $url = "" . $website . "/wp-json/wc/v3/products/" . $prdct_res[0]->product_id . "/variations/" . $var->variation_id . "";
+
+                            $headers = array(
+                                'Authorization' => 'Basic ' . base64_encode($consumer_key . ':' . $consumer_secret)
+                            );
+                            $data = array(
+                                'stock_quantity' => $var->stock,
+                            );
+
+                            $curl = curl_init();
+                            curl_setopt($curl, CURLOPT_URL, $url);
+                            curl_setopt($curl, CURLOPT_POST, true);
+                            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+                            curl_setopt($curl, CURLOPT_TIMEOUT, 30);
+
+                            curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+                            curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($data));
+//for debug only!
+                            curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+                            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+                            curl_setopt($curl, CURLOPT_USERPWD, "$consumer_key:$consumer_secret");
+                            $resp = curl_exec($curl);
+                            $status_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+                            curl_close($curl);
+                        }
+                    }
+                    $response = ['res' => true, 'msg' => "Sync Successfully", 'data' => ""];
+                }
+
+                if ($types == 'shopify') {
+
+                    $API_KEY = $syncs->api_key;
+                    $STORE_URL = $syncs->website;
+                    $PASSWORD = $syncs->api_password;
+
+                    $putUrl = 'https://' . $API_KEY . ':' . $PASSWORD . '@' . $STORE_URL . '/admin/api/2022-07/inventory_levels/set.json';
+
+                    $qry = "SELECT * FROM product_variations WHERE website='" . $syncs->website . "' AND product_id='" . $product->id . "'";
+                    $res = DB::select($qry);
+                    if (count($res) > 0) {
+                        foreach ($res as $var) {
+
+                            $payload = array(
+                                "location_id" => 36132814934,
+                                "inventory_item_id" => $var->inventory_item_id,
+                                "available" => $var->stock
+                            );
+                            $payload = json_encode($payload, JSON_NUMERIC_CHECK);
+
+                            $session = curl_init();
+                            curl_setopt($session, CURLOPT_URL, $putUrl);
+                            curl_setopt($session, CURLOPT_CONNECTTIMEOUT, 30); //seconds to allow for connection
+                            curl_setopt($session, CURLOPT_TIMEOUT, 30); //seconds to allow for cURL commands
+                            curl_setopt($session, CURLOPT_HEADER, true); //include header info in return value ? 
+                            curl_setopt($session, CURLOPT_RETURNTRANSFER, true); //return response as a string
+//curl_setopt($session, CURLOPT_PUT, 1); 
+                            curl_setopt($session, CURLOPT_POSTFIELDS, $payload);
+                            curl_setopt($session, CURLOPT_CUSTOMREQUEST, 'POST');
+                            curl_setopt($session, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Content-Type: application/json'));
+                            $data = curl_exec($session);
+                            curl_close($session);
+                        }
+                    }
+
+                    $qry = "SELECT * FROM product_variations WHERE website='" . $syncs->website . "' AND product_id='" . $product->id . "'";
+                    $res = DB::select($qry);
+                    if (count($res) == 1) {
+                        foreach ($res as $var) {
+                            $prdct_qry = "SELECT * FROM products WHERE id='" . $product->id . "'";
+                            $prdct_res = DB::select($prdct_qry);
+
+
+                            $payload = array(
+                                "location_id" => 36132814934,
+                                "inventory_item_id" => $var->inventory_item_id,
+                                "available" => $prdct_res[0]->stock
+                            );
+                            $payload = json_encode($payload, JSON_NUMERIC_CHECK);
+
+                            $session = curl_init();
+                            curl_setopt($session, CURLOPT_URL, $putUrl);
+                            curl_setopt($session, CURLOPT_CONNECTTIMEOUT, 30); //seconds to allow for connection
+                            curl_setopt($session, CURLOPT_TIMEOUT, 30); //seconds to allow for cURL commands
+                            curl_setopt($session, CURLOPT_HEADER, true); //include header info in return value ? 
+                            curl_setopt($session, CURLOPT_RETURNTRANSFER, true); //return response as a string
+//curl_setopt($session, CURLOPT_PUT, 1); 
+                            curl_setopt($session, CURLOPT_POSTFIELDS, $payload);
+                            curl_setopt($session, CURLOPT_CUSTOMREQUEST, 'POST');
+                            curl_setopt($session, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Content-Type: application/json'));
+                            $data = curl_exec($session);
+                            curl_close($session);
+                        }
+                    }
+
+                    //$response = ['res' => true, 'msg' => "Sync Successfully", 'data' => ""];
+                }
+            }
+        }
+        return true;
+    }
+
+    public function splitOrder(Request $request) {
         $order = Order::find($request->order_id);
         $new_cart = $request->items;
-
+//        print_r($new_cart);
+//        exit;
         if ($order && $new_cart) {
             $cart_arr = Cart::where('order_id', $order->id)->get();
             if ($cart_arr) {
@@ -655,6 +878,8 @@ class BrandController extends Controller
             $order->total_amount = $order->sub_total;
             $order->save();
 
+            //$cart = Cart::where('user_id', $order->user_id)->where('user_id', $order->brand_id)->where('order_id', null);
+            // copying the old record
             $shared_order = $order->replicate();
             $shared_order->order_number = 'ORD-' . strtoupper(Str::random(10));
             $shared_order->parent_id = $order->id;
@@ -668,11 +893,11 @@ class BrandController extends Controller
         return response()->json($response);
     }
 
-    public function updateOrder(Request $request)
-    {
+    public function updateOrder(Request $request) {
         $order = Order::find($request->order_id);
         $new_cart = $request->items;
-
+//        print_r($new_cart);
+//        exit;
         if ($order && $new_cart) {
             $cart_arr = Cart::where('order_id', $order->id)->get();
             if ($cart_arr) {
@@ -680,16 +905,16 @@ class BrandController extends Controller
                     $cart_id = $citem->id;
                     $cart_new_qty = $new_cart[$citem->id]['qty'];
                     $quantity = $cart_new_qty < 0 ? 0 : $cart_new_qty;
-
+                    //update cart with order id
                     $cart_new_amnt = $cart_new_qty * $citem->price;
                     Cart::where('id', $cart_id)->update(['quantity' => $quantity, 'amount' => $cart_new_amnt]);
                 }
             }
 
-            $order->has_discount = (string)$request->is_discount;
+            $order->has_discount = (string) $request->is_discount;
             $order->discount_type = $request->disc_amt_type;
             $order->discount = $request->disc_amt;
-            $order->shipping_free = (string)$request->ship_free;
+            $order->shipping_free = (string) $request->ship_free;
             $order->shipping_date = $request->ship_date;
             $order->sub_total = Cart::where('user_id', $order->user_id)->where('brand_id', $order->brand_id)->where('order_id', $order->id)->sum('amount');
             $order->quantity = Cart::where('user_id', $order->user_id)->where('brand_id', $order->brand_id)->where('order_id', $order->id)->sum('quantity');
@@ -700,8 +925,7 @@ class BrandController extends Controller
         return response()->json($response);
     }
 
-    public function ordersCSV(Request $request)
-    {
+    public function ordersCSV(Request $request) {
         $brand = Brand::where('user_id', $request->brand_id)->first();
         $store = str_replace(" ", "", $brand->brand_name);
         $date = date("d-m-y,h:i a");
@@ -722,9 +946,80 @@ class BrandController extends Controller
         exit();
     }
 
+    public function customers(Request $request) {
+        $customers = [];
+        $data = [];
+        $brand = Brand::where('user_id', $request->user_id)->first();
+        if ($brand) {
+            $brandCustomers = BrandCustomer::where('brand_id', $brand->user_id)->get();
 
-    private function imageUpload($brand, $image, $previousFile, $replaceable)
-    {
+            if ($brandCustomers) {
+                foreach ($brandCustomers as $customer) {
+                    $customerDetails = User::find($customer->user_id);
+                    $retailerDetails = Retailer::where('user_id', $customer->user_id)->first();
+                    $cart_amount = Cart::where('brand_id', $brand->id)->where('user_id', $customerDetails->id)->where('order_id', '!=', null)->sum('amount');
+                    $ordered_amount = Cart::where('brand_id', $brand->id)->where('user_id', $customerDetails->id)->where('order_id', '!=', null)->sum('amount');
+                    $store_name = $retailerDetails->store_name ?? '';
+                    $customers[] = array(
+                        'name' => $customerDetails->first_name . ' ' . $customerDetails->last_name,
+                        'email' => $customerDetails->email,
+                        'store_name' => $store_name,
+                        'cart_amount' => $cart_amount,
+                        'ordered_amount' => $ordered_amount
+                    );
+                }
+            }
+            $data = $customers;
+            $response = ['res' => true, 'msg' => "", 'data' => $data];
+            return response()->json($response);
+        } else {
+            $response = ['res' => false, 'msg' => "No record found", 'data' => ""];
+            return response()->json($response);
+        }
+    }
+
+    public function addCustomer(Request $request) {
+        $data = [];
+        $brand = Brand::where('user_id', $request->user_id)->first();
+        if ($brand) {
+            $customers = $request->customers;
+            if ($customers) {
+                foreach ($customers as $customer) {
+                    $contact_name = $customer['contact_name'];
+                    $name_arr = explode(' ', $contact_name);
+                    $firstName = $name_arr[0];
+                    unset($name_arr[0]);
+                    $lastName = implode(' ', $name_arr);
+                    $user = User::create(['email' => $customer['email_address'], 'first_name' => $firstName, 'last_name' => $lastName, 'password' => Hash::make('123456'), 'role' => 'retailer']);
+                    if ($user) {
+                        $userId = $user->id;
+                        $newRetailer = new Retailer;
+                        $newRetailer->user_id = $userId;
+                        $newRetailer->retailer_key = 'r_' . Str::lower(Str::random(10));
+                        $newRetailer->store_name = $customer['store_name'];
+                        $newRetailer->save();
+                        $newBrandCustomer = new BrandCustomer;
+                        $newBrandCustomer->brand_id = $brand->id;
+                        $newBrandCustomer->user_id = $userId;
+                        $newBrandCustomer->save();
+                    }
+                }
+            }
+            $response = ['res' => true, 'msg' => "Inserted successfully", 'data' => ""];
+            return response()->json($response);
+        } else {
+            $response = ['res' => false, 'msg' => "No record found", 'data' => ""];
+            return response()->json($response);
+        }
+    }
+
+    /**
+     * Update the specified resource in storage.
+     * @param int $brand
+     * @param int $id
+     * @return Stringable
+     */
+    private function imageUpload($brand, $image, $previousFile, $replaceable) {
 
         $brandAbsPath = $this->brandAbsPath . '/' . $brand . '/';
         $brandRelPath = $this->brandRelPath . $brand . '/';
