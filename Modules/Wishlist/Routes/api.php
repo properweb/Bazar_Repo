@@ -20,5 +20,23 @@ Route::prefix('wishlist')->group(function () {
     Route::post('/add', 'WishlistController@add');
 });
 Route::prefix('wishlist')->group(function () {
-    Route::get('/delete/{id}', 'WishlistController@delete');
+    Route::post('/delete', 'WishlistController@delete');
+});
+Route::prefix('wishlist')->group(function () {
+    Route::get('/fetch-boards/{id}', 'WishlistController@fetchBoards');
+});
+Route::prefix('wishlist')->group(function () {
+    Route::post('/add-board', 'WishlistController@addBoard');
+});
+Route::prefix('wishlist')->group(function () {
+    Route::get('/fetch-board/{key}', 'WishlistController@fetchBoard');
+});
+Route::prefix('wishlist')->group(function () {
+    Route::post('/update-board', 'WishlistController@updateBoard');
+});
+Route::prefix('wishlist')->group(function () {
+    Route::post('/delete-board', 'WishlistController@deleteBoard');
+});
+Route::prefix('wishlist')->group(function () {
+    Route::post('/change-board', 'WishlistController@changeBoard');
 });
