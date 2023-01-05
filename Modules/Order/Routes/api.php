@@ -1,7 +1,5 @@
 <?php
 
-use Illuminate\Http\Request;
-
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -13,9 +11,16 @@ use Illuminate\Http\Request;
 |
 */
 
-Route::prefix('order')->group(function () {
-    Route::post('/place', 'OrderController@store');
-});
-Route::prefix('order')->group(function () {
-    Route::get('/pdf/{id}', 'OrderController@pdf');
+Route::prefix('orders')->group(function () {
+    Route::get('/', 'OrderController@index');
+    Route::post('/', 'OrderController@store');
+    Route::get('/{order}', 'OrderController@show');
+    Route::post('/packing-slip', 'OrderController@packingSlip');
+    Route::post('/accept', 'OrderController@accept');
+    Route::post('/change-date', 'OrderController@changeDate');
+    Route::post('/change-address', 'OrderController@changeAddress');
+    Route::post('/update', 'OrderController@update');
+    Route::post('/split', 'OrderController@split');
+    Route::post('/cancel', 'OrderController@cancel');
+    Route::get('/csv', 'OrderController@csv');
 });

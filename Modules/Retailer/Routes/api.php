@@ -16,3 +16,9 @@ use Illuminate\Http\Request;
 Route::prefix('retailer')->group(function () {
     Route::post('/register', 'RetailerController@register');
 });
+Route::prefix('retailer')->group(function () {
+    Route::get('/edit/{id}', 'RetailerController@edit');
+});
+Route::prefix('retailer')->group(function () {
+    Route::post('/update-account', 'RetailerController@update');
+});
