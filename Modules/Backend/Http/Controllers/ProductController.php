@@ -2,8 +2,13 @@
 
 namespace Modules\Backend\Http\Controllers;
 
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\View\Factory;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Routing\Redirector;
 use Modules\Product\Entities\ProductImage;
 use Modules\Product\Entities\ProductPrepack;
 use Modules\Product\Entities\Products;
@@ -16,7 +21,11 @@ use DB;
 class ProductController extends Controller
 {
 
-    public function index(Request $request)
+    /**
+     * @param Request $request
+     * @return View|Factory|Redirector|RedirectResponse|Application
+     */
+    public function index(Request $request): View|Factory|Redirector|RedirectResponse|Application
     {
         if (!Session::has('AdminId')) {
             return redirect('/backend');
@@ -25,6 +34,11 @@ class ProductController extends Controller
         return view('backend::ProductList', ['brand_id' => $request->brand_id]);
 
     }
+
+    /**
+     * @param Request $request
+     * @return Application|RedirectResponse|Redirector|void
+     */
     public function vendorProduct(Request $request)
     {
         if (!Session::has('AdminId')) {
@@ -68,7 +82,11 @@ class ProductController extends Controller
         exit;
     }
 
-    public function productDetail(Request $request)
+    /**
+     * @param Request $request
+     * @return View|Factory|Redirector|RedirectResponse|Application
+     */
+    public function productDetail(Request $request): View|Factory|Redirector|RedirectResponse|Application
     {
         if (!Session::has('AdminId')) {
             return redirect('/backend');

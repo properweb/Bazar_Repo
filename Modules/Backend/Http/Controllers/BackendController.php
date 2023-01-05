@@ -3,8 +3,13 @@
 namespace Modules\Backend\Http\Controllers;
 
 
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\View\Factory;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Routing\Redirector;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Modules\User\Entities\User;
@@ -13,12 +18,19 @@ use Session;
 class BackendController extends Controller
 {
 
-    public function index()
+    /**
+     * @return Factory|View|Application
+     */
+    public function index(): Factory|View|Application
     {
         return view('backend::index');
     }
 
-    public function checkLogin(Request $request)
+    /**
+     * @param Request $request
+     * @return Redirector|Application|RedirectResponse
+     */
+    public function checkLogin(Request $request): Redirector|Application|RedirectResponse
     {
         $validator = Validator::make($request->all(), [
             'email_address' => 'string|email|required',
@@ -43,7 +55,10 @@ class BackendController extends Controller
 
     }
 
-    public function logOut()
+    /**
+     * @return Redirector|Application|RedirectResponse
+     */
+    public function logOut(): Redirector|Application|RedirectResponse
     {
 
         Session::forget('AdminId');
@@ -51,12 +66,19 @@ class BackendController extends Controller
 
     }
 
-    public function changePassword()
+    /**
+     * @return Factory|View|Application
+     */
+    public function changePassword(): Factory|View|Application
     {
         return view('backend::ChangePassword');
     }
 
-    public function updatePassword(Request $request)
+    /**
+     * @param Request $request
+     * @return RedirectResponse
+     */
+    public function updatePassword(Request $request): RedirectResponse
     {
         $user = User::find($request->session()->get('AdminId'));
         $validator = Validator::make($request->all(), [

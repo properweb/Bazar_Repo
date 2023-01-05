@@ -3,16 +3,27 @@
 namespace Modules\Backend\Http\Controllers;
 
 
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\View\Factory;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use DB;
+use Illuminate\Routing\Redirector;
 use Session;
 use Modules\User\Entities\User;
 
+/**
+ *
+ */
 class VendorController extends Controller
 {
 
-    public function index()
+    /**
+     * @return View|Factory|Redirector|RedirectResponse|Application
+     */
+    public function index(): View|Factory|Redirector|RedirectResponse|Application
     {
         if (!Session::has('AdminId')) {
             return redirect('/');
@@ -20,6 +31,9 @@ class VendorController extends Controller
         return view('backend::vendorlist');
     }
 
+    /**
+     * @return Application|RedirectResponse|Redirector|void
+     */
     public function vendorList()
     {
         if (!Session::has('AdminId')) {
@@ -75,7 +89,11 @@ END AS live_status"))
         exit;
     }
 
-    public function vendorDetails(Request $request)
+    /**
+     * @param Request $request
+     * @return View|Factory|Redirector|RedirectResponse|Application
+     */
+    public function vendorDetails(Request $request): View|Factory|Redirector|RedirectResponse|Application
     {
         if (!Session::has('AdminId')) {
             return redirect('/');
