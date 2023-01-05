@@ -18,6 +18,10 @@ use Modules\Country\Entities\Country;
 
 class WishlistController extends Controller {
 
+    /**
+     * @param Request $request
+     * @return mixed
+     */
     public function add(Request $request) {
         if (empty($request->product_id)) {
             $response = ['res' => false, 'msg' => 'Invalid Product', 'data' => ""];
@@ -53,7 +57,7 @@ class WishlistController extends Controller {
             $alreadyWished->quantity = $alreadyWished->quantity + (int) $request->quantity;
             $alreadyWished->amount = $product->price + $alreadyWished->amount;
             if (!empty($request->variant_id) && $variant) {
-                if ($productType == 'OPEN_SIZING') {
+                if ($productType === 'OPEN_SIZING') {
                     $optionsArr = [];
                     $styleArr = [];
                     $styleGrpArr = [];
@@ -65,13 +69,13 @@ class WishlistController extends Controller {
                     if (!empty($request->openSizingArray)) {
                         foreach ($request->openSizingArray as $size) {
                             $sizeVariant = ProductVariation::where('product_id', $product->id)->where('options1', "Size")->where('value1', $size['value'])->where('value2', $variant->value2)->where('value3', $variant->value3)->first();
-                            if ($variant->options1 == 'Size') {
+                            if ($variant->options1 === 'Size') {
                                 $sizeVariant = ProductVariation::where('product_id', $product->id)->where('options1', "Size")->where('value1', $size['value'])->where('value2', $variant->value2)->where('value3', $variant->value3)->first();
                             }
-                            if ($variant->options2 == 'Size') {
+                            if ($variant->options2 === 'Size') {
                                 $sizeVariant = ProductVariation::where('product_id', $product->id)->where('options2', "Size")->where('value2', $size['value'])->where('value1', $variant->value1)->where('value3', $variant->value3)->first();
                             }
-                            if ($variant->options3 == 'Size') {
+                            if ($variant->options3 === 'Size') {
                                 $sizeVariant = ProductVariation::where('product_id', $product->id)->where('options3', "Size")->where('value3', $size['value'])->where('value2', $variant->value2)->where('value1', $variant->value1)->first();
                             }
                             $ord_qty = $reference_arr[$sizeVariant->id] ?? 0;
@@ -88,15 +92,15 @@ class WishlistController extends Controller {
                             $qtyArr[] = $new_qty;
                         }
                     }
-                    if ($variant->options1 == 'Size') {
+                    if ($variant->options1 === 'Size') {
                         $styleArr[] = $variant->value2;
                         $styleArr[] = $variant->value3;
                     }
-                    if ($variant->options2 == 'Size') {
+                    if ($variant->options2 === 'Size') {
                         $styleArr[] = $variant->value1;
                         $styleArr[] = $variant->value3;
                     }
-                    if ($variant->options3 == 'Size') {
+                    if ($variant->options3 === 'Size') {
                         $styleArr[] = $variant->value2;
                         $styleArr[] = $variant->value1;
                     }
@@ -109,13 +113,13 @@ class WishlistController extends Controller {
                     $alreadyWished->style_group_name = rtrim(implode(',', $styleGrpArr), ',');
                     $alreadyWished->reference = serialize($optionsArr);
                 }
-                if ($productType == 'PREPACK') {
+                if ($productType === 'PREPACK') {
                     $prepackVariant = ProductPrepack::where('id', $request->prepack_id)->first();
                     $alreadyWished->price = $prepackVariant->packs_price;
                     $alreadyWished->style_name = $prepackVariant->style;
                     $alreadyWished->style_group_name = $prepackVariant->size_ratio . ';' . $prepackVariant->size_range;
                 }
-                if ($productType == 'SINGLE_PRODUCT') {
+                if ($productType === 'SINGLE_PRODUCT') {
                     if ($variant->stock < $alreadyWished->quantity || $variant->stock <= 0) {
                         $response = ['res' => false, 'msg' => 'Stock not sufficient!.', 'data' => ""];
                         return response()->json($response);
@@ -130,7 +134,7 @@ class WishlistController extends Controller {
             $alreadyWished->save();
         } else {
             $boardCount = Board::where('user_id', $request->user_id)->get()->count();
-            if ($boardCount == 0) {
+            if ($boardCount === 0) {
                 $newBoard = new Board;
                 $newBoard->user_id = $request->user_id;
                 $newBoard->board_key = 'rb_' . Str::lower(Str::random(10));
@@ -150,7 +154,7 @@ class WishlistController extends Controller {
 
             if (!empty($request->variant_id) && $variant) {
                 $wishlist->price = $variant->price;
-                if ($productType == 'OPEN_SIZING') {
+                if ($productType === 'OPEN_SIZING') {
                     $optionsArr = [];
                     $styleArr = [];
                     $styleGrpArr = [];
@@ -161,13 +165,13 @@ class WishlistController extends Controller {
                     if (!empty($request->openSizingArray)) {
                         foreach ($request->openSizingArray as $size) {
                             $sizeVariant = ProductVariation::where('product_id', $product->id)->where('options1', "Size")->where('value1', $size['value'])->where('value2', $variant->value2)->where('value3', $variant->value3)->first();
-                            if ($variant->options1 == 'Size') {
+                            if ($variant->options1 === 'Size') {
                                 $sizeVariant = ProductVariation::where('product_id', $product->id)->where('options1', "Size")->where('value1', $size['value'])->where('value2', $variant->value2)->where('value3', $variant->value3)->first();
                             }
-                            if ($variant->options2 == 'Size') {
+                            if ($variant->options2 === 'Size') {
                                 $sizeVariant = ProductVariation::where('product_id', $product->id)->where('options2', "Size")->where('value2', $size['value'])->where('value1', $variant->value1)->where('value3', $variant->value3)->first();
                             }
-                            if ($variant->options3 == 'Size') {
+                            if ($variant->options3 === 'Size') {
                                 $sizeVariant = ProductVariation::where('product_id', $product->id)->where('options3', "Size")->where('value3', $size['value'])->where('value2', $variant->value2)->where('value1', $variant->value1)->first();
                             }
                             if ($sizeVariant->stock < $wishlist->quantity || $sizeVariant->stock <= 0) {
@@ -181,15 +185,15 @@ class WishlistController extends Controller {
                             $qtyArr[] = $size['qty'];
                         }
                     }
-                    if ($variant->options1 == 'Size') {
+                    if ($variant->options1 === 'Size') {
                         $styleArr[] = $variant->value2;
                         $styleArr[] = $variant->value3;
                     }
-                    if ($variant->options2 == 'Size') {
+                    if ($variant->options2 === 'Size') {
                         $styleArr[] = $variant->value1;
                         $styleArr[] = $variant->value3;
                     }
-                    if ($variant->options3 == 'Size') {
+                    if ($variant->options3 === 'Size') {
                         $styleArr[] = $variant->value2;
                         $styleArr[] = $variant->value1;
                     }
@@ -203,7 +207,7 @@ class WishlistController extends Controller {
                     $wishlist->reference = serialize($optionsArr);
                     $wishlist->variant_id = $request->variant_id;
                 }
-                if ($productType == 'PREPACK') {
+                if ($productType === 'PREPACK') {
                     $prepackVariant = ProductPrepack::where('id', $request->prepack_id)->first();
                     $wishlist->price = $prepackVariant->packs_price;
                     $wishlist->style_name = $prepackVariant->style;
@@ -211,7 +215,7 @@ class WishlistController extends Controller {
                     $wishlist->reference = $request->variant_id;
                     $wishlist->variant_id = $request->prepack_id;
                 }
-                if ($productType == 'SINGLE_PRODUCT') {
+                if ($productType === 'SINGLE_PRODUCT') {
                     if ($variant->stock < $wishlist->quantity || $variant->stock <= 0) {
                         $response = ['res' => false, 'msg' => 'Stock not sufficient!.', 'data' => ""];
                         return response()->json($response);
@@ -241,6 +245,10 @@ class WishlistController extends Controller {
         return response()->json($response);
     }
 
+    /**
+     * @param Request $request
+     * @return mixed
+     */
     public function delete(Request $request) {
         $wishlist = Wishlist::find($request->id);
         if ($wishlist) {
@@ -252,6 +260,11 @@ class WishlistController extends Controller {
         return response()->json($response);
     }
 
+    /**
+     * @param Request $request
+     * @param $id
+     * @return mixed
+     */
     public function fetch(Request $request, $id) {
         $boardArr = [];
         $brandArr = [];
@@ -346,6 +359,11 @@ class WishlistController extends Controller {
         return response()->json($response);
     }
 
+    /**
+     * @param Request $request
+     * @param $id
+     * @return mixed
+     */
     public function fetchBoards(Request $request, $id) {
         $boardArr = [];
         $user = User::find($id);
@@ -379,6 +397,11 @@ class WishlistController extends Controller {
         return response()->json($response);
     }
 
+    /**
+     * @param Request $request
+     * @param $key
+     * @return mixed
+     */
     public function fetchBoard(Request $request, $key) {
         $boardArr = [];
         $productArr = [];
@@ -420,6 +443,10 @@ class WishlistController extends Controller {
         return response()->json($response);
     }
 
+    /**
+     * @param Request $request
+     * @return mixed
+     */
     public function addBoard(Request $request) {
         $validator = Validator::make($request->all(), [
                     'name' => 'required',
@@ -443,6 +470,10 @@ class WishlistController extends Controller {
         return response()->json($response);
     }
 
+    /**
+     * @param Request $request
+     * @return mixed
+     */
     public function updateBoard(Request $request) {
         $validator = Validator::make($request->all(), [
                     'name' => 'required',
@@ -464,6 +495,10 @@ class WishlistController extends Controller {
         return response()->json($response);
     }
 
+    /**
+     * @param Request $request
+     * @return mixed
+     */
     public function deleteBoard(Request $request) {
         $board = Board::where('board_key', $request->key)->first();
         if ($board) {
@@ -481,6 +516,10 @@ class WishlistController extends Controller {
         return response()->json($response);
     }
 
+    /**
+     * @param Request $request
+     * @return mixed
+     */
     public function changeBoard(Request $request) {
         $whishlist = Wishlist::find($request->wish_id);
         if ($whishlist) {
