@@ -2,13 +2,23 @@
 
 namespace Modules\Retailer\Http\Controllers;
 
+
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Modules\Retailer\Entities\Retailer;
+
+
+
 use Modules\User\Entities\User;
+use Modules\Brand\Entities\Brand;
+use Modules\Product\Entities\Products;
+use Modules\Cart\Entities\Cart;
+use Modules\Order\Entities\Order;
+use Modules\User\Entities\User;
+use DB;
 
 
 /**
@@ -65,10 +75,12 @@ class RetailerController extends Controller
         return response()->json($response);
     }
 
+
     /**
      * @param $id
      * @return mixed
      */
+
     public function edit($id)
     {
         $user = User::find($id);
@@ -82,6 +94,7 @@ class RetailerController extends Controller
         $response = ['res' => true, 'msg' => "", 'data' => $retailer];
         return response()->json($response);
     }
+
 
     /**
      * @param Request $request
@@ -100,6 +113,7 @@ class RetailerController extends Controller
             $user = User::find($request->user_id);
             $user->first_name = $request->first_name;
             $user->last_name = $request->last_name;
+
             $status = $user->save();
             if ($status) {
                 $retailer = Retailer::where('user_id', $request->user_id)->first();
@@ -112,6 +126,7 @@ class RetailerController extends Controller
                 $retailer->sign_up_for_email = $request->sign_up_for_email;
                 $retailer->website_url = $request->website_url;
                 $retailer->save();
+
                 if ($request->new_password != '') {
                     $validator2 = Validator::make($request->all(), [
                         'old_password' => 'required',
@@ -136,6 +151,8 @@ class RetailerController extends Controller
                 $response = ['res' => false, 'msg' => "Please try again!", 'data' => ''];
             }
         }
+
+
 
         return response()->json($response);
     }

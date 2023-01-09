@@ -4,8 +4,8 @@ namespace Modules\Brand\Entities;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Brand extends Model {
+class BrandCustomer extends Model {
 
-    protected $guarded = [];
+    protected $fillable = ['user_id', 'brand_id'];
 
 }
