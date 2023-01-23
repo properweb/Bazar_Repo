@@ -21,7 +21,10 @@ use DB;
 class OrderController extends Controller
 {
 
-
+    /**
+     * @param Request $request
+     * @return mixed
+     */
     public function store(Request $request)
     {
         $data = [];
@@ -134,7 +137,11 @@ class OrderController extends Controller
             return response()->json($response);
         }
     }
-
+    
+    /**
+     * @param Request $request
+     * @return mixed
+     */
     public function index(Request $request)
     {
         $rorders = [];
@@ -188,7 +195,12 @@ class OrderController extends Controller
             return response()->json($response);
         }
     }
-
+    
+    /**
+     * @param Request $request
+     * @param $orderNumber
+     * @return mixed
+     */
     public function show(Request $request, $orderNumber)
     {
         $orders = [];
@@ -272,7 +284,11 @@ class OrderController extends Controller
         $response = ['res' => true, 'msg' => "", 'data' => $data];
         return response()->json($response);
     }
-
+    
+    /**
+     * @param Request $request
+     * @return mixed
+     */
     public function packingSlip(Request $request)
     {
         $orders = [];
@@ -329,7 +345,11 @@ class OrderController extends Controller
         $response = ['res' => true, 'msg' => "", 'data' => $data];
         return response()->json($response);
     }
-
+    
+    /**
+     * @param Request $request
+     * @return mixed
+     */
     public function accept(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -373,7 +393,11 @@ class OrderController extends Controller
         }
         return response()->json($response);
     }
-
+    
+    /**
+     * @param Request $request
+     * @return mixed
+     */
     public function changeDate(Request $request)
     {
         $orders = [];
@@ -399,7 +423,11 @@ class OrderController extends Controller
         $response = ['res' => true, 'msg' => "", 'data' => $data];
         return response()->json($response);
     }
-
+    
+    /**
+     * @param Request $request
+     * @return mixed
+     */
     public function changeAddress(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -427,7 +455,11 @@ class OrderController extends Controller
         $response = ['res' => true, 'msg' => "", 'data' => ""];
         return response()->json($response);
     }
-
+    
+    /**
+     * @param Request $request
+     * @return mixed
+     */
     public function cancel(Request $request)
     {
         $order = Order::find($request->order_id);
@@ -452,7 +484,11 @@ class OrderController extends Controller
         $response = ['res' => true, 'msg' => "", 'data' => ""];
         return response()->json($response);
     }
-
+    
+    /**
+     * @param Request $request
+     * @return mixed
+     */
     public function split(Request $request)
     {
         $order = Order::find($request->order_id);
@@ -495,7 +531,11 @@ class OrderController extends Controller
         $response = ['res' => true, 'msg' => "", 'data' => ""];
         return response()->json($response);
     }
-
+    
+    /**
+     * @param Request $request
+     * @return mixed
+     */
     public function update(Request $request)
     {
         $order = Order::find($request->order_id);
@@ -526,7 +566,11 @@ class OrderController extends Controller
         $response = ['res' => true, 'msg' => "", 'data' => ""];
         return response()->json($response);
     }
-
+    
+    /**
+     * @param Request $request
+     * @return void
+     */
     public function csv(Request $request)
     {
         $brand = Brand::where('user_id', $request->brand_id)->first();
@@ -548,7 +592,12 @@ class OrderController extends Controller
         echo $data;
         exit();
     }
-
+    
+    /**
+     * @param $prdct_arr
+     * @param $brandId
+     * @return bool
+     */
     private function syncExternal($prdct_arr, $brandId)
     {
 
