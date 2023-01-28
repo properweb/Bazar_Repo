@@ -60,6 +60,7 @@ class CampaignService
     public function createCampaign(array $campaignData): Campaign
     {
         //create campaign
+        $campaign = new Campaign();
         $campaign->brand_id = $campaignData['user_id'];
         $campaign->campaign_key = 'bmc_' . Str::lower(Str::random(10));
         $campaign->title = $campaignData['title'];
@@ -83,7 +84,7 @@ class CampaignService
             $scheduledCampaignsCount = Campaign::where('brand_id', $brand->user_id)->where('status', 'schedule')->count();
             $completedCampaignsCount = Campaign::where('brand_id', $brand->user_id)->where('status', 'completed')->count();
             $campaigns = Campaign::where('brand_id', $brand->user_id);
-            $status = strtolower($request->status);
+            $status = strtolower($requestData->status);
             switch ($status) {
                 case 'all':
                     break;
@@ -91,11 +92,11 @@ class CampaignService
                     $campaigns->where('status', $status);
                     break;
             }
-            $pcampaigns = $campaigns->paginate(10);
-            $rcampaigns = [];
-            if ($pcampaigns) {
-                foreach ($pcampaigns as $campaign) {
-                    $rcampaigns[] = array(
+            $paginatedCampaigns = $campaigns->paginate(10);
+            $filteredCampaigns = [];
+            if ($paginatedCampaigns) {
+                foreach ($paginatedCampaigns as $campaign) {
+                    $filteredCampaigns[] = array(
                         'title' => $campaign->title,
                         'campaign_key' => $campaign->campaign_key,
                         'updated_at' => date("F j, Y, g:i a", strtotime($campaign->updated_at)),
@@ -103,7 +104,7 @@ class CampaignService
                 }
             }
             $data = array(
-                "campaigns" => $rcampaigns,
+                "campaigns" => $filteredCampaigns,
                 "allCampaignsCount" => $allCampaignsCount,
                 "draftCampaignsCount" => $draftCampaignsCount,
                 "scheduledCampaignsCount" => $scheduledCampaignsCount,
@@ -118,5 +119,65 @@ class CampaignService
 
         return $response;
     }
+    
+    /**
+     * Delete campaign
+     *
+     * @param array $request
+     * @return array
+     */
+    public function delete( $campaignKey): 
+    {
+        $campaign = Campaign::where('campaign_key', $campaignKey)->first();
+        
 
+        // return error if no campaign found
+        if (empty($campaign)) {
+            return [
+                'res' => false,
+                'msg' => 'No record found !',
+                'data' => ""
+            ];
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $this->campaign = Campaign::where('campaign_key', $campaignKey)->first();
+
+            $this->deleteCampaign($campaign);
+
+            
+            $response = [
+                'res' => true,
+                'msg' => 'Campaign successfully deleted',
+                'data' => ""
+            ];
+
+            DB::commit();
+            //todo Log successfull creation
+        } catch (\Exception $e) {
+            // something went wrong
+            //todo Log exception
+            DB::rollback();
+            $response = [
+                'res' => false,
+                'msg' => 'Error while deleting campaign !',
+                'data' => ""
+            ];
+
+        }
+
+        return $response;
+    }
+    
+    /**
+     * @param Product|null $existingProduct
+     */
+    private function deleteCampaign(DeleteCampaign $deleteCampaign): void
+    {
+        $deleteCampaign->delete();
+    }
+
+    
 }

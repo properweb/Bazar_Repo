@@ -2,19 +2,17 @@
 
 namespace Modules\Campaign\Http\Controllers;
 
-use Illuminate\Contracts\Support\Renderable;
-use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
-use Modules\User\Entities\User;
-use Modules\Brand\Entities\Brand;
+use Illuminate\Http\Request;
+use Modules\Campaign\Http\Requests\StoreCampaignRequest;
+use Modules\Campaign\Http\Services\CampaignService;
 use Modules\Campaign\Entities\Campaign;
 
 class CampaignController extends Controller {
     
     public function __construct(CampaignService $campaignService)
     {
+        $this->campaignService = $campaignService;
     }
 
     /**
@@ -23,7 +21,8 @@ class CampaignController extends Controller {
      * @return mixed
      */
     public function index(Request $request) {
-        $response = $this->campaignService->store($request->all());
+        
+        $response = $this->campaignService->getCampaigns($request);
         
         return response()->json($response);
     }
@@ -33,7 +32,7 @@ class CampaignController extends Controller {
      * @param StoreOrderRequest $request
      * @return mixed
      */
-    public function store(Request $request) {
+    public function store(StoreCampaignRequest $request) {
         
         $response = $this->campaignService->store($request->all());
         
@@ -73,15 +72,10 @@ class CampaignController extends Controller {
      * @return mixed
      */
     public function destroy(Request $request, $campaignKey) {
-        $campaign = Campaign::where('campaign_key', $campaignKey)->first();
-        $status = $campaign->delete();
-
-        if ($status) {
-            $response = ['res' => true, 'msg' => "Campaign successfully deleted", 'data' => ""];
-        } else {
-            $response = ['res' => false, 'msg' => "Error while deleting campaign", 'data' => ""];
-        }
+        $response = $this->campaignService->delete($campaignKey);
+        
         return response()->json($response);
+        
     }
 
 }
