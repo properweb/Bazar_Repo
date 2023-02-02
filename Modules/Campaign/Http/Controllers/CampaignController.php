@@ -8,44 +8,50 @@ use Modules\Campaign\Http\Requests\StoreCampaignRequest;
 use Modules\Campaign\Http\Services\CampaignService;
 use Modules\Campaign\Entities\Campaign;
 
-class CampaignController extends Controller {
-    
+class CampaignController extends Controller
+{
+
     public function __construct(CampaignService $campaignService)
     {
         $this->campaignService = $campaignService;
     }
 
     /**
-     * Display a listing of the resource.
+     * Get list of campaigns
+     * 
      * @param Request $request
-     * @return mixed
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function index(Request $request) {
-        
+    public function index(Request $request)
+    {
+
         $response = $this->campaignService->getCampaigns($request);
-        
+
         return response()->json($response);
     }
 
     /**
-     * Store a newly created resource in storage.
-     * @param StoreOrderRequest $request
-     * @return mixed
+     * Store a newly created campaign in storage
+     * 
+     * @param StoreCampaignRequest $request
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function store(StoreCampaignRequest $request) {
-        
+    public function store(StoreCampaignRequest $request)
+    {
+
         $response = $this->campaignService->store($request->all());
-        
+
         return response()->json($response);
     }
 
     /**
-     * Show the specified resource.
-     * @param Request $request
-     * @param $campaignKey
-     * @return mixed
+     * Fetch the specified campaign
+     * 
+     * @param string $campaignKey
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function show($campaignKey) {
+    public function show($campaignKey)
+    {
         $campaign = Campaign::where('campaign_key', $campaignKey)->first();
         if ($campaign) {
             $response = ['res' => true, 'msg' => "", 'data' => $campaign];
@@ -56,26 +62,16 @@ class CampaignController extends Controller {
     }
 
     /**
-     * Update the specified resource in storage.
-     * @param Request $request
-     * @param $campaignKey
-     * @return Renderable
+     * Remove the specified campaign from storage
+     * 
+     * @param string $campaignKey
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function update(Request $request, $campaignKey) {
-        
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     * @param Request $request
-     * @param int $campaignKey
-     * @return mixed
-     */
-    public function destroy(Request $request, $campaignKey) {
+    public function destroy($campaignKey)
+    {
         $response = $this->campaignService->delete($campaignKey);
-        
+
         return response()->json($response);
-        
     }
 
 }

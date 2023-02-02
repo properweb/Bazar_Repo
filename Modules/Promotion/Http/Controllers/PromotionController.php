@@ -11,43 +11,48 @@ use Modules\User\Entities\User;
 use Modules\Brand\Entities\Brand;
 use Modules\Promotion\Entities\Promotion;
 
-class PromotionController extends Controller {
-    
+class PromotionController extends Controller
+{
+
     public function __construct(PromotionService $promotionService)
     {
         $this->promotionService = $promotionService;
     }
 
     /**
-     * Display a listing of the resource.
+     * Get list of promotions
+     * 
      * @param Request $request
-     * @return mixed
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function index(Request $request) {
+    public function index(Request $request)
+    {
         $response = $this->promotionService->getPromotions($request);
-        
+
         return response()->json($response);
     }
 
     /**
-     * Store a newly created resource in storage.
-     * @param Request $request
-     * @return mixed
+     * Store a newly created promotion in storage
+     * 
+     * @param StorePromotionRequest $request
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function store(StorePromotionRequest $request) {
-        
+    public function store(StorePromotionRequest $request)
+    {
         $response = $this->promotionService->store($request->all());
-        
+
         return response()->json($response);
     }
 
     /**
-     * Show the specified resource.
-     * @param Request $request
-     * @param $promotionKey
-     * @return mixed
+     * Fetch the specified promotion
+     * 
+     * @param string $promotionKey
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function show(Request $request, $promotionKey) {
+    public function show($promotionKey)
+    {
         $promotion = Promotion::where('promotion_key', $promotionKey)->first();
         if ($promotion) {
             $response = ['res' => true, 'msg' => "", 'data' => $promotion];
@@ -58,22 +63,13 @@ class PromotionController extends Controller {
     }
 
     /**
-     * Update the specified resource in storage.
-     * @param Request $request
-     * @param $promotionKey
-     * @return Renderable
+     * Remove the specified promotion from storage
+     * 
+     * @param string $promotionKey
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function update(Request $request, $promotionKey) {
-        
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     * @param Request $request
-     * @param int $promotionKey
-     * @return mixed
-     */
-    public function destroy(Request $request, $promotionKey) {
+    public function destroy($promotionKey)
+    {
         $promotion = Promotion::where('promotion_key', $promotionKey)->first();
         $status = $promotion->delete();
 
