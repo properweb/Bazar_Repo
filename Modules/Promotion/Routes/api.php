@@ -18,5 +18,5 @@ Route::prefix('promotions')->group(function () {
     Route::post('/', 'PromotionController@store');
     Route::get('/{promotion}', 'PromotionController@show');
     Route::post('/update', 'PromotionController@update');
-    Route::get('/delete/{promotion}', 'CampaignController@destroy');
+    Route::post('/delete', 'PromotionController@destroy');
 });

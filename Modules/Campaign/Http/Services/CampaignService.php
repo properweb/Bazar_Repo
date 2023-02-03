@@ -23,30 +23,13 @@ class CampaignService
      */
     public function store(array $requestData): array
     {
-        DB::beginTransaction();
+        $this->campaign = $this->createCampaign($requestData);
 
-        try {
-            $this->campaign = $this->createCampaign($requestData);
-
-            $response = [
-                'res' => true,
-                'msg' => 'Your campaign created successfully',
-                'data' => ""
-            ];
-
-            DB::commit();
-            //todo Log successfull creation
-        } catch (\Exception $e) {
-            // something went wrong
-            //todo Log exception
-            DB::rollback();
-            $response = [
-                'res' => false,
-                'msg' => 'Someting went wrong !',
-                'data' => ""
-            ];
-
-        }
+        $response = [
+            'res' => true,
+            'msg' => 'Your campaign created successfully',
+            'data' => ""
+        ];
 
         return $response;
     }
@@ -77,59 +60,58 @@ class CampaignService
     public function getCampaigns($requestData): array
     {
         $user = User::find($requestData->user_id);
-        if ($user) {
-            $brand = Brand::where('user_id', $user->id)->first();
-            $allCampaignsCount = Campaign::where('brand_id', $brand->user_id)->count();
-            $draftCampaignsCount = Campaign::where('brand_id', $brand->user_id)->where('status', 'draft')->count();
-            $scheduledCampaignsCount = Campaign::where('brand_id', $brand->user_id)->where('status', 'schedule')->count();
-            $completedCampaignsCount = Campaign::where('brand_id', $brand->user_id)->where('status', 'completed')->count();
-            $campaigns = Campaign::where('brand_id', $brand->user_id);
-            $status = strtolower($requestData->status);
-            switch ($status) {
-                case 'all':
-                    break;
-                default:
-                    $campaigns->where('status', $status);
-                    break;
-            }
-            $paginatedCampaigns = $campaigns->paginate(10);
-            $filteredCampaigns = [];
-            if ($paginatedCampaigns) {
-                foreach ($paginatedCampaigns as $campaign) {
-                    $filteredCampaigns[] = array(
-                        'title' => $campaign->title,
-                        'campaign_key' => $campaign->campaign_key,
-                        'updated_at' => date("F j, Y, g:i a", strtotime($campaign->updated_at)),
-                    );
-                }
-            }
-            $data = array(
-                "campaigns" => $filteredCampaigns,
-                "allCampaignsCount" => $allCampaignsCount,
-                "draftCampaignsCount" => $draftCampaignsCount,
-                "scheduledCampaignsCount" => $scheduledCampaignsCount,
-                "completedCampaignsCount" => $completedCampaignsCount,
-            );
-            $response = ['res' => true, 'msg' => "", 'data' => $data];
-        } else {
-            $response = ['res' => false, 'msg' => "No record found", 'data' => ""];
+        // return error if no campaign found
+        if (empty($user)) {
+            return [
+                'res' => false,
+                'msg' => 'No record found !',
+                'data' => ""
+            ];
         }
         
-        
+        $brand = Brand::where('user_id', $user->id)->first();
+        $allCampaignsCount = Campaign::where('brand_id', $brand->user_id)->count();
+        $draftCampaignsCount = Campaign::where('brand_id', $brand->user_id)->where('status', 'draft')->count();
+        $scheduledCampaignsCount = Campaign::where('brand_id', $brand->user_id)->where('status', 'schedule')->count();
+        $completedCampaignsCount = Campaign::where('brand_id', $brand->user_id)->where('status', 'completed')->count();
+        $campaigns = Campaign::where('brand_id', $brand->user_id);
+        $status = strtolower($requestData->status);
+        if ($status !== 'all') {
+            $campaigns->where('status', $status);
+        }
+        $paginatedCampaigns = $campaigns->paginate(10);
+        $filteredCampaigns = [];
+        if ($paginatedCampaigns) {
+            foreach ($paginatedCampaigns as $campaign) {
+                $filteredCampaigns[] = array(
+                    'title' => $campaign->title,
+                    'campaign_key' => $campaign->campaign_key,
+                    'updated_at' => date("F j, Y, g:i a", strtotime($campaign->updated_at)),
+                );
+            }
+        }
+        $data = array(
+            "campaigns" => $filteredCampaigns,
+            "allCampaignsCount" => $allCampaignsCount,
+            "draftCampaignsCount" => $draftCampaignsCount,
+            "scheduledCampaignsCount" => $scheduledCampaignsCount,
+            "completedCampaignsCount" => $completedCampaignsCount,
+        );
+        $response = ['res' => true, 'msg' => "", 'data' => $data];
 
         return $response;
     }
-    
+
     /**
      * Delete campaign
      *
      * @param array $request
      * @return array
      */
-    public function delete( $campaignKey): 
+    public function delete($campaignKey): void
     {
         $campaign = Campaign::where('campaign_key', $campaignKey)->first();
-        
+
 
         // return error if no campaign found
         if (empty($campaign)) {
@@ -139,45 +121,16 @@ class CampaignService
                 'data' => ""
             ];
         }
+        $this->campaign = Campaign::findOrFail($campaign->id);
+        $this->campaign->delete();
 
-        DB::beginTransaction();
-
-        try {
-            $this->campaign = Campaign::where('campaign_key', $campaignKey)->first();
-
-            $this->deleteCampaign($campaign);
-
-            
-            $response = [
+        $response = [
                 'res' => true,
                 'msg' => 'Campaign successfully deleted',
                 'data' => ""
-            ];
-
-            DB::commit();
-            //todo Log successfull creation
-        } catch (\Exception $e) {
-            // something went wrong
-            //todo Log exception
-            DB::rollback();
-            $response = [
-                'res' => false,
-                'msg' => 'Error while deleting campaign !',
-                'data' => ""
-            ];
-
-        }
+         ];
 
         return $response;
     }
-    
-    /**
-     * @param Product|null $existingProduct
-     */
-    private function deleteCampaign(DeleteCampaign $deleteCampaign): void
-    {
-        $deleteCampaign->delete();
-    }
 
-    
 }

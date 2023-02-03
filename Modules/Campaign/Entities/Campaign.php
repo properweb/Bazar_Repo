@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\campaign\Entities;
+namespace Modules\Campaign\Entities;
 
 use Illuminate\Database\Eloquent\Model;
 

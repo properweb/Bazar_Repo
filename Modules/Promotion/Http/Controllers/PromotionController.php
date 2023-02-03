@@ -2,14 +2,10 @@
 
 namespace Modules\Promotion\Http\Controllers;
 
-use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Promotion\Http\Requests\StorePromotionRequest;
 use Modules\Promotion\Http\Services\PromotionService;
-use Modules\User\Entities\User;
-use Modules\Brand\Entities\Brand;
-use Modules\Promotion\Entities\Promotion;
 
 class PromotionController extends Controller
 {
@@ -53,31 +49,34 @@ class PromotionController extends Controller
      */
     public function show($promotionKey)
     {
-        $promotion = Promotion::where('promotion_key', $promotionKey)->first();
-        if ($promotion) {
-            $response = ['res' => true, 'msg' => "", 'data' => $promotion];
-        } else {
-            $response = ['res' => false, 'msg' => "No record found", 'data' => ""];
-        }
+        $response = $this->promotionService->get($promotionKey);
+        
+        return response()->json($response);
+    }
+
+    /**
+     * Update the specified promotion in storage
+     * 
+     * @param StorePromotionRequest $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function update(StorePromotionRequest $request)
+    {
+        $response = $this->promotionService->update($request->all());
+
         return response()->json($response);
     }
 
     /**
      * Remove the specified promotion from storage
      * 
-     * @param string $promotionKey
+     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function destroy($promotionKey)
+    public function destroy(Request $request)
     {
-        $promotion = Promotion::where('promotion_key', $promotionKey)->first();
-        $status = $promotion->delete();
-
-        if ($status) {
-            $response = ['res' => true, 'msg' => "Promotion successfully deleted", 'data' => ""];
-        } else {
-            $response = ['res' => false, 'msg' => "Error while deleting promotion", 'data' => ""];
-        }
+        $response = $this->promotionService->delete($request->all());
+        
         return response()->json($response);
     }
 
