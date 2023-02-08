@@ -16,7 +16,7 @@ use Illuminate\Http\Request;
 Route::prefix('campaigns')->group(function () {
     Route::get('/', 'CampaignController@index');
     Route::post('/', 'CampaignController@store');
-    Route::get('/{campaign}', 'CampaignController@show');
+    Route::get('/{brand}/{campaign}', 'CampaignController@show');
     Route::post('/update', 'CampaignController@update');
-    Route::get('/delete/{campaign}', 'CampaignController@destroy');
+    Route::post('/delete', 'CampaignController@destroy');
 });

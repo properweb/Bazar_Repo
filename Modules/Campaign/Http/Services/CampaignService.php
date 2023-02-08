@@ -5,7 +5,6 @@ namespace Modules\Campaign\Http\Services;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Modules\User\Entities\User;
-use Modules\Brand\Entities\Brand;
 use Modules\Campaign\Entities\Campaign;
 
 
@@ -13,15 +12,15 @@ class CampaignService
 {
     protected Campaign $campaign;
 
-    protected Brand $brand;
+    protected User $user;
 
     /**
-     * Save order
+     * Save a new campaign
      *
      * @param array $request
      * @return array
      */
-    public function store(array $requestData): array
+    public function store(array $requestData)
     {
         $this->campaign = $this->createCampaign($requestData);
 
@@ -35,16 +34,25 @@ class CampaignService
     }
 
     /**
-     * Create new campaign
+     * Create a new campaign
      *
-     * @param  array  $campaignData
+     * @param array $campaignData
      * @return Campaign
      */
-    public function createCampaign(array $campaignData): Campaign
+    public function createCampaign(array $campaignData)
     {
+        $user = User::find($campaignData['user_id']);
+        // return error if no user or user is not brand
+        if (!$user || $user->role !== 'brand') {
+            return [
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ];
+        }
         //create campaign
         $campaign = new Campaign();
-        $campaign->brand_id = $campaignData['user_id'];
+        $campaign->user_id = $campaignData['user_id'];
         $campaign->campaign_key = 'bmc_' . Str::lower(Str::random(10));
         $campaign->title = $campaignData['title'];
         $campaign->save();
@@ -53,28 +61,28 @@ class CampaignService
     }
 
     /**
-     * Get all Campaigns
+     * Get a listing of the campaigns
      *
+     * @param $requestData
      * @return array
      */
-    public function getCampaigns($requestData): array
+    public function getCampaigns($requestData)
     {
         $user = User::find($requestData->user_id);
-        // return error if no campaign found
-        if (empty($user)) {
+        // return error if no user or user is not brand
+        if (!$user || $user->role !== 'brand') {
             return [
                 'res' => false,
                 'msg' => 'No record found !',
                 'data' => ""
             ];
         }
-        
-        $brand = Brand::where('user_id', $user->id)->first();
-        $allCampaignsCount = Campaign::where('brand_id', $brand->user_id)->count();
-        $draftCampaignsCount = Campaign::where('brand_id', $brand->user_id)->where('status', 'draft')->count();
-        $scheduledCampaignsCount = Campaign::where('brand_id', $brand->user_id)->where('status', 'schedule')->count();
-        $completedCampaignsCount = Campaign::where('brand_id', $brand->user_id)->where('status', 'completed')->count();
-        $campaigns = Campaign::where('brand_id', $brand->user_id);
+
+        $allCampaignsCount = Campaign::where('user_id', $user->id)->count();
+        $draftCampaignsCount = Campaign::where('user_id', $user->id)->where('status', 'draft')->count();
+        $scheduledCampaignsCount = Campaign::where('user_id', $user->id)->where('status', 'schedule')->count();
+        $completedCampaignsCount = Campaign::where('user_id', $user->id)->where('status', 'completed')->count();
+        $campaigns = Campaign::where('user_id', $user->id);
         $status = strtolower($requestData->status);
         if ($status !== 'all') {
             $campaigns->where('status', $status);
@@ -97,40 +105,81 @@ class CampaignService
             "scheduledCampaignsCount" => $scheduledCampaignsCount,
             "completedCampaignsCount" => $completedCampaignsCount,
         );
-        $response = ['res' => true, 'msg' => "", 'data' => $data];
+        return ['res' => true, 'msg' => "", 'data' => $data];
 
-        return $response;
     }
 
     /**
-     * Delete campaign
+     * Get the specified campaign
      *
-     * @param array $request
+     * @param int $userId
+     * @param string $campaignKey
      * @return array
      */
-    public function delete($campaignKey): void
+    public function get($userId, $campaignKey)
     {
+        $user = User::find($userId);
         $campaign = Campaign::where('campaign_key', $campaignKey)->first();
-
-
         // return error if no campaign found
-        if (empty($campaign)) {
+        if (!$campaign) {
             return [
                 'res' => false,
-                'msg' => 'No record found !',
+                'msg' => 'Campaign not found !',
                 'data' => ""
             ];
         }
-        $this->campaign = Campaign::findOrFail($campaign->id);
+        // return error if user not created the campaign
+        if ($user->id !== $campaign->user_id) {
+            return [
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ];
+        }
+
+        return [
+            'res' => true,
+            'msg' => '',
+            'data' => $campaign
+        ];
+    }
+
+    /**
+     * Remove the specified campaign from storage.
+     *
+     * @param int $userId
+     * @param string $campaignKey
+     * @return array
+     */
+    public function delete($userId, $campaignKey)
+    {
+        $user = User::find($userId);
+        $campaign = Campaign::where('campaign_key', $campaignKey)->first();
+
+        // return error if no campaign found
+        if (!$campaign) {
+            return [
+                'res' => false,
+                'msg' => 'Campaign not found !',
+                'data' => ""
+            ];
+        }
+        // return error if user not created the campaign
+        if ($user->id !== $campaign->user_id) {
+            return [
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ];
+        }
         $this->campaign->delete();
 
-        $response = [
-                'res' => true,
-                'msg' => 'Campaign successfully deleted',
-                'data' => ""
-         ];
+        return [
+            'res' => true,
+            'msg' => 'Campaign successfully deleted',
+            'data' => ""
+        ];
 
-        return $response;
     }
 
 }

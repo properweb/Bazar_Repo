@@ -16,7 +16,7 @@ use Illuminate\Http\Request;
 Route::prefix('promotions')->group(function () {
     Route::get('/', 'PromotionController@index');
     Route::post('/', 'PromotionController@store');
-    Route::get('/{promotion}', 'PromotionController@show');
+    Route::get('/{brand}/{promotion}', 'PromotionController@show');
     Route::post('/update', 'PromotionController@update');
     Route::post('/delete', 'PromotionController@destroy');
 });

@@ -2,11 +2,13 @@
 
 namespace Modules\Campaign\Http\Controllers;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
 use Modules\Campaign\Http\Requests\StoreCampaignRequest;
 use Modules\Campaign\Http\Services\CampaignService;
 use Modules\Campaign\Entities\Campaign;
+use Modules\User\Entities\User;
 
 class CampaignController extends Controller
 {
@@ -18,7 +20,7 @@ class CampaignController extends Controller
 
     /**
      * Get list of campaigns
-     * 
+     *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
@@ -32,44 +34,41 @@ class CampaignController extends Controller
 
     /**
      * Store a newly created campaign in storage
-     * 
+     *
      * @param StoreCampaignRequest $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function store(StoreCampaignRequest $request)
     {
-
-        $response = $this->campaignService->store($request->all());
+        $response = $this->campaignService->store($request->validated());
 
         return response()->json($response);
     }
 
     /**
      * Fetch the specified campaign
-     * 
+     *
+     * @param int $userId
      * @param string $campaignKey
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function show($campaignKey)
+    public function show($userId, $campaignKey)
     {
-        $campaign = Campaign::where('campaign_key', $campaignKey)->first();
-        if ($campaign) {
-            $response = ['res' => true, 'msg' => "", 'data' => $campaign];
-        } else {
-            $response = ['res' => false, 'msg' => "No record found", 'data' => ""];
-        }
+        $response = $this->campaignService->get($userId, $campaignKey);
+
         return response()->json($response);
     }
 
     /**
      * Remove the specified campaign from storage
-     * 
+     *
+     * @param int $userId
      * @param string $campaignKey
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function destroy($campaignKey)
+    public function destroy($userId, $campaignKey)
     {
-        $response = $this->campaignService->delete($campaignKey);
+        $response = $this->campaignService->delete($userId, $campaignKey);
 
         return response()->json($response);
     }

@@ -5,6 +5,7 @@ namespace Modules\Promotion\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Promotion\Http\Requests\StorePromotionRequest;
+use Modules\Promotion\Http\Requests\UpdatePromotionRequest;
 use Modules\Promotion\Http\Services\PromotionService;
 
 class PromotionController extends Controller
@@ -17,7 +18,7 @@ class PromotionController extends Controller
 
     /**
      * Get list of promotions
-     * 
+     *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
@@ -30,53 +31,55 @@ class PromotionController extends Controller
 
     /**
      * Store a newly created promotion in storage
-     * 
+     *
      * @param StorePromotionRequest $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function store(StorePromotionRequest $request)
     {
-        $response = $this->promotionService->store($request->all());
+        $response = $this->promotionService->store($request->validated());
 
         return response()->json($response);
     }
 
     /**
      * Fetch the specified promotion
-     * 
+     *
+     * @param int $userId
      * @param string $promotionKey
      * @return \Illuminate\Http\JsonResponse
      */
-    public function show($promotionKey)
+    public function show($userId, $promotionKey)
     {
-        $response = $this->promotionService->get($promotionKey);
-        
+        $response = $this->promotionService->get($userId, $promotionKey);
+
         return response()->json($response);
     }
 
     /**
      * Update the specified promotion in storage
-     * 
-     * @param StorePromotionRequest $request
+     *
+     * @param UpdatePromotionRequest $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function update(StorePromotionRequest $request)
+    public function update(UpdatePromotionRequest $request)
     {
-        $response = $this->promotionService->update($request->all());
+        $response = $this->promotionService->update($request->validated());
 
         return response()->json($response);
     }
 
     /**
      * Remove the specified promotion from storage
-     * 
-     * @param Request $request
+     *
+     * @param int $userId
+     * @param string $promotionKey
      * @return \Illuminate\Http\JsonResponse
      */
-    public function destroy(Request $request)
+    public function destroy($userId, $promotionKey)
     {
-        $response = $this->promotionService->delete($request->all());
-        
+        $response = $this->promotionService->delete($userId, $promotionKey);
+
         return response()->json($response);
     }
 
