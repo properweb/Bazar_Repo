@@ -23,10 +23,10 @@ class CampaignPolicy
     /**
      * Determine whether the user can view any campaigns.
      *
-     * @param \Modules\User\Entities\User $user
-     * @return mixed
+     * @param User $user
+     * @return bool
      */
-    public function viewAny(User $user)
+    public function viewAny(User $user): bool
     {
         return $user->role === 'brand';
     }
@@ -34,11 +34,11 @@ class CampaignPolicy
     /**
      * Determine whether the user can view the campaign.
      *
-     * @param \Modules\User\Entities\User $user
-     * @param \Modules\Campaign\Entities\Campaign $campaign
-     * @return mixed
+     * @param User $user
+     * @param Campaign $campaign
+     * @return bool
      */
-    public function view(User $user, Campaign $campaign)
+    public function view(User $user, Campaign $campaign): bool
     {
         return $user->id === $campaign->user_id;
     }
@@ -47,10 +47,10 @@ class CampaignPolicy
     /**
      * Determine whether the user can create campaigns.
      *
-     * @param \Modules\User\Entities\User $user
-     * @return mixed
+     * @param User $user
+     * @return bool
      */
-    public function create(User $user)
+    public function create(User $user): bool
     {
 
         return $user->role === 'brand';
@@ -59,11 +59,11 @@ class CampaignPolicy
     /**
      * Determine whether the user can update the campaign.
      *
-     * @param \Modules\User\Entities\User $user
-     * @param \Modules\Campaign\Entities\Campaign $campaign
-     * @return mixed
+     * @param User $user
+     * @param Campaign $campaign
+     * @return bool
      */
-    public function update(User $user, Campaign $campaign)
+    public function update(User $user, Campaign $campaign): bool
     {
         return $user->id === $campaign->user_id;
     }
@@ -71,11 +71,11 @@ class CampaignPolicy
     /**
      * Determine whether the user can delete the campaign.
      *
-     * @param \Modules\User\Entities\User $user
-     * @param \Modules\Campaign\Entities\Campaign $campaign
-     * @return mixed
+     * @param User $user
+     * @param Campaign $campaign
+     * @return bool
      */
-    public function delete(User $user, Campaign $campaign)
+    public function delete(User $user, Campaign $campaign): bool
     {
         return $user->id === $campaign->user_id;
     }

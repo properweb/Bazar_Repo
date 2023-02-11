@@ -5,6 +5,7 @@ namespace Modules\Campaign\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\JsonResponse;
 
 class StoreCampaignRequest extends FormRequest
 {
@@ -13,7 +14,7 @@ class StoreCampaignRequest extends FormRequest
      *
      * @return bool
      */
-    public function authorize()
+    public function authorize(): bool
     {
         return true;
     }
@@ -23,7 +24,7 @@ class StoreCampaignRequest extends FormRequest
      *
      * @return array<string, mixed>
      */
-    public function rules()
+    public function rules(): array
     {
         return [
             'title' => 'required|string|unique:campaigns',
@@ -40,9 +41,9 @@ class StoreCampaignRequest extends FormRequest
      * Create a json response on validation errors.
      *
      * @param Validator $validator
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function failedValidation(Validator $validator)
+    public function failedValidation(Validator $validator): JsonResponse
     {
         throw new HttpResponseException(response()->json([
             'res' => false,

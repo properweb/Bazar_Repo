@@ -7,11 +7,12 @@ use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
 use Modules\Campaign\Http\Requests\StoreCampaignRequest;
 use Modules\Campaign\Http\Services\CampaignService;
-use Modules\Campaign\Entities\Campaign;
-use Modules\User\Entities\User;
+
 
 class CampaignController extends Controller
 {
+
+    private CampaignService $campaignService;
 
     public function __construct(CampaignService $campaignService)
     {
@@ -22,9 +23,9 @@ class CampaignController extends Controller
      * Get list of campaigns
      *
      * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
 
         $response = $this->campaignService->getCampaigns($request);
@@ -36,9 +37,9 @@ class CampaignController extends Controller
      * Store a newly created campaign in storage
      *
      * @param StoreCampaignRequest $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function store(StoreCampaignRequest $request)
+    public function store(StoreCampaignRequest $request): JsonResponse
     {
         $response = $this->campaignService->store($request->validated());
 
@@ -51,7 +52,7 @@ class CampaignController extends Controller
      * @param string $campaignKey
      * @return JsonResponse
      */
-    public function show($campaignKey)
+    public function show(string $campaignKey): JsonResponse
     {
 
         $response = $this->campaignService->get($campaignKey);
@@ -65,7 +66,7 @@ class CampaignController extends Controller
      * @param string $campaignKey
      * @return JsonResponse
      */
-    public function destroy($campaignKey)
+    public function destroy(string $campaignKey): JsonResponse
     {
 
         $response = $this->campaignService->delete($campaignKey);

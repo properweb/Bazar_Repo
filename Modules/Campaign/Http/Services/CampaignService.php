@@ -18,7 +18,7 @@ class CampaignService
     /**
      * Save a new campaign
      *
-     * @param array $request
+     * @param array $requestData
      * @return array
      */
     public function store(array $requestData): array
@@ -52,7 +52,7 @@ class CampaignService
      * @param array $campaignData
      * @return Campaign
      */
-    public function createCampaign(array $campaignData)
+    public function createCampaign(array $campaignData): Campaign
     {
 
         //set campaign data
@@ -72,7 +72,7 @@ class CampaignService
      * @param $requestData
      * @return array
      */
-    public function getCampaigns($requestData)
+    public function getCampaigns($requestData): array
     {
         $user = auth('sanctum')->user();
 
@@ -121,7 +121,7 @@ class CampaignService
      * @param string $campaignKey
      * @return array
      */
-    public function get($campaignKey)
+    public function get(string $campaignKey): array
     {
 
         $user = auth('sanctum')->user();
@@ -157,7 +157,7 @@ class CampaignService
      * @param string $campaignKey
      * @return array
      */
-    public function delete($campaignKey)
+    public function delete(string $campaignKey): array
     {
         $user = auth('sanctum')->user();
         $campaign = Campaign::where('campaign_key', $campaignKey)->first();
