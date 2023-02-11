@@ -1,6 +1,10 @@
 <?php
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+
+use Modules\Campaign\Http\Controllers\CampaignController;
+use Modules\User\Http\Controllers\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -13,10 +17,17 @@ use Illuminate\Http\Request;
 |
 */
 
-Route::prefix('campaigns')->group(function () {
-    Route::get('/', 'CampaignController@index');
-    Route::post('/', 'CampaignController@store');
-    Route::get('/{brand}/{campaign}', 'CampaignController@show');
-    Route::post('/update', 'CampaignController@update');
-    Route::post('/delete', 'CampaignController@destroy');
+Route::middleware('auth:sanctum')->group(function () {
+    Route::prefix('campaigns')->group(function () {
+        Route::get('/', 'CampaignController@index');
+        Route::post('/', 'CampaignController@store');
+        Route::get('/{campaign}', 'CampaignController@show');
+        Route::put('/update', 'CampaignController@update');
+        Route::delete('/delete/{campaign}', 'CampaignController@destroy');
+    });
 });
+
+
+
+
+

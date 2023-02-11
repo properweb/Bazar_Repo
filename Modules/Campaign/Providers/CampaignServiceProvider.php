@@ -3,7 +3,6 @@
 namespace Modules\Campaign\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Database\Eloquent\Factory;
 
 class CampaignServiceProvider extends ServiceProvider
 {
@@ -38,6 +37,7 @@ class CampaignServiceProvider extends ServiceProvider
     public function register()
     {
         $this->app->register(RouteServiceProvider::class);
+        $this->app->register(AuthServiceProvider::class);
     }
 
     /**

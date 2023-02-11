@@ -48,13 +48,13 @@ class CampaignController extends Controller
     /**
      * Fetch the specified campaign
      *
-     * @param int $userId
      * @param string $campaignKey
      * @return JsonResponse
      */
-    public function show($userId, $campaignKey)
+    public function show($campaignKey)
     {
-        $response = $this->campaignService->get($userId, $campaignKey);
+
+        $response = $this->campaignService->get($campaignKey);
 
         return response()->json($response);
     }
@@ -62,13 +62,13 @@ class CampaignController extends Controller
     /**
      * Remove the specified campaign from storage
      *
-     * @param int $userId
      * @param string $campaignKey
      * @return JsonResponse
      */
-    public function destroy($userId, $campaignKey)
+    public function destroy($campaignKey)
     {
-        $response = $this->campaignService->delete($userId, $campaignKey);
+
+        $response = $this->campaignService->delete($campaignKey);
 
         return response()->json($response);
     }

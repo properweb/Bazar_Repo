@@ -11,6 +11,6 @@
 |
 */
 
-Route::prefix('frontend')->group(function() {
-    Route::get('/', 'FrontendController@index');
+Route::prefix('user')->group(function() {
+    Route::get('/', 'UserController@index');
 });

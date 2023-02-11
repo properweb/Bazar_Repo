@@ -26,8 +26,13 @@ class StoreCampaignRequest extends FormRequest
     public function rules()
     {
         return [
-            'title' => ['string|required|unique:campaigns'],
-            'user_id' => 'integer|required',
+            'title' => 'required|string|unique:campaigns',
+            'user_id' => 'nullable|integer',
+            'campaign_key' => 'nullable|string',
+            'subject' => 'nullable|string',
+            'preview_text' => 'nullable|string',
+            'email_design' => 'nullable|string',
+            'scheduled_date' => 'nullable|date_format:Y-m-d',
         ];
     }
 
@@ -41,7 +46,7 @@ class StoreCampaignRequest extends FormRequest
     {
         throw new HttpResponseException(response()->json([
             'res' => false,
-            'msg' => $validator->errors(),
+            'msg' => $validator->errors()->first(),
             'data' => ""
         ]));
 

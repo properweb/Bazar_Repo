@@ -3,6 +3,7 @@
 namespace Modules\Campaign\Http\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Modules\User\Entities\User;
 use Modules\Campaign\Entities\Campaign;
@@ -20,15 +21,27 @@ class CampaignService
      * @param array $request
      * @return array
      */
-    public function store(array $requestData)
+    public function store(array $requestData): array
     {
-        $this->campaign = $this->createCampaign($requestData);
+        $user = auth('sanctum')->user();
 
+        // return error if user cannot create campaign
+        if ($user->cannot('create', Campaign::class)) {
+            return [
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ];
+        }
+        //set request data with authenticated user id.
+        $requestData["user_id"] = $user->id;
+        $campaign = $this->createCampaign($requestData);
         $response = [
             'res' => true,
             'msg' => 'Your campaign created successfully',
-            'data' => ""
+            'data' => $campaign
         ];
+
 
         return $response;
     }
@@ -41,20 +54,13 @@ class CampaignService
      */
     public function createCampaign(array $campaignData)
     {
-        $user = User::find($campaignData['user_id']);
-        // return error if no user or user is not brand
-        if (!$user || $user->role !== 'brand') {
-            return [
-                'res' => false,
-                'msg' => 'User is not authorized !',
-                'data' => ""
-            ];
-        }
+
+        //set campaign data
+        $campaignData["campaign_key"] = 'bmc_' . Str::lower(Str::random(10));
+
         //create campaign
         $campaign = new Campaign();
-        $campaign->user_id = $campaignData['user_id'];
-        $campaign->campaign_key = 'bmc_' . Str::lower(Str::random(10));
-        $campaign->title = $campaignData['title'];
+        $campaign->fill($campaignData);
         $campaign->save();
 
         return $campaign;
@@ -68,16 +74,16 @@ class CampaignService
      */
     public function getCampaigns($requestData)
     {
-        $user = User::find($requestData->user_id);
-        // return error if no user or user is not brand
-        if (!$user || $user->role !== 'brand') {
+        $user = auth('sanctum')->user();
+
+        // return error if user is not a brand
+        if ($user->cannot('viewAny', Campaign::class)) {
             return [
                 'res' => false,
-                'msg' => 'No record found !',
+                'msg' => 'User is not authorized !',
                 'data' => ""
             ];
         }
-
         $allCampaignsCount = Campaign::where('user_id', $user->id)->count();
         $draftCampaignsCount = Campaign::where('user_id', $user->id)->where('status', 'draft')->count();
         $scheduledCampaignsCount = Campaign::where('user_id', $user->id)->where('status', 'schedule')->count();
@@ -112,14 +118,15 @@ class CampaignService
     /**
      * Get the specified campaign
      *
-     * @param int $userId
      * @param string $campaignKey
      * @return array
      */
-    public function get($userId, $campaignKey)
+    public function get($campaignKey)
     {
-        $user = User::find($userId);
+
+        $user = auth('sanctum')->user();
         $campaign = Campaign::where('campaign_key', $campaignKey)->first();
+
         // return error if no campaign found
         if (!$campaign) {
             return [
@@ -129,7 +136,7 @@ class CampaignService
             ];
         }
         // return error if user not created the campaign
-        if ($user->id !== $campaign->user_id) {
+        if ($user->cannot('view', $campaign)) {
             return [
                 'res' => false,
                 'msg' => 'User is not authorized !',
@@ -147,13 +154,12 @@ class CampaignService
     /**
      * Remove the specified campaign from storage.
      *
-     * @param int $userId
      * @param string $campaignKey
      * @return array
      */
-    public function delete($userId, $campaignKey)
+    public function delete($campaignKey)
     {
-        $user = User::find($userId);
+        $user = auth('sanctum')->user();
         $campaign = Campaign::where('campaign_key', $campaignKey)->first();
 
         // return error if no campaign found
@@ -165,14 +171,15 @@ class CampaignService
             ];
         }
         // return error if user not created the campaign
-        if ($user->id !== $campaign->user_id) {
+        if ($user->cannot('delete', $campaign)) {
             return [
                 'res' => false,
                 'msg' => 'User is not authorized !',
                 'data' => ""
             ];
         }
-        $this->campaign->delete();
+
+        $campaign->delete();
 
         return [
             'res' => true,

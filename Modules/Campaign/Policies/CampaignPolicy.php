@@ -21,33 +21,46 @@ class CampaignPolicy
     }
 
     /**
-     * Determine whether the user can view the post.
+     * Determine whether the user can view any campaigns.
      *
-     * @param \Modules\User\Entities\User  $user
-     * @param \Modules\Campaign\Entities\Campaign  $campaign
+     * @param \Modules\User\Entities\User $user
+     * @return mixed
+     */
+    public function viewAny(User $user)
+    {
+        return $user->role === 'brand';
+    }
+
+    /**
+     * Determine whether the user can view the campaign.
+     *
+     * @param \Modules\User\Entities\User $user
+     * @param \Modules\Campaign\Entities\Campaign $campaign
      * @return mixed
      */
     public function view(User $user, Campaign $campaign)
     {
-        return TRUE;
+        return $user->id === $campaign->user_id;
     }
 
+
     /**
-     * Determine whether the user can create posts.
+     * Determine whether the user can create campaigns.
      *
-     * @param \Modules\User\Entities\User  $user
+     * @param \Modules\User\Entities\User $user
      * @return mixed
      */
     public function create(User $user)
     {
-        return $user->role == 'brand';
+
+        return $user->role === 'brand';
     }
 
     /**
-     * Determine whether the user can update the post.
+     * Determine whether the user can update the campaign.
      *
-     * @param \Modules\User\Entities\User  $user
-     * @param \Modules\Campaign\Entities\Campaign  $campaign
+     * @param \Modules\User\Entities\User $user
+     * @param \Modules\Campaign\Entities\Campaign $campaign
      * @return mixed
      */
     public function update(User $user, Campaign $campaign)
@@ -58,8 +71,8 @@ class CampaignPolicy
     /**
      * Determine whether the user can delete the campaign.
      *
-     * @param \Modules\User\Entities\User  $user
-     * @param \Modules\Campaign\Entities\Campaign  $campaign
+     * @param \Modules\User\Entities\User $user
+     * @param \Modules\Campaign\Entities\Campaign $campaign
      * @return mixed
      */
     public function delete(User $user, Campaign $campaign)
