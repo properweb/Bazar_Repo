@@ -19,11 +19,11 @@ use Modules\User\Http\Controllers\UserController;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('campaigns')->group(function () {
-        Route::get('/', 'CampaignController@index');
-        Route::post('/', 'CampaignController@store');
-        Route::get('/{campaign}', 'CampaignController@show');
-        Route::put('/update', 'CampaignController@update');
-        Route::delete('/delete/{campaign}', 'CampaignController@destroy');
+        Route::get('/', 'CampaignController@index')->name('campaign_list');
+        Route::post('/', 'CampaignController@store')->name('campaign_store');
+        Route::get('/{campaign}', 'CampaignController@show')->name('campaign_show');
+        Route::put('/update', 'CampaignController@update')->name('campaign_update');
+        Route::delete('/delete/{campaign}', 'CampaignController@destroy')->name('campaign_delete');
     });
 });
 

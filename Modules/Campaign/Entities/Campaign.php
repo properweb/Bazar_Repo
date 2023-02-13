@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 class Campaign extends Model {
 
     //Declare statuses
-    const CAMPAIGN_STATUS = 'draft';
+    const STATUS_DRAFT = 'draft';
 
     protected $fillable = [
         'title',

@@ -28,8 +28,7 @@ class StoreCampaignRequest extends FormRequest
     {
         return [
             'title' => 'required|string|unique:campaigns',
-            'user_id' => 'nullable|integer',
-            'campaign_key' => 'nullable|string',
+            'user_id' => 'nullable|integer|exists:users,id',
             'subject' => 'nullable|string',
             'preview_text' => 'nullable|string',
             'email_design' => 'nullable|string',

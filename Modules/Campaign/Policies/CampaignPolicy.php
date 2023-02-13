@@ -28,7 +28,18 @@ class CampaignPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->role === 'brand';
+        return $this->isBrand($user);
+    }
+
+    /**
+     * Determine whether the user is brand.
+     *
+     * @param User $user
+     * @return bool
+     */
+    protected function isBrand(User $user): bool
+    {
+        return $user->role === User::ROLE_BRAND;
     }
 
     /**
@@ -40,9 +51,20 @@ class CampaignPolicy
      */
     public function view(User $user, Campaign $campaign): bool
     {
-        return $user->id === $campaign->user_id;
+        return $this->isCreator($user, $campaign);
     }
 
+    /**
+     * Determine whether the user created the campaign.
+     *
+     * @param User $user
+     * @param Campaign $campaign
+     * @return bool
+     */
+    protected function isCreator(User $user, Campaign $campaign): bool
+    {
+        return $user->id === $campaign->user_id;
+    }
 
     /**
      * Determine whether the user can create campaigns.
@@ -52,8 +74,7 @@ class CampaignPolicy
      */
     public function create(User $user): bool
     {
-
-        return $user->role === 'brand';
+        return $this->isBrand($user);
     }
 
     /**
@@ -65,7 +86,7 @@ class CampaignPolicy
      */
     public function update(User $user, Campaign $campaign): bool
     {
-        return $user->id === $campaign->user_id;
+        return $this->isCreator($user, $campaign);
     }
 
     /**
@@ -77,7 +98,7 @@ class CampaignPolicy
      */
     public function delete(User $user, Campaign $campaign): bool
     {
-        return $user->id === $campaign->user_id;
+        return $this->isCreator($user, $campaign);
     }
 
 

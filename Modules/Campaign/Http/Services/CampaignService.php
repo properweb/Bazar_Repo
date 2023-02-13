@@ -23,25 +23,15 @@ class CampaignService
      */
     public function store(array $requestData): array
     {
-        $user = auth('sanctum')->user();
 
-        // return error if user cannot create campaign
-        if ($user->cannot('create', Campaign::class)) {
-            return [
-                'res' => false,
-                'msg' => 'User is not authorized !',
-                'data' => ""
-            ];
-        }
         //set request data with authenticated user id.
-        $requestData["user_id"] = $user->id;
+        $requestData["status"] = Campaign :: STATUS_DRAFT;
         $campaign = $this->createCampaign($requestData);
         $response = [
             'res' => true,
             'msg' => 'Your campaign created successfully',
             'data' => $campaign
         ];
-
 
         return $response;
     }
@@ -74,21 +64,12 @@ class CampaignService
      */
     public function getCampaigns($requestData): array
     {
-        $user = auth('sanctum')->user();
 
-        // return error if user is not a brand
-        if ($user->cannot('viewAny', Campaign::class)) {
-            return [
-                'res' => false,
-                'msg' => 'User is not authorized !',
-                'data' => ""
-            ];
-        }
-        $allCampaignsCount = Campaign::where('user_id', $user->id)->count();
-        $draftCampaignsCount = Campaign::where('user_id', $user->id)->where('status', 'draft')->count();
-        $scheduledCampaignsCount = Campaign::where('user_id', $user->id)->where('status', 'schedule')->count();
-        $completedCampaignsCount = Campaign::where('user_id', $user->id)->where('status', 'completed')->count();
-        $campaigns = Campaign::where('user_id', $user->id);
+        $allCampaignsCount = Campaign::where('user_id', $requestData->user_id)->count();
+        $draftCampaignsCount = Campaign::where('user_id', $requestData->user_id)->where('status', 'draft')->count();
+        $scheduledCampaignsCount = Campaign::where('user_id', $requestData->user_id)->where('status', 'schedule')->count();
+        $completedCampaignsCount = Campaign::where('user_id', $requestData->user_id)->where('status', 'completed')->count();
+        $campaigns = Campaign::where('user_id', $requestData->user_id);
         $status = strtolower($requestData->status);
         if ($status !== 'all') {
             $campaigns->where('status', $status);
@@ -124,7 +105,6 @@ class CampaignService
     public function get(string $campaignKey): array
     {
 
-        $user = auth('sanctum')->user();
         $campaign = Campaign::where('campaign_key', $campaignKey)->first();
 
         // return error if no campaign found
@@ -132,14 +112,6 @@ class CampaignService
             return [
                 'res' => false,
                 'msg' => 'Campaign not found !',
-                'data' => ""
-            ];
-        }
-        // return error if user not created the campaign
-        if ($user->cannot('view', $campaign)) {
-            return [
-                'res' => false,
-                'msg' => 'User is not authorized !',
                 'data' => ""
             ];
         }
@@ -167,14 +139,6 @@ class CampaignService
             return [
                 'res' => false,
                 'msg' => 'Campaign not found !',
-                'data' => ""
-            ];
-        }
-        // return error if user not created the campaign
-        if ($user->cannot('delete', $campaign)) {
-            return [
-                'res' => false,
-                'msg' => 'User is not authorized !',
                 'data' => ""
             ];
         }

@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 |
 */
 
-Route::prefix('promotions')->group(function () {
+Route::prefix('promotions')->name('promotions.')->group(function () {
     Route::get('/', 'PromotionController@index');
     Route::post('/', 'PromotionController@store');
     Route::get('/{brand}/{promotion}', 'PromotionController@show');
