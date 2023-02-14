@@ -2,8 +2,6 @@
 
 namespace Modules\Campaign\Http\Services;
 
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Modules\User\Entities\User;
 use Modules\Campaign\Entities\Campaign;
@@ -92,8 +90,8 @@ class CampaignService
             "scheduledCampaignsCount" => $scheduledCampaignsCount,
             "completedCampaignsCount" => $completedCampaignsCount,
         );
-        return ['res' => true, 'msg' => "", 'data' => $data];
 
+        return ['res' => true, 'msg' => "", 'data' => $data];
     }
 
     /**
@@ -131,7 +129,6 @@ class CampaignService
      */
     public function delete(string $campaignKey): array
     {
-        $user = auth('sanctum')->user();
         $campaign = Campaign::where('campaign_key', $campaignKey)->first();
 
         // return error if no campaign found
@@ -150,7 +147,6 @@ class CampaignService
             'msg' => 'Campaign successfully deleted',
             'data' => ""
         ];
-
     }
 
 }
