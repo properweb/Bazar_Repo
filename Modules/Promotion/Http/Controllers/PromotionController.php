@@ -2,14 +2,18 @@
 
 namespace Modules\Promotion\Http\Controllers;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
 use Modules\Promotion\Http\Requests\StorePromotionRequest;
 use Modules\Promotion\Http\Requests\UpdatePromotionRequest;
 use Modules\Promotion\Http\Services\PromotionService;
 
 class PromotionController extends Controller
 {
+
+    private PromotionService $promotionService;
 
     public function __construct(PromotionService $promotionService)
     {
@@ -20,10 +24,21 @@ class PromotionController extends Controller
      * Get list of promotions
      *
      * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
+        $user = auth('sanctum')->user();
+
+        // return error if user is not a brand
+        if ($user->cannot('viewAny', Promotion::class)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
+        $request->request->add(['user_id' => $user->id]);
         $response = $this->promotionService->getPromotions($request);
 
         return response()->json($response);
@@ -33,10 +48,21 @@ class PromotionController extends Controller
      * Store a newly created promotion in storage
      *
      * @param StorePromotionRequest $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function store(StorePromotionRequest $request)
+    public function store(StorePromotionRequest $request): JsonResponse
     {
+        $user = auth('sanctum')->user();
+
+        // return error if user cannot create promotion
+        if ($user->cannot('create', Promotion::class)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
+        $request->request->add(['user_id' => $user->id]);
         $response = $this->promotionService->store($request->validated());
 
         return response()->json($response);
@@ -45,13 +71,23 @@ class PromotionController extends Controller
     /**
      * Fetch the specified promotion
      *
-     * @param int $userId
      * @param string $promotionKey
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function show($userId, $promotionKey)
+    public function show(string $promotionKey): JsonResponse
     {
-        $response = $this->promotionService->get($userId, $promotionKey);
+        $user = auth('sanctum')->user();
+        $promotion = Promotion::where('promotion_key', $promotionKey)->first();
+
+        // return error if user not created the promotion
+        if ($user->cannot('view', $promotion)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
+        $response = $this->promotionService->get($promotionKey);
 
         return response()->json($response);
     }
@@ -60,10 +96,21 @@ class PromotionController extends Controller
      * Update the specified promotion in storage
      *
      * @param UpdatePromotionRequest $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function update(UpdatePromotionRequest $request)
+    public function update(UpdatePromotionRequest $request): JsonResponse
     {
+        $user = auth('sanctum')->user();
+
+        // return error if user cannot update promotion
+        if ($user->cannot('update', Promotion::class)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
+
         $response = $this->promotionService->update($request->validated());
 
         return response()->json($response);
@@ -72,13 +119,24 @@ class PromotionController extends Controller
     /**
      * Remove the specified promotion from storage
      *
-     * @param int $userId
      * @param string $promotionKey
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function destroy($userId, $promotionKey)
+    public function destroy(string $promotionKey): JsonResponse
     {
-        $response = $this->promotionService->delete($userId, $promotionKey);
+        $user = auth('sanctum')->user();
+        $promotion = Promotion::where('promotion_key', $promotionKey)->first();
+
+        // return error if user not created the promotion
+        if ($user->cannot('delete', $promotion)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
+
+        $response = $this->promotionService->delete($promotionKey);
 
         return response()->json($response);
     }

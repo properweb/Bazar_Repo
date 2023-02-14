@@ -5,6 +5,7 @@ namespace Modules\Campaign\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Modules\Campaign\Entities\Campaign;
 use Modules\Campaign\Http\Requests\StoreCampaignRequest;
 use Modules\Campaign\Http\Services\CampaignService;

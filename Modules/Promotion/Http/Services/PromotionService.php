@@ -2,8 +2,10 @@
 
 namespace Modules\Promotion\Http\Services;
 
+use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Modules\Campaign\Entities\Campaign;
 use Modules\User\Entities\User;
 use Modules\Promotion\Entities\Promotion;
 use Carbon\Carbon;
@@ -17,11 +19,12 @@ class PromotionService
     /**
      * Save order
      *
-     * @param array $request
+     * @param array $requestData
      * @return array
      */
     public function store(array $requestData): array
     {
+
         $this->promotion = $this->createPromotion($requestData);
 
         return [
@@ -40,35 +43,18 @@ class PromotionService
      */
     public function createPromotion(array $promotionData): Promotion
     {
-        $user = User::find($promotionData['user_id']);
-        // return error if no user or user is not brand
-        if (!$user || $user->role !== 'brand') {
-            return [
-                'res' => false,
-                'msg' => 'User is not authorized !',
-                'data' => ""
-            ];
-        }
-        //create promotion
-        $promotion = new Promotion();
-        $promotion->user_id = $promotionData['user_id'];
-        $promotion->promotion_key = 'bpc_' . Str::lower(Str::random(10));
-        $promotion->title = $promotionData['title'];
-        $promotion->from_date = $promotionData['from_date'];
-        $promotion->to_date = $promotionData['to_date'];
-        $promotion->type = $promotionData['type'];
-        $promotion->country = $promotionData['country'];
-        $promotion->tier = $promotionData['tier'];
-        $promotion->discount_type = $promotionData['discount_type'];
-        $promotion->ordered_amount = $promotionData['ordered_amount'];
-        $promotion->discount_amount = $promotionData['discount_amount'];
-        $promotion->free_shipping = $promotionData['free_shipping'];
-        $promotion->create_date = date('Y-m-d');
+        $promotionData["status"] = Promotion :: STATUS_ACTIVE;
+        $promotionData['promotion_key'] = 'bpc_' . Str::lower(Str::random(10));
         $productsStr = '';
         if (!empty($promotionData['products'])) {
             $productsStr = implode(',', $promotionData["products"]);
         }
-        $promotion->products = $productsStr;
+        $promotionData['products'] = $productsStr;
+
+        //create promotion
+        $promotion = new Promotion();
+        $promotion->save();
+        $promotion->fill($promotionData);
         $promotion->save();
 
         return $promotion;
@@ -82,22 +68,13 @@ class PromotionService
      */
     public function getPromotions($requestData): array
     {
-        $user = User::find($requestData->user_id);
-        // return error if no user or user is not brand
-        if (!$user || $user->role !== 'brand') {
-            return [
-                'res' => false,
-                'msg' => 'No record found !',
-                'data' => ""
-            ];
-        }
 
-        $brand = Brand::where('user_id', $user->id)->first();
-        $allPromotionsCount = Promotion::where('user_id', $user->id)->count();
-        $draftPromotionsCount = Promotion::where('user_id', $user->id)->where('status', 'draft')->count();
-        $scheduledPromotionsCount = Promotion::where('user_id', $user->id)->where('status', 'schedule')->count();
-        $completedPromotionsCount = Promotion::where('user_id', $user->id)->where('status', 'completed')->count();
-        $promotions = Promotion::where('user_id', $user->id);
+        $brand = Brand::where('user_id', $requestData->user_id)->first();
+        $allPromotionsCount = Promotion::where('user_id', $requestData->user_id)->count();
+        $draftPromotionsCount = Promotion::where('user_id', $requestData->user_id)->where('status', 'draft')->count();
+        $scheduledPromotionsCount = Promotion::where('user_id', $requestData->user_id)->where('status', 'schedule')->count();
+        $completedPromotionsCount = Promotion::where('user_id', $requestData->user_id)->where('status', 'completed')->count();
+        $promotions = Promotion::where('user_id', $requestData->user_id);
         $paginatedPromotions = $promotions->paginate(10);
         $filteredPromotions = [];
         if ($paginatedPromotions) {
@@ -124,14 +101,13 @@ class PromotionService
     /**
      * Get the specified promotion
      *
-     * @param int $userId
      * @param string $promotionKey
      * @return array
      */
-    public function get($userId, $promotionKey)
+    public function get(string $promotionKey): array
     {
-        $user = User::find($userId);
         $promotion = Promotion::where('promotion_key', $promotionKey)->first();
+
         // return error if no promotion found
         if (!$promotion) {
             return [
@@ -140,14 +116,7 @@ class PromotionService
                 'data' => ""
             ];
         }
-        // return error if user not created the promotion
-        if ($user->id !== $promotion->user_id) {
-            return [
-                'res' => false,
-                'msg' => 'User is not authorized !',
-                'data' => ""
-            ];
-        }
+
         $promotion->country = explode(',', $promotion->country);
         $promotion->from_date_str = date("l,F j, Y", strtotime($promotion->from_date));
         $promotion->to_date_str = date("l,F j, Y", strtotime($promotion->to_date));
@@ -165,7 +134,7 @@ class PromotionService
     /**
      * Update the specified promotion in storage.
      *
-     * @param array $request
+     * @param array $requestData
      * @return array
      */
     public function update(array $requestData): array
@@ -183,14 +152,7 @@ class PromotionService
                     'data' => ""
                 ];
             }
-            // return error if user not created the promotion
-            if ($user->id !== $promotion->user_id) {
-                return [
-                    'res' => false,
-                    'msg' => 'User is not authorized !',
-                    'data' => ""
-                ];
-            }
+
             $productsStr = '';
             if (!empty($requestData['products'])) {
                 $productsStr = implode(',', $requestData["products"]);
@@ -203,7 +165,7 @@ class PromotionService
                 'data' => $this->promotion
             ];
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // something went wrong
 
             return [

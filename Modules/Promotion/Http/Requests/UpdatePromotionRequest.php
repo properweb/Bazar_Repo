@@ -5,6 +5,7 @@ namespace Modules\Promotion\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\JsonResponse;
 
 class UpdatePromotionRequest extends FormRequest
 {
@@ -13,7 +14,7 @@ class UpdatePromotionRequest extends FormRequest
      *
      * @return bool
      */
-    public function authorize()
+    public function authorize(): bool
     {
         return true;
     }
@@ -23,13 +24,16 @@ class UpdatePromotionRequest extends FormRequest
      *
      * @return array<string, mixed>
      */
-    public function rules()
+    public function rules(): array
     {
         return [
-            'title' => 'string|required',
-            'user_id' => 'integer|required',
-            'from_date'  =>  'required|date_format:Y-m-d',
-            'to_date'  =>  'required|date_format:Y-m-d',
+            'title' => 'required|string',
+            'user_id' => 'nullable|integer|exists:users,id',
+            'from_date' => 'required|date_format:Y-m-d',
+            'to_date' => 'required|date_format:Y-m-d',
+            'ordered_amount' => 'required|numeric|min:1',
+            'discount_amount' => 'required|numeric|min:0',
+            'discount_type' => 'required|numeric',
         ];
     }
 
@@ -37,13 +41,13 @@ class UpdatePromotionRequest extends FormRequest
      * Create a json response on validation errors.
      *
      * @param Validator $validator
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function failedValidation(Validator $validator)
+    public function failedValidation(Validator $validator): JsonResponse
     {
         throw new HttpResponseException(response()->json([
             'res' => false,
-            'msg' => $validator->errors(),
+            'msg' => $validator->errors()->first(),
             'data' => ""
         ]));
 
