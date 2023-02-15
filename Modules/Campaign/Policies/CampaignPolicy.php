@@ -100,6 +100,4 @@ class CampaignPolicy
     {
         return $this->isCreator($user, $campaign);
     }
-
-
 }
