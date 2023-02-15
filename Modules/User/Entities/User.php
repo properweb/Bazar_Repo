@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Modules\Campaign\Entities\Campaign;
+use Modules\Promotion\Entities\Promotion;
 //jwt
 //use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 //use Tymon\JWTAuth\Contracts\JWTSubject;

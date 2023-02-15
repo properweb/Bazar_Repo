@@ -3,6 +3,7 @@
 namespace Modules\Promotion\Entities;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Promotion extends Model {
 

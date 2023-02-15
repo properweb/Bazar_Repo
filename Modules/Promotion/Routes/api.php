@@ -1,6 +1,10 @@
 <?php
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+
+use Modules\Promotion\Http\Controllers\PromotionController;
+use Modules\User\Http\Controllers\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -12,11 +16,12 @@ use Illuminate\Http\Request;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
-
-Route::prefix('promotions')->name('promotions.')->group(function () {
-    Route::get('/', 'PromotionController@index');
-    Route::post('/', 'PromotionController@store');
-    Route::get('/{brand}/{promotion}', 'PromotionController@show');
-    Route::post('/update', 'PromotionController@update');
-    Route::post('/delete', 'PromotionController@destroy');
+Route::middleware('auth:sanctum')->group(function () {
+    Route::prefix('promotions')->group(function () {
+        Route::get('/', 'PromotionController@index');
+        Route::post('/', 'PromotionController@store');
+        Route::get('/{promotion}', 'PromotionController@show');
+        Route::post('/update', 'PromotionController@update');
+        Route::delete('/delete/{promotion}', 'PromotionController@destroy');
+    });
 });

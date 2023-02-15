@@ -5,8 +5,8 @@ namespace Modules\Promotion\Http\Services;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Modules\Campaign\Entities\Campaign;
 use Modules\User\Entities\User;
+use Modules\Brand\Entities\Brand;
 use Modules\Promotion\Entities\Promotion;
 use Carbon\Carbon;
 
@@ -63,18 +63,18 @@ class PromotionService
     /**
      * Get a listing of the promotions
      *
-     * @param $requestData
+     * @param int $userId
      * @return array
      */
-    public function getPromotions($requestData): array
+    public function getPromotions(int $userId): array
     {
+        $brand = Brand::where('user_id', $userId)->first();
 
-        $brand = Brand::where('user_id', $requestData->user_id)->first();
-        $allPromotionsCount = Promotion::where('user_id', $requestData->user_id)->count();
-        $draftPromotionsCount = Promotion::where('user_id', $requestData->user_id)->where('status', 'draft')->count();
-        $scheduledPromotionsCount = Promotion::where('user_id', $requestData->user_id)->where('status', 'schedule')->count();
-        $completedPromotionsCount = Promotion::where('user_id', $requestData->user_id)->where('status', 'completed')->count();
-        $promotions = Promotion::where('user_id', $requestData->user_id);
+        $allPromotionsCount = Promotion::where('user_id', $userId)->count();
+        $draftPromotionsCount = Promotion::where('user_id', $userId)->where('status', 'draft')->count();
+        $scheduledPromotionsCount = Promotion::where('user_id', $userId)->where('status', 'schedule')->count();
+        $completedPromotionsCount = Promotion::where('user_id', $userId)->where('status', 'completed')->count();
+        $promotions = Promotion::where('user_id', $userId);
         $paginatedPromotions = $promotions->paginate(10);
         $filteredPromotions = [];
         if ($paginatedPromotions) {
@@ -181,13 +181,11 @@ class PromotionService
     /**
      * Remove the specified promotion from storage.
      *
-     * @param int $userId
      * @param string $promotionKey
      * @return array
      */
-    public function delete($userId, $promotionKey)
+    public function delete(string $promotionKey): array
     {
-        $user = User::find($userId);
         $promotion = Promotion::where('promotion_key', $promotionKey)->first();
 
         // return error if no promotion found
@@ -198,15 +196,8 @@ class PromotionService
                 'data' => ""
             ];
         }
-        // return error if user not created the promotion
-        if ($user->id !== $promotion->user_id) {
-            return [
-                'res' => false,
-                'msg' => 'User is not authorized !',
-                'data' => ""
-            ];
-        }
-        $this->promotion->delete();
+
+        $promotion->delete();
 
         return [
             'res' => true,

@@ -3,11 +3,13 @@
 namespace Modules\Promotion\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Modules\Promotion\Entities\Promotion;
 use Modules\Promotion\Http\Requests\StorePromotionRequest;
-use Modules\Promotion\Http\Requests\UpdatePromotionRequest;
+
+//use Modules\Promotion\Http\Requests\UpdatePromotionRequest;
 use Modules\Promotion\Http\Services\PromotionService;
 
 class PromotionController extends Controller
@@ -23,10 +25,9 @@ class PromotionController extends Controller
     /**
      * Get list of promotions
      *
-     * @param Request $request
      * @return JsonResponse
      */
-    public function index(Request $request): JsonResponse
+    public function index(): JsonResponse
     {
         $user = auth('sanctum')->user();
 
@@ -38,8 +39,8 @@ class PromotionController extends Controller
                 'data' => ""
             ]);
         }
-        $request->request->add(['user_id' => $user->id]);
-        $response = $this->promotionService->getPromotions($request);
+
+        $response = $this->promotionService->getPromotions($user->id);
 
         return response()->json($response);
     }
@@ -135,7 +136,6 @@ class PromotionController extends Controller
                 'data' => ""
             ]);
         }
-
         $response = $this->promotionService->delete($promotionKey);
 
         return response()->json($response);
