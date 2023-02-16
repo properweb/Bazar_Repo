@@ -16,12 +16,13 @@ use Modules\User\Http\Controllers\UserController;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
-Route::middleware('auth:sanctum')->group(function () {
-    Route::prefix('promotions')->group(function () {
-        Route::get('/', 'PromotionController@index');
-        Route::post('/', 'PromotionController@store');
-        Route::get('/{promotion}', 'PromotionController@show');
-        Route::post('/update', 'PromotionController@update');
-        Route::delete('/delete/{promotion}', 'PromotionController@destroy');
+Route::middleware('auth:sanctum')
+    ->prefix('promotions')
+    ->name('promotion.')
+    ->group(function () {
+        Route::get('/', 'PromotionController@index')->name('list');
+        Route::post('/', 'PromotionController@store')->name('store');
+        Route::get('/{promotion}', 'PromotionController@show')->name('show');
+        Route::post('/update', 'PromotionController@update')->name('update');
+        Route::delete('/delete/{promotion}', 'PromotionController@destroy')->name('delete');
     });
-});
