@@ -1,5 +1,20 @@
 {
     "Product": true,
     "Brand": true,
-    "Frontend": true
+    "User": true,
+    "Country": true,
+    "Shopify": true,
+    "Wordpress": true,
+    "ImportExport": true,
+    "Category": true,
+    "BrandProduct": true,
+    "Shop": true,
+    "Cart": true,
+    "Order": true,
+    "Retailer": true,
+    "Wishlist": true,
+    "Backend": true,
+    "Campaign": true,
+    "Promotion": true,
+    "Customer": true
 }

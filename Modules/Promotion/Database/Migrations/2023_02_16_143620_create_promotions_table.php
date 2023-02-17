@@ -28,9 +28,10 @@ return new class extends Migration
             $table->float('discount_amount');
             $table->integer('free_shipping');
             $table->enum('status',['active', 'inactive'])->default('active');
-            $table->string('country');
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('CASCADE');
+            $table->string('products');
             $table->timestamps();
+
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('CASCADE');
         });
     }
 

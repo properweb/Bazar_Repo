@@ -4,12 +4,9 @@ namespace Modules\Promotion\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Modules\Promotion\Entities\Promotion;
 use Modules\Promotion\Http\Requests\StorePromotionRequest;
-
-//use Modules\Promotion\Http\Requests\UpdatePromotionRequest;
+use Modules\Promotion\Http\Requests\UpdatePromotionRequest;
 use Modules\Promotion\Http\Services\PromotionService;
 
 class PromotionController extends Controller

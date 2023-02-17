@@ -2,8 +2,6 @@
 
 namespace Modules\Promotion\Http\Services;
 
-use Exception;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Modules\User\Entities\User;
 use Modules\Brand\Entities\Brand;
@@ -17,7 +15,7 @@ class PromotionService
     protected User $user;
 
     /**
-     * Save order
+     * Save a new promotion
      *
      * @param array $requestData
      * @return array
@@ -140,41 +138,28 @@ class PromotionService
     public function update(array $requestData): array
     {
 
-        try {
-            $user = User::find($requestData['user_id']);
-            $promotion = Promotion::where('promotion_key', $requestData['promotion_key'])->first();
+        $promotion = Promotion::where('promotion_key', $requestData['promotion_key'])->first();
 
-            // return error if no promotion found
-            if (!$promotion) {
-                return [
-                    'res' => false,
-                    'msg' => 'Promotion not found !',
-                    'data' => ""
-                ];
-            }
-
-            $productsStr = '';
-            if (!empty($requestData['products'])) {
-                $productsStr = implode(',', $requestData["products"]);
-            }
-            $requestData['products'] = $productsStr;
-            $promotion->update($requestData);
-            return [
-                'res' => true,
-                'msg' => 'Your promotion updated successfully',
-                'data' => $this->promotion
-            ];
-
-        } catch (Exception $e) {
-            // something went wrong
-
+        // return error if no promotion found
+        if (!$promotion) {
             return [
                 'res' => false,
-                'msg' => $e->getMessage(),
+                'msg' => 'Promotion not found !',
                 'data' => ""
             ];
-
         }
+
+        $productsStr = '';
+        if (!empty($requestData['products'])) {
+            $productsStr = implode(',', $requestData["products"]);
+        }
+        $requestData['products'] = $productsStr;
+        $promotion->update($requestData);
+        return [
+            'res' => true,
+            'msg' => 'Your promotion updated successfully',
+            'data' => $promotion
+        ];
     }
 
 
