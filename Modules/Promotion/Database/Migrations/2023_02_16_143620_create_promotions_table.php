@@ -31,7 +31,10 @@ return new class extends Migration
             $table->string('products');
             $table->timestamps();
 
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('CASCADE');
+            $table->foreign('user_id')
+                ->references('id')
+                ->on('users')
+                ->onDelete('CASCADE');
         });
     }
 

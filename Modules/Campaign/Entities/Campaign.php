@@ -3,7 +3,6 @@
 namespace Modules\Campaign\Entities;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 class Campaign extends Model {
 

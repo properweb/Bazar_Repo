@@ -17,9 +17,16 @@ return new class extends Migration {
             $table->unsignedBigInteger('user_id')->nullable();
             $table->unsignedBigInteger('campaign_id')->nullable();
             $table->timestamps();
-            
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('SET NULL');
-            $table->foreign('campaign_id')->references('id')->on('campaigns')->onDelete('SET NULL');
+
+            $table->foreign('user_id')
+                ->references('id')
+                ->on('users')
+                ->onDelete('SET NULL');
+
+            $table->foreign('campaign_id')
+                ->references('id')
+                ->on('campaigns')
+                ->onDelete('SET NULL');
         });
     }
 

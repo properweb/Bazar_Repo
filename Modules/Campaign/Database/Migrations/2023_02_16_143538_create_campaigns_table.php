@@ -23,8 +23,12 @@ return new class extends Migration
             $table->longText('email_design');
             $table->string('scheduled_date')->nullable();
             $table->enum('status',['draft', 'scheduled', 'completed'])->default('draft');
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('CASCADE');
             $table->timestamps();
+
+            $table->foreign('user_id')
+                ->references('id')
+                ->on('users')
+                ->onDelete('CASCADE');
         });
     }
 
