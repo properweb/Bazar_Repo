@@ -10,7 +10,7 @@ use Illuminate\Http\JsonResponse;
 class ProductRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * determine if the user is authorized to make this request.
      *
      * @return bool
      */

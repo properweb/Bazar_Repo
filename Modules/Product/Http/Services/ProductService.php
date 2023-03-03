@@ -28,11 +28,11 @@ class ProductService
     }
 
     /**
-     * @param $request
+     * @Param $request
      * @return array
      */
 
-    public function fetch($request): array
+    public function fetch($request)
     {
 
         $resultArray = [];

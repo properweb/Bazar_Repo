@@ -11,7 +11,7 @@ class ProductPolicy
     use HandlesAuthorization;
 
     /**
-     * Create a new policy instance.
+     * create a new policy instance.
      *
      * @return void
      */
@@ -21,7 +21,7 @@ class ProductPolicy
     }
 
     /**
-     * Determine whether the user can view any campaigns.
+     * Determine whether the user can view any products.
      *
      * @param User $user
      * @return bool
@@ -43,7 +43,7 @@ class ProductPolicy
     }
 
     /**
-     * Determine whether the user can view the campaign.
+     * Determine whether the user can view the product.
      *
      * @param User $user
      * @param Product $product
@@ -55,7 +55,7 @@ class ProductPolicy
     }
 
     /**
-     * Determine whether the user created the campaign.
+     * Determine whether the user created the product.
      *
      * @param User $user
      * @param Product $product
@@ -67,7 +67,7 @@ class ProductPolicy
     }
 
     /**
-     * Determine whether the user can create campaigns.
+     * Determine whether the user can create products.
      *
      * @param User $user
      * @return bool
@@ -78,7 +78,7 @@ class ProductPolicy
     }
 
     /**
-     * Determine whether the user can update the campaign.
+     * Determine whether the user can update the product.
      *
      * @param User $user
      * @param Product $product
@@ -90,7 +90,7 @@ class ProductPolicy
     }
 
     /**
-     * Determine whether the user can delete the campaign.
+     * Determine whether the user can delete the product.
      *
      * @param User $user
      * @param Product $product
