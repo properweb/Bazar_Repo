@@ -821,7 +821,7 @@ class ProductService
         } else {
             $stock = 0;
         }
-        $mainCategory = '';
+        $mainCategory = "";
         $category = '';
         $outsideUs = $request->outside_us == 'true' ? 1 : 0;
         $subCategory = $request->product_type;
