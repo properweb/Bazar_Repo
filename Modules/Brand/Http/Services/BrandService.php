@@ -5,6 +5,7 @@ namespace Modules\Brand\Http\Services;
 use Illuminate\Support\Str;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 use Modules\Brand\Entities\Catalog;
 use Modules\User\Entities\User;
 use Modules\Brand\Entities\Brand;
@@ -267,6 +268,132 @@ class BrandService
             $response = ['res' => false, 'msg' => $errorMessage, 'data' => $errorCode];
 
         }
+        return $response;
+    }
+
+
+    public function updateAccount($request)
+    {
+        $validator = Validator::make($request->all(), [
+            'first_name' => 'required|regex:/^[a-zA-Z]+$/u|max:255',
+            'last_name' => 'required|regex:/^[a-zA-Z]+$/u|max:255',
+            'phone_number' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:9',
+        ]);
+        if ($validator->fails()) {
+            $response = ['res' => false, 'msg' => $validator->errors()->first(), 'data' => ""];
+        } else {
+
+            $user = User::find($request->user_id);
+            $user->first_name = $request->first_name;
+            $user->last_name = $request->last_name;
+            $brand = Brand::where('user_id', $request->user_id)->first();
+            $brand->country_code = $request->country_code;
+            $brand->phone_number = $request->phone_number;
+            $brand->save();
+
+            $status = $user->save();
+            if ($status) {
+                if ($request->new_password != '') {
+                    $validator2 = Validator::make($request->all(), [
+                        'old_password' => 'required',
+                        'new_password' => [
+                            'required',
+                            'different:old_password',
+                            Password::min(8)
+                                ->letters()
+                                ->mixedCase()
+                                ->numbers()
+                                ->symbols()
+                        ],
+                        'confirm_password' => 'required|same:new_password'
+                    ]);
+                    if ($validator2->fails()) {
+                        $response = ['res' => false, 'msg' => $validator2->errors()->first(), 'data' => ""];
+                    } else {
+                        if (Hash::check($request->old_password, $user->password)) {
+                            $user->password = Hash::make($request->new_password);
+                            $user->save();
+                            $response = ['res' => true, 'msg' => "Successfully updated your account", 'data' => ''];
+                        } else {
+                            $response = ['res' => false, 'msg' => 'old password does not match our record.', 'data' => ""];
+                        }
+                    }
+                } else {
+                    $response = ['res' => true, 'msg' => "Successfully updated your account", 'data' => ''];
+                }
+            } else {
+                $response = ['res' => false, 'msg' => "Please try again!", 'data' => ''];
+            }
+        }
+
+        return $response;
+    }
+
+
+    /**
+     * @param $request
+     * @return mixed
+     */
+    public function updateShop($request)
+    {
+        $userId = $request->user_id;
+        $brand = Brand::where('user_id', $request->user_id)->first();
+        $brandId = $brand->id;
+        $request->brand_slug = Str::slug($request->brand_name, '-');
+        $validator = Validator::make($request->all(), [
+            'email' => 'string|email|unique:users,email,' . $userId . ',id',
+            'brand_slug' => 'string|unique:brands,brand_slug,' . $brandId . ',id',
+            'brand_name' => 'string|max:255',
+            'website_url' => ['regex:/^(?!(http|https)\.)\w+(\.\w+)+$/'],
+            'insta_handle' => ['regex:/^(?!.*\.\.)(?!.*\.$)[^\W][\w.]{0,29}$/'],
+            'established_year' => 'digits:4|integer|min:1900|max:'.date('Y'),
+            'first_order_min' => 'numeric|min:1|max:99999',
+            're_order_min' => 'numeric|min:1|max:99999',
+            'avg_lead_time' => 'numeric|min:1|max:180',
+            'product_made' => 'integer|exists:countries,id',
+            'headquatered' => 'integer|exists:countries,id',
+            'shared_brd_story' => 'string|max:1500',
+            'tag_shop_page' => 'string|max:1500',
+        ]);
+        if ($validator->fails()) {
+            $response = ['res' => false, 'msg' => $validator->errors()->first(), 'data' => ""];
+        } else {
+
+            $brand = Brand::updateOrCreate(['user_id' => request()->user_id], $request->except(['email', 'featured_image', 'profile_photo', 'cover_image', 'logo_image']));
+            if (isset($request->email)) {
+                $user = User::find($userId);
+                $user->email = $request->email;
+                $user->save();
+            }
+            $profilePhoto = $request->profile_photo;
+            if (isset($profilePhoto) && $profilePhoto != "") {
+                $brand->profile_photo = $this->imageUpload($brandId, $profilePhoto, $brand->profile_photo, true);
+            }
+
+            $coverImage = $request->cover_image;
+            if (isset($coverImage) && $coverImage != "") {
+                $brand->cover_image = $this->imageUpload($brandId, $coverImage, $brand->cover_image, true);
+            }
+
+            $featuredImage = $request->featured_image;
+            if (isset($featuredImage) && $featuredImage != "") {
+                $brand->featured_image = $this->imageUpload($brandId, $featuredImage, $brand->featured_image, true);
+            }
+
+            $logoImage = $request->logo_image;
+            if (isset($logoImage) && $logoImage != "") {
+                $brand->logo_image = $this->imageUpload($brandId, $logoImage, $brand->logo_image, true);
+            }
+
+            $brand->first_visit = '1';
+            $status = $brand->save();
+            if ($status) {
+                $response = ['res' => true, 'msg' => "Successfully updated your account", 'data' => ''];
+            } else {
+                $response = ['res' => false, 'msg' => "Please try again!", 'data' => ''];
+            }
+        }
+
         return $response;
     }
 

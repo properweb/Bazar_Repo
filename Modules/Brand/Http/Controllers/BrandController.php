@@ -115,57 +115,8 @@ class BrandController extends Controller
      */
     public function updateAccount(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'first_name' => 'required|regex:/^[a-zA-Z]+$/u|max:255',
-            'last_name' => 'required|regex:/^[a-zA-Z]+$/u|max:255',
-            'phone_number' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:9',
-        ]);
-        if ($validator->fails()) {
-            $response = ['res' => false, 'msg' => $validator->errors()->first(), 'data' => ""];
-        } else {
 
-            $user = User::find($request->user_id);
-            $user->first_name = $request->first_name;
-            $user->last_name = $request->last_name;
-            $brand = Brand::where('user_id', $request->user_id)->first();
-            $brand->country_code = $request->country_code;
-            $brand->phone_number = $request->phone_number;
-            $brand->save();
-
-            $status = $user->save();
-            if ($status) {
-                if ($request->new_password != '') {
-                    $validator2 = Validator::make($request->all(), [
-                        'old_password' => 'required',
-                        'new_password' => [
-                            'required',
-                            'different:old_password',
-                            Password::min(8)
-                                ->letters()
-                                ->mixedCase()
-                                ->numbers()
-                                ->symbols()
-                        ],
-                        'confirm_password' => 'required|same:new_password'
-                    ]);
-                    if ($validator2->fails()) {
-                        $response = ['res' => false, 'msg' => $validator2->errors()->first(), 'data' => ""];
-                    } else {
-                        if (Hash::check($request->old_password, $user->password)) {
-                            $user->password = Hash::make($request->new_password);
-                            $user->save();
-                            $response = ['res' => true, 'msg' => "Successfully updated your account", 'data' => ''];
-                        } else {
-                            $response = ['res' => false, 'msg' => 'old password does not match our record.', 'data' => ""];
-                        }
-                    }
-                } else {
-                    $response = ['res' => true, 'msg' => "Successfully updated your account", 'data' => ''];
-                }
-            } else {
-                $response = ['res' => false, 'msg' => "Please try again!", 'data' => ''];
-            }
-        }
+        $response = $this->brandService->updateAccount($request);
 
         return response()->json($response);
     }
@@ -176,52 +127,7 @@ class BrandController extends Controller
      */
     public function updateShop(Request $request)
     {
-        $userId = request()->user_id;
-        $brand = Brand::where('user_id', $request->user_id)->first();
-        $brandId = $brand->id;
-        $request->brand_slug = Str::slug($request->brand_name, '-');
-        $validator = Validator::make($request->all(), [
-            'email' => 'string|email|unique:users,email,' . $userId . ',id',
-            'brand_slug' => 'string|unique:brands,brand_slug,' . $brandId . ',id'
-        ]);
-        if ($validator->fails()) {
-            $response = ['res' => false, 'msg' => $validator->errors()->first(), 'data' => ""];
-        } else {
-
-            $brand = Brand::updateOrCreate(['user_id' => request()->user_id], $request->except(['email', 'featured_image', 'profile_photo', 'cover_image', 'logo_image']));
-            if (isset($request->email)) {
-                $user = User::find($userId);
-                $user->email = $request->email;
-                $user->save();
-            }
-            $profilePhoto = $request->profile_photo;
-            if (isset($profilePhoto) && $profilePhoto != "") {
-                $brand->profile_photo = $this->imageUpload($brandId, $profilePhoto, $brand->profile_photo, true);
-            }
-
-            $coverImage = $request->cover_image;
-            if (isset($coverImage) && $coverImage != "") {
-                $brand->cover_image = $this->imageUpload($brandId, $coverImage, $brand->cover_image, true);
-            }
-
-            $featuredImage = $request->featured_image;
-            if (isset($featuredImage) && $featuredImage != "") {
-                $brand->featured_image = $this->imageUpload($brandId, $featuredImage, $brand->featured_image, true);
-            }
-
-            $logoImage = $request->logo_image;
-            if (isset($logoImage) && $logoImage != "") {
-                $brand->logo_image = $this->imageUpload($brandId, $logoImage, $brand->logo_image, true);
-            }
-
-            $brand->first_visit = '1';
-            $status = $brand->save();
-            if ($status) {
-                $response = ['res' => true, 'msg' => "Successfully updated your account", 'data' => ''];
-            } else {
-                $response = ['res' => false, 'msg' => "Please try again!", 'data' => ''];
-            }
-        }
+        $response = $this->brandService->updateShop($request);
 
         return response()->json($response);
     }
