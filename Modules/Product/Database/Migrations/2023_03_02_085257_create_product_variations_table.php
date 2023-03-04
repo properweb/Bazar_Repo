@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('variant_key')->nullable();
             $table->string('image')->nullable();
             $table->string('swatch_image')->nullable();
-            $table->integer('product_id')->nullable();
+            $table->foreign('product_id')->references('id')->on('products')->onDelete('CASCADE');
             $table->float('price')->nullable();
             $table->string('options1')->nullable();
             $table->string('options2')->nullable();
