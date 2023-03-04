@@ -5,8 +5,6 @@ namespace Modules\Product\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Modules\Product\Entities\Product;
-use Modules\Product\Entities\ProductImage;
-use Modules\Product\Entities\Video;
 use Modules\Product\Http\Requests\ProductRequest;
 use Modules\Product\Http\Services\ProductService;
 use Illuminate\Http\Request;
@@ -23,6 +21,8 @@ class ProductController extends Controller
     }
 
     /**
+     * Create New Product By logged Brand
+     *
      * @param ProductRequest $request
      * @return JsonResponse
      */
@@ -37,10 +37,13 @@ class ProductController extends Controller
             ]);
         }
         $response = $this->productService->create($request);
+
         return response()->json($response);
     }
 
     /**
+     * Fetch All Product Respected Logged Brand
+     *
      * @param Request $request
      * @return JsonResponse
      */
@@ -55,14 +58,17 @@ class ProductController extends Controller
             ]);
         }
         $response = $this->productService->fetch($request);
+
         return response()->json($response);
     }
 
     /**
+     * Fetch Arrange Product List
+     *
      * @param Request $request
      * @return JsonResponse
      */
-    public function arrange(Request $request): JsonResponse
+    public function arrangeProduct(Request $request): JsonResponse
     {
         $user = auth()->user();
         if ($user->cannot('viewAny', Product::class)) {
@@ -72,15 +78,18 @@ class ProductController extends Controller
                 'data' => ""
             ]);
         }
-        $response = $this->productService->arrange($request);
+        $response = $this->productService->arrangeProduct($request);
+
         return response()->json($response);
     }
 
     /**
+     * Fetching product inventory by Logged brand
+     *
      * @param Request $request
      * @return JsonResponse
      */
-    public function FetchStock(Request $request): JsonResponse
+    public function fetchStock(Request $request): JsonResponse
     {
         $user = auth()->user();
         if ($user->cannot('viewAny', Product::class)) {
@@ -90,11 +99,14 @@ class ProductController extends Controller
                 'data' => ""
             ]);
         }
-        $response = $this->productService->FetchStock($request);
+        $response = $this->productService->fetchStock($request);
+
         return response()->json($response);
     }
 
     /**
+     * Product Details for respected product
+     *
      * @param Request $request
      * @return JsonResponse
      */
@@ -110,10 +122,13 @@ class ProductController extends Controller
             ]);
         }
         $response = $this->productService->details($request);
+
         return response()->json($response);
     }
 
     /**
+     * Update product by ID
+     *
      * @param ProductRequest $request
      * @return JsonResponse
      */
@@ -129,10 +144,13 @@ class ProductController extends Controller
             ]);
         }
         $response = $this->productService->update($request);
+
         return response()->json($response);
     }
 
     /**
+     * Change status like published, Unpublished of products
+     *
      * @param Request $request
      * @return JsonResponse
      */
@@ -147,10 +165,13 @@ class ProductController extends Controller
             ]);
         }
         $response = $this->productService->status($request);
+
         return response()->json($response);
     }
 
     /**
+     * Delete product by logged brand
+     *
      * @param Request $request
      * @return JsonResponse
      */
@@ -166,17 +187,21 @@ class ProductController extends Controller
             ]);
         }
         $response = $this->productService->delete($request);
+
         return response()->json($response);
     }
 
     /**
+     * Delete product image by respected product and image id
+     *
      * @param Request $request
      * @return JsonResponse
      */
-    public function DeleteImage(Request $request): JsonResponse
+    public function deleteImage(Request $request): JsonResponse
     {
         $user = auth()->user();
-        $image = ProductImage::where('id', $request->image_id)->first();
+
+        $image = Product::where('id', $request->product_id)->where('user_id', $user->id)->first();
         if ($user->cannot('delete', $image)) {
             return response()->json([
                 'res' => false,
@@ -184,18 +209,21 @@ class ProductController extends Controller
                 'data' => ""
             ]);
         }
-        $response = $this->productService->DeleteImage($request);
+        $response = $this->productService->deleteImage($request);
+
         return response()->json($response);
     }
 
     /**
+     * Delete product video by respected product and image id
+     *
      * @param Request $request
      * @return JsonResponse
      */
-    public function DeleteVideo(Request $request): JsonResponse
+    public function deleteVideo(Request $request): JsonResponse
     {
         $user = auth()->user();
-        $video = Video::where('id', $request->id)->first();
+        $video = Product::where('id', $request->product_id)->where('user_id', $user->id)->first();
         if ($user->cannot('delete', $video)) {
             return response()->json([
                 'res' => false,
@@ -203,15 +231,18 @@ class ProductController extends Controller
                 'data' => ""
             ]);
         }
-        $response = $this->productService->DeleteVideo($request);
+        $response = $this->productService->deleteVideo($request);
+
         return response()->json($response);
     }
 
     /**
+     * Update product sorting by logged brand
+     *
      * @param Request $request
      * @return JsonResponse
      */
-    public function reorder(Request $request): JsonResponse
+    public function reorderProduct(Request $request): JsonResponse
     {
         $user = auth()->user();
         if ($user->cannot('viewAny', Product::class)) {
@@ -221,15 +252,18 @@ class ProductController extends Controller
                 'data' => ""
             ]);
         }
-        $response = $this->productService->reorder($request);
+        $response = $this->productService->reorderProduct($request);
+
         return response()->json($response);
     }
 
     /**
+     * Inventory stock by product
+     *
      * @param Request $request
      * @return JsonResponse
      */
-    public function UpdateStock(Request $request): JsonResponse
+    public function updateStock(Request $request): JsonResponse
     {
         $user = auth()->user();
         if ($user->cannot('viewAny', Product::class)) {
@@ -239,16 +273,19 @@ class ProductController extends Controller
                 'data' => ""
             ]);
         }
-        $response = $this->productService->UpdateStock($request);
+        $response = $this->productService->updateStock($request);
+
         return response()->json($response);
     }
 
     /**
+     * Convert price from api for other currency from USD
+     *
      * @param Request $request
      * @param $price
      * @return JsonResponse
      */
-    public function ConvertPrice(Request $request, $price): JsonResponse
+    public function convertPrice(Request $request, $price): JsonResponse
     {
         $req_url = 'https://api.exchangerate.host/latest?base=USD&symbols=USD,CAD,GBP,AUD,EUR&places=2&amount=' . $price;
         $response_json = file_get_contents($req_url);
@@ -262,6 +299,7 @@ class ProductController extends Controller
                 $response = ['res' => false, 'msg' => "Something went wrong", 'data' => ""];
             }
         }
+
         return response()->json($response);
     }
 
