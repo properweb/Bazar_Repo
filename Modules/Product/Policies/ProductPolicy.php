@@ -11,7 +11,7 @@ class ProductPolicy
     use HandlesAuthorization;
 
     /**
-     * create a new policy instance.
+     * Create a new policy instance.
      *
      * @return void
      */
@@ -21,7 +21,7 @@ class ProductPolicy
     }
 
     /**
-     * Determine whether the user can view any products.
+     * Determine whether the user can view any campaigns.
      *
      * @param User $user
      * @return bool

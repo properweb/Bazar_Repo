@@ -176,7 +176,8 @@ class ProductController extends Controller
     public function DeleteImage(Request $request): JsonResponse
     {
         $user = auth()->user();
-        $image = ProductImage::where('id', $request->image_id)->first();
+
+        $image =  Product::where('id', $request->product_id)->where('user_id', $user->id)->first();
         if ($user->cannot('delete', $image)) {
             return response()->json([
                 'res' => false,
@@ -195,7 +196,7 @@ class ProductController extends Controller
     public function DeleteVideo(Request $request): JsonResponse
     {
         $user = auth()->user();
-        $video = Video::where('id', $request->id)->first();
+        $video = Product::where('id', $request->product_id)->where('user_id', $user->id)->first();
         if ($user->cannot('delete', $video)) {
             return response()->json([
                 'res' => false,
