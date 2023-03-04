@@ -27,7 +27,7 @@ class ProductService
     }
 
     /**
-     * @param $request
+     * @param  $request
      * @return array
      */
 

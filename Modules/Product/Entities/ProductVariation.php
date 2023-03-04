@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class ProductVariation extends Model
 {
 
-    protected $table = 'product_variations';
+    protected $table  = 'product_variations';
     protected $fillable = [
         'variant_key',
         'swatch_image',

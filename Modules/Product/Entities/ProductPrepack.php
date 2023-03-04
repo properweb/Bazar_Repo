@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class ProductPrepack extends Model
 {
-    protected $table = 'product_prepacks';
+    protected $table  = 'product_prepacks';
     protected $fillable = [
         'product_id',
         'style',

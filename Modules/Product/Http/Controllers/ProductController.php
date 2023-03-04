@@ -23,7 +23,7 @@ class ProductController extends Controller
     }
 
     /**
-     * @param ProductRequest $request
+     * @param ProductRequest  $request
      * @return JsonResponse
      */
     public function create(ProductRequest $request): JsonResponse
