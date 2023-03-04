@@ -13,6 +13,7 @@ use File;
 use DB;
 
 
+
 class ProductService
 {
     private $productAbsPath = "";
@@ -27,7 +28,9 @@ class ProductService
     }
 
     /**
-     * @param  $request
+     * Fetch All products By logged brand
+     *
+     * @param $request
      * @return array
      */
 
@@ -113,10 +116,12 @@ class ProductService
     }
 
     /**
+     * Fetch Arrange Product List
+     *
      * @param $request
      * @return array
      */
-    public function arrange($request): array
+    public function arrangeProduct($request): array
     {
 
         $resultArray = [];
@@ -153,7 +158,6 @@ class ProductService
                 'usd_retail_price' => $v->usd_retail_price,
                 'cad_wholesale_price' => $v->cad_wholesale_price,
                 'cad_retail_price' => $v->cad_retail_price,
-
                 'eur_wholesale_price' => $v->eur_wholesale_price,
                 'eur_retail_price' => $v->eur_retail_price,
                 'usd_tester_price' => $v->usd_tester_price,
@@ -183,10 +187,12 @@ class ProductService
     }
 
     /**
+     * Fetching product inventory by Logged brand
+     *
      * @param $request
      * @return array
      */
-    public function FetchStock($request): array
+    public function fetchStock($request): array
     {
 
         $resultArray = [];
@@ -277,6 +283,8 @@ class ProductService
     }
 
     /**
+     *
+     * Create New Product By logged Brand
      * @param $request
      * @return array
      */
@@ -297,7 +305,7 @@ class ProductService
         $lastInsertId = $product->id;
 
         if (!empty($request->file('video_url'))) {
-            foreach ($request->file('video_url') as $file) {
+            foreach ($request->file('video_url') as  $file) {
                 $fileName = rand() . time() . '.' . $file->extension();
                 $file->move($this->productAbsPath, $fileName);
                 $video = new Video();
@@ -433,6 +441,8 @@ class ProductService
     }
 
     /**
+     * Product Details for respected product
+     *
      * @param $request
      * @return array
      */
@@ -465,7 +475,7 @@ class ProductService
         $prePacks = [];
         $prepackSizeRanges = [];
         if (!empty($productPrepacks)) {
-            foreach ($productPrepacks as $pPVal) {
+            foreach ($productPrepacks as  $pPVal) {
                 if (!in_array($pPVal->size_range, $prepackSizeRanges)) {
                     $prepackSizeRanges[] = $pPVal->size_range;
                 }
@@ -650,7 +660,6 @@ class ProductService
                 'usd_retail_price' => $products->usd_retail_price,
                 'cad_wholesale_price' => $products->cad_wholesale_price,
                 'cad_retail_price' => $products->cad_retail_price,
-
                 'eur_wholesale_price' => $products->eur_wholesale_price,
                 'eur_retail_price' => $products->eur_retail_price,
                 'gbp_wholesale_price' => $products->gbp_wholesale_price,
@@ -702,10 +711,12 @@ class ProductService
                 'next_product_id' => $nextProductId,
             );
         }
+
         return ['res' => true, 'msg' => "", 'data' => $resultArray];
     }
 
     /**
+     * Update product by ID
      * @param $request
      * @return array
      */
@@ -730,8 +741,9 @@ class ProductService
         $product->update($variables);
 
 
+
         if (!empty($request->file('video_url'))) {
-            foreach ($request->file('video_url') as $file) {
+            foreach ($request->file('video_url') as  $file) {
                 $fileName = rand() . time() . '.' . $file->extension();
                 $file->move($this->productAbsPath, $fileName);
                 $video = new Video();
@@ -881,7 +893,8 @@ class ProductService
             ProductVariation::where('product_id', $productId)->update(array('status' => 2));
         }
 
-        if ($variables['options_available'] == 0) {
+        if($variables['options_available']==0)
+        {
             ProductVariation::where('product_id', $productId)->delete();
             ProductPrepack::where('product_id', $productId)->delete();
         }
@@ -924,7 +937,8 @@ class ProductService
                 }
             }
         }
-        if ($sellType <> 3) {
+        if($sellType<>3)
+        {
             ProductPrepack::where('product_id', $productId)->delete();
         }
 
@@ -932,6 +946,8 @@ class ProductService
     }
 
     /**
+     * Change status like published, Unpublished of products
+     *
      * @param $request
      * @return array
      */
@@ -991,6 +1007,8 @@ class ProductService
     }
 
     /**
+     * Delete product by logged brand
+     *
      * @param $request
      * @return array
      */
@@ -1009,10 +1027,12 @@ class ProductService
     }
 
     /**
+     * Delete product image by respected product and image id
+     *
      * @param $request
      * @return array
      */
-    public function DeleteImage($request): array
+    public function deleteImage($request): array
     {
         ProductImage::where('id', $request->image_id)->delete();
 
@@ -1022,10 +1042,12 @@ class ProductService
     }
 
     /**
+     * Delete product video by respected product and image id
+     *
      * @param $request
      * @return array
      */
-    public function DeleteVideo($request): array
+    public function deleteVideo($request): array
     {
         Video::where('id', $request->id)->delete();
 
@@ -1035,10 +1057,12 @@ class ProductService
     }
 
     /**
+     * Update product sorting by logged brand
+     *
      * @param $request
      * @return array
      */
-    public function reorder($request): array
+    public function reorderProduct($request): array
     {
         $items = $request->items;
 
@@ -1047,10 +1071,17 @@ class ProductService
             $product->order_by = $k;
             $product->save();
         }
+
         return ['res' => true, 'msg' => "", 'data' => ""];
     }
 
-    public function UpdateStock($request): array
+    /**
+     * Inventory stock by product
+     * @param $request
+     * @return array
+     */
+
+    public function updateStock($request): array
     {
         if ($request->variant_id) {
             ProductVariation::where('id', $request->variant_id)->update(array('stock' => $request->stock));
@@ -1060,7 +1091,7 @@ class ProductService
         return ['res' => true, 'msg' => "", 'data' => ""];
     }
 
-    /**
+    /** Function of image upload
      * @param $image
      * @return string
      */
@@ -1075,76 +1106,79 @@ class ProductService
         $imageName = Str::random(10) . '.' . 'png';
 
         File::put($this->productAbsPath . "/" . $imageName, base64_decode($image_64));
+
         return $this->productRelPath . $imageName;
     }
 
     /**
+     * function of get variables from request
+     *
      * @param $request
      * @return array
      */
-    private function variables($request): array
-    {
-        $mainCategory = '';
-        $category = '';
-        $subCategory = $request->product_type;
-        $subCategoryDetails = Category::where('id', $subCategory)->first();
-        if (!empty($subCategoryDetails)) {
-            $categoryDetails = Category::where('id', $subCategoryDetails->parent_id)->first();
-            $category = $categoryDetails->id;
-            $mainCategory = $categoryDetails->parent_id;
-        }
-        $productKey = 'p_' . Str::lower(Str::random(10));
-        $productSlug = Str::slug($request->product_name);
-        $description = $request->description;
-        $productMade = $request->product_made;
+   private function variables($request): array
+   {
+       $mainCategory = '';
+       $category = '';
+       $subCategory = $request->product_type;
+       $subCategoryDetails = Category::where('id', $subCategory)->first();
+       if (!empty($subCategoryDetails)) {
+           $categoryDetails = Category::where('id', $subCategoryDetails->parent_id)->first();
+           $category = $categoryDetails->id;
+           $mainCategory = $categoryDetails->parent_id;
+       }
+       $productKey = 'p_' . Str::lower(Str::random(10));
+       $productSlug = Str::slug($request->product_name);
+       $description = $request->description;
+       $productMade = $request->product_made;
 
-        return array(
-            'usd_wholesale_price' => $request->usd_wholesale_price ?? 0,
-            'usd_retail_price' => $request->usd_retail_price ?? 0,
-            'cad_wholesale_price' => $request->cad_wholesale_price ?? 0,
-            'cad_retail_price' => $request->cad_retail_price ?? 0,
-            'gbp_wholesale_price' => $request->gbp_wholesale_price ?? 0,
-            'gbp_retail_price' => $request->gbp_retail_price ?? 0,
-            'eur_wholesale_price' => $request->eur_wholesale_price ?? 0,
-            'eur_retail_price' => $request->eur_retail_price ?? 0,
-            'aud_wholesale_price' => $request->aud_wholesale_price ?? 0,
-            'aud_retail_price' => $request->aud_retail_price ?? 0,
-            'usd_tester_price' => $request->testers_price ?? 0,
-            'shipping_tariff_code' => $request->shipping_tariff_code ?? 0,
-            'case_quantity' => $request->order_case_qty ?? 0,
-            'min_order_qty' => $request->order_min_case_qty ?? 0,
-            'stock' => $request->shipping_inventory ?? 0,
-            'dimension_unit' => $request->dimension_unit ?? 0,
-            'is_bestseller' => $request->is_bestseller ?? 0,
-            'shipping_height' => $request->shipping_height ?? 0,
-            'shipping_length' => $request->shipping_length ?? 0,
-            'shipping_weight' => $request->shipping_weight ?? 0,
-            'shipping_width' => $request->shipping_width ?? 0,
-            'weight_unit' => $request->weight_unit ?? 0,
-            'reatailers_inst' => $request->reatailers_inst ?? '',
-            'reatailer_input_limit' => $request->reatailer_input_limit ?? 0,
-            'retailer_min_qty' => $request->retailer_min_qty ?? 0,
-            'retailer_add_charge' => $request->retailer_add_charge ?? 0,
-            'product_shipdate' => date('Y-m-d', strtotime($request->product_shipdate)) ?? '',
-            'product_endshipdate' => date('Y-m-d', strtotime($request->product_endshipdate)) ?? '',
-            'product_deadline' => date('Y-m-d', strtotime($request->product_deadline)) ?? '',
-            'out_of_stock' => $request->out_of_stock ?? 0,
-            'outside_us' => $request->outside_us == 'true' ? 1 : 0,
-            'product_key' => $productKey,
-            'slug' => $productSlug,
-            'description' => $description,
-            'keep_product' => $request->keep_product ?? 0,
-            'country' => $productMade,
-            'name' => $request->product_name,
-            'main_category' => $mainCategory,
-            'category' => $category,
-            'sub_category' => $subCategory,
-            'tariff_code' => $request->shipping_tariff_code,
-            'options_available' => $request->options_available,
-            'user_id' => $request->user_id,
-            'status' => 'publish',
-            'sku' => $request->shipping_sku
-        );
-    }
+       return array(
+           'usd_wholesale_price' => $request->usd_wholesale_price ?? 0,
+           'usd_retail_price' => $request->usd_retail_price ?? 0,
+           'cad_wholesale_price' => $request->cad_wholesale_price ?? 0,
+           'cad_retail_price' => $request->cad_retail_price ?? 0,
+           'gbp_wholesale_price' => $request->gbp_wholesale_price ?? 0,
+           'gbp_retail_price' => $request->gbp_retail_price ?? 0,
+           'eur_wholesale_price' => $request->eur_wholesale_price ?? 0,
+           'eur_retail_price' => $request->eur_retail_price ?? 0,
+           'aud_wholesale_price' => $request->aud_wholesale_price ?? 0,
+           'aud_retail_price' => $request->aud_retail_price ?? 0,
+           'usd_tester_price' => $request->testers_price ?? 0,
+           'shipping_tariff_code' => $request->shipping_tariff_code ?? 0,
+           'case_quantity' => $request->order_case_qty ?? 0,
+           'min_order_qty' => $request->order_min_case_qty ?? 0,
+           'stock' => $request->shipping_inventory ?? 0,
+           'dimension_unit' => $request->dimension_unit ?? 0,
+           'is_bestseller' => $request->is_bestseller ?? 0,
+           'shipping_height' => $request->shipping_height ?? 0,
+           'shipping_length' => $request->shipping_length ?? 0,
+           'shipping_weight' => $request->shipping_weight ?? 0,
+           'shipping_width' => $request->shipping_width ?? 0,
+           'weight_unit' => $request->weight_unit ?? 0,
+           'reatailers_inst' => $request->reatailers_inst ?? '',
+           'reatailer_input_limit' => $request->reatailer_input_limit ?? 0,
+           'retailer_min_qty' => $request->retailer_min_qty ?? 0,
+           'retailer_add_charge' => $request->retailer_add_charge ?? 0,
+           'product_shipdate' => date('Y-m-d', strtotime($request->product_shipdate)) ?? '',
+           'product_endshipdate' => date('Y-m-d', strtotime($request->product_endshipdate)) ?? '',
+           'product_deadline' => date('Y-m-d', strtotime($request->product_deadline)) ?? '',
+           'out_of_stock' => $request->out_of_stock ?? 0,
+           'outside_us' => $request->outside_us == 'true' ? 1 : 0,
+           'product_key' => $productKey,
+           'slug' => $productSlug,
+           'description' => $description,
+           'keep_product' => $request->keep_product ?? 0,
+           'country' => $productMade,
+           'name' => $request->product_name,
+           'main_category' => $mainCategory,
+           'category' => $category,
+           'sub_category' => $subCategory,
+           'tariff_code' => $request->shipping_tariff_code,
+           'options_available' => $request->options_available,
+           'user_id' => $request->user_id,
+           'status' => 'publish',
+           'sku' => $request->shipping_sku
+       );
+   }
 
 }

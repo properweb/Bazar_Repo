@@ -11,7 +11,7 @@ class ProductPolicy
     use HandlesAuthorization;
 
     /**
-     * create a new policy instance.
+     * Create a new policy instance.
      *
      * @return void
      */
