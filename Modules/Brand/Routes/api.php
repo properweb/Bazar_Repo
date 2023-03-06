@@ -27,9 +27,8 @@ Route::middleware('auth:api')
     ->prefix('brands')
     ->name('brand.')
     ->group(function () {
-
-        Route::put('/update/shop', 'BrandController@updateShop')->name('update.shop');
-        Route::put('/update/account', 'BrandController@updateAccount')->name('update.account');
+        Route::put('/update/shop', 'BrandController@updateShop')->name('update_shop');
+        Route::put('/update/account', 'BrandController@updateAccount')->name('update_account');
     });
 
 

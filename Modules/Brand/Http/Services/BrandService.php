@@ -6,6 +6,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password;
 use Modules\Brand\Entities\Catalog;
 use Modules\User\Entities\User;
 use Modules\Brand\Entities\Brand;
@@ -41,13 +42,11 @@ class BrandService
         $requestData = Arr::except($requestData, ['email', 'password', 'first_name', 'last_name', 'role', 'verified']);
         $brand = $this->createBrand($requestData);
 
-        $response = [
+        return [
             'res' => true,
             'msg' => '',
             'data' => $brand
         ];
-
-        return $response;
     }
 
     /**
@@ -174,8 +173,12 @@ class BrandService
     {
         $data = (array)$request->all();
         $request->bazaar_direct_link = Str::slug($request->bazaar_direct_link, '-');
-        $request->brand_slug = Str::slug($request->brand_name, '-');
-
+        $slug = Str::slug($request->brand_name, '-');
+        $count = Brand::where('slug', $slug)->where('user_id', '<>', $request->user_id)->count();
+        if ($count > 0) {
+            $slug = $slug . '-' . $count;
+        }
+        $request->brand_slug = $slug;
         $exstBrand = Brand::where('user_id', $request->user_id)->first();
 
         if ($exstBrand) {
@@ -198,10 +201,6 @@ class BrandService
             $brand = Brand::updateOrCreate(['user_id' => request()->user_id], $request->except(['email', 'password', 'first_name', 'last_name', 'featured_image', 'profile_photo', 'cover_image', 'bazaar_direct_link']));
             $brandId = $brand->id;
 
-            //$brand->brand_slug = Str::slug($brand->brand_name, '-');
-            //$brand->active = 1;
-            //$brand->save();
-
             if (isset($request->first_name) && isset($request->last_name)) {
                 $user = User::find($request->user_id);
                 $user->first_name = $request->first_name;
@@ -219,13 +218,13 @@ class BrandService
             $featuredImage = $request->featured_image;
             if (isset($featuredImage) && $featuredImage != "") {
                 $brand->featured_image = $this->imageUpload($brandId, $featuredImage, null, false);
-                $status = $brand->save();
+                $brand->save();
             }
 
             $profilePhoto = $request->profile_photo;
             if (isset($profilePhoto) && $profilePhoto != "") {
                 $brand->profile_photo = $this->imageUpload($brandId, $profilePhoto, null, false);
-                $status = $brand->save();
+                $brand->save();
             }
 
             $coverImage = $request->cover_image;
@@ -249,13 +248,13 @@ class BrandService
                 $fileName = Str::random(10) . '_photos.' . $request->file('upload_zip')->extension();
                 $request->file('upload_zip')->move($brandAbsPath, $fileName);
                 $brand->upload_zip = $brandRelPath . $fileName;
-                $status = $brand->save();
+                $brand->save();
             }
             if ($request->file('upload_contact_list')) {
                 $fileName = Str::random(10) . '_cstmrs.' . $request->file('upload_contact_list')->extension();
                 $request->file('upload_contact_list')->move($brandAbsPath, $fileName);
                 $brand->upload_contact_list = $brandRelPath . $fileName;
-                $status = $brand->save();
+                $brand->save();
             }
             $response = ['res' => true, 'msg' => "", 'data' => $data];
         } catch (Exception $e) {
@@ -271,8 +270,43 @@ class BrandService
         return $response;
     }
 
+    /**
+     * Save image from base64 string.
+     *
+     * @param int $brand
+     * @param $image
+     * @param $previousFile
+     * @param $replaceable
+     * @return Stringable
+     */
+    private function imageUpload(int $brand, $image, $previousFile, $replaceable): Stringable|string
+    {
 
-    public function updateAccount($request)
+        $brandAbsPath = $this->brandAbsPath . '/' . $brand . '/';
+        $brandRelPath = $this->brandRelPath . $brand . '/';
+
+        if (!file_exists($brandAbsPath)) {
+            mkdir($brandAbsPath, 0777, true);
+        }
+
+        if ($replaceable && $previousFile !== null) {
+            $unlinkUrl = public_path() . $previousFile;
+            if (file_exists($unlinkUrl)) {
+                unlink($unlinkUrl);
+            }
+        }
+
+        $image_64 = $image; //your base64 encoded data
+        $extension = explode('/', explode(':', substr($image_64, 0, strpos($image_64, ';')))[1])[1];   // .jpg .png .pdf
+        $replace = substr($image_64, 0, strpos($image_64, ',') + 1);
+        $image_64 = str_replace($replace, '', $image_64);
+        $image_64 = str_replace(' ', '+', $image_64);
+        $imageName = Str::random(10) . '.' . 'png';
+        File::put($brandAbsPath . $imageName, base64_decode($image_64));
+        return $brandRelPath . $imageName;
+    }
+
+    public function updateAccount($request): array
     {
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|regex:/^[a-zA-Z]+$/u|max:255',
@@ -329,12 +363,11 @@ class BrandService
         return $response;
     }
 
-
     /**
      * @param $request
-     * @return mixed
+     * @return array
      */
-    public function updateShop($request)
+    public function updateShop($request): array
     {
         $userId = $request->user_id;
         $brand = Brand::where('user_id', $request->user_id)->first();
@@ -346,7 +379,7 @@ class BrandService
             'brand_name' => 'string|max:255',
             'website_url' => ['regex:/^(?!(http|https)\.)\w+(\.\w+)+$/'],
             'insta_handle' => ['regex:/^(?!.*\.\.)(?!.*\.$)[^\W][\w.]{0,29}$/'],
-            'established_year' => 'digits:4|integer|min:1900|max:'.date('Y'),
+            'established_year' => 'digits:4|integer|min:1900|max:' . date('Y'),
             'first_order_min' => 'numeric|min:1|max:99999',
             're_order_min' => 'numeric|min:1|max:99999',
             'avg_lead_time' => 'numeric|min:1|max:180',
@@ -395,39 +428,6 @@ class BrandService
         }
 
         return $response;
-    }
-
-    /**
-     * Update the specified resource in storage.
-     * @param int $brand
-     * @param int $id
-     * @return Stringable
-     */
-    private function imageUpload($brand, $image, $previousFile, $replaceable)
-    {
-
-        $brandAbsPath = $this->brandAbsPath . '/' . $brand . '/';
-        $brandRelPath = $this->brandRelPath . $brand . '/';
-
-        if (!file_exists($brandAbsPath)) {
-            mkdir($brandAbsPath, 0777, true);
-        }
-
-        if ($replaceable && $previousFile !== null) {
-            $unlinkUrl = public_path() . $previousFile;
-            if (file_exists($unlinkUrl)) {
-                unlink($unlinkUrl);
-            }
-        }
-
-        $image_64 = $image; //your base64 encoded data
-        $extension = explode('/', explode(':', substr($image_64, 0, strpos($image_64, ';')))[1])[1];   // .jpg .png .pdf
-        $replace = substr($image_64, 0, strpos($image_64, ',') + 1);
-        $image_64 = str_replace($replace, '', $image_64);
-        $image_64 = str_replace(' ', '+', $image_64);
-        $imageName = Str::random(10) . '.' . 'png';
-        File::put($brandAbsPath . $imageName, base64_decode($image_64));
-        return $brandRelPath . $imageName;
     }
 
     /**
