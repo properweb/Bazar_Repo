@@ -2,6 +2,7 @@
 
 namespace Modules\Product\Http\Controllers;
 
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Modules\Product\Entities\Product;
@@ -287,6 +288,7 @@ class ProductController extends Controller
      */
     public function convertPrice(Request $request, $price): JsonResponse
     {
+        $response = '';
         $req_url = 'https://api.exchangerate.host/latest?base=USD&symbols=USD,CAD,GBP,AUD,EUR&places=2&amount=' . $price;
         $response_json = file_get_contents($req_url);
         if (false !== $response_json) {
