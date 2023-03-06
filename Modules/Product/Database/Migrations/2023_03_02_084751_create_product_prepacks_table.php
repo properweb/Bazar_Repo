@@ -14,9 +14,10 @@ return new class extends Migration
     public function up()
     {
         Schema::create('product_prepacks', function (Blueprint $table) {
-            $table->increments('id');
+            $table->id();
+			$table->unsignedBigInteger('product_id')->nullable();
             $table->foreign('product_id')->references('id')->on('products')->onDelete('CASCADE');
-            $table->string('style')->charset('utf8');;
+			$table->string('style')->charset('utf8');;
             $table->string('pack_name')->charset('utf8');
             $table->string('size_ratio');
             $table->string('size_range');
@@ -24,6 +25,8 @@ return new class extends Migration
             $table->tinyInteger('active')->default('1');
             $table->timestamps();
         });
+		
+		
     }
 
     /**
