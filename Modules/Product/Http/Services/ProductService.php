@@ -749,7 +749,7 @@ class ProductService
                 $video = new Video();
                 $video->product_id = $productId;
                 $video->video_url = $this->productRelPath . $fileName;
-                $video->update();
+                $video->save();
             }
         }
 
