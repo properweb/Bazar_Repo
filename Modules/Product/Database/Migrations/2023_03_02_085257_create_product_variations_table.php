@@ -14,7 +14,7 @@ return new class extends Migration
     public function up()
     {
         Schema::create('product_variations', function (Blueprint $table) {
-            $table->increments('id');
+            $table->id();
             $table->string('variant_key')->nullable();
             $table->string('image')->nullable();
             $table->string('swatch_image')->nullable();
