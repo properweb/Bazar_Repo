@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
 use Modules\Brand\Entities\Catalog;
+use Modules\Country\Entities\Country;
 use Modules\User\Entities\User;
 use Modules\Brand\Entities\Brand;
 use File;
@@ -78,6 +79,14 @@ class BrandService
         //set Brand data
         $brandData["brand_key"] = 'bmc_' . Str::lower(Str::random(10));
 
+        $slug = Str::slug($brandData["brand_name"], '-');
+        $count = Brand::where('brand_slug', $slug)->count();
+        if ($count > 0) {
+            $slug = $slug . '-' . $count;
+        }
+        $brandData["brand_slug"] = $slug;
+        $brandData["bazaar_direct_link"] = $slug;
+
         //create Brand
         $brand = new Brand();
         $brand->fill($brandData);
@@ -95,33 +104,27 @@ class BrandService
     public function getBrands($requestData): array
     {
 
-        $allBrandsCount = Brand::where('user_id', $requestData->user_id)->count();
-        $draftBrandsCount = Brand::where('user_id', $requestData->user_id)->where('status', 'draft')->count();
-        $scheduledBrandsCount = Brand::where('user_id', $requestData->user_id)->where('status', 'schedule')->count();
-        $completedBrandsCount = Brand::where('user_id', $requestData->user_id)->where('status', 'completed')->count();
-        $brands = Brand::where('user_id', $requestData->user_id);
-        $status = strtolower($requestData->status);
-        if ($status !== 'all') {
-            $brands->where('status', $status);
+        $user = User::find($requestData->user_id);
+        if ($user) {
+            $brandUsers = User::where('country_id', $user->country_id)->where('role', 'brand')->get();
+        } else {
+            $brandUsers = User::where('role', 'brand')->get();
         }
-        $paginatedBrands = $brands->paginate(10);
-        $filteredBrands = [];
-        if ($paginatedBrands) {
-            foreach ($paginatedBrands as $brand) {
-                $filteredBrands[] = array(
-                    'title' => $brand->title,
-                    'Brand_key' => $brand->Brand_key,
-                    'updated_at' => date("F j, Y, g:i a", strtotime($brand->updated_at)),
-                );
+
+        if ($brandUsers) {
+            foreach ($brandUsers as $brandUser) {
+                $brand = Brand::where('user_id', $brandUser['id'])->where('go_live', '2')->first();
+                if ($brand) {
+                    $data[] = array(
+                        'brand_key' => $brand->bazaar_direct_link,
+                        'brand_id' => $brand->id,
+                        'brand_name' => $brand->brand_name,
+                        'brand_logo' => $brand->logo_image != '' ? asset('public') . '/' . $brand->logo_image : asset('public/img/logo-image.png'),
+                    );
+                }
+
             }
         }
-        $data = array(
-            "Brands" => $filteredBrands,
-            "allBrandsCount" => $allBrandsCount,
-            "draftBrandsCount" => $draftBrandsCount,
-            "scheduledBrandsCount" => $scheduledBrandsCount,
-            "completedBrandsCount" => $completedBrandsCount,
-        );
 
         return ['res' => true, 'msg' => "", 'data' => $data];
     }
@@ -166,6 +169,51 @@ class BrandService
     }
 
     /**
+     * Get the specified Brand's shop details
+     *
+     * @param string $brandKey
+     * @return array
+     */
+    public function getShop(string $brandKey): array
+    {
+
+        $brand = Brand::where('bazaar_direct_link', $brandKey)->first();
+
+        // return error if no Brand found
+        if (!$brand) {
+            return [
+                'res' => false,
+                'msg' => 'Brand not found !',
+                'data' => ""
+            ];
+        }
+
+
+        $brand->profile_photo = $brand->profile_photo != '' ? asset('public') . '/' . $brand->profile_photo : asset('public/img/profile-photo.png');
+        $brand->featured_image = $brand->featured_image != '' ? asset('public') . '/' . $brand->featured_image : asset('public/img/featured-image.png');
+        $brand->cover_image = $brand->cover_image != '' ? asset('public') . '/' . $brand->cover_image : asset('public/img/cover-image.png');
+        $brand->logo_image = $brand->logo_image != '' ? asset('public') . '/' . $brand->logo_image : asset('public/img/logo-image.png');
+        $brand->tools_used = $brand->tools_used != '' ? explode(',', $brand->tools_used) : array();
+        $brand->tag_shop_page = $brand->tag_shop_page != '' ? explode(',', $brand->tag_shop_page) : array();
+
+        //country
+        $country = Country::where('id', $brand->country)->first();
+        $brand->country = $country->name;
+        //headquater
+        $headquateredCountry = Country::where('id', $brand->headquatered)->first();
+        $brand->headquatered = $headquateredCountry->name;
+        //shipped from
+        $productShippedCountry = Country::where('id', $brand->product_shipped)->first();
+        $brand->product_shipped = $productShippedCountry->name;
+
+        return [
+            'res' => true,
+            'msg' => '',
+            'data' => $brand
+        ];
+    }
+
+    /**
      * @param $request
      * @return mixed
      */
@@ -174,7 +222,7 @@ class BrandService
         $data = (array)$request->all();
         $request->bazaar_direct_link = Str::slug($request->bazaar_direct_link, '-');
         $slug = Str::slug($request->brand_name, '-');
-        $count = Brand::where('slug', $slug)->where('user_id', '<>', $request->user_id)->count();
+        $count = Brand::where('brand_slug', $slug)->where('user_id', '<>', $request->user_id)->count();
         if ($count > 0) {
             $slug = $slug . '-' . $count;
         }

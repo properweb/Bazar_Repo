@@ -8,7 +8,7 @@ use Illuminate\Routing\Controller;
 use Modules\User\Entities\User;
 use Modules\User\Entities\UserRecentView;
 use Modules\Brand\Entities\Brand;
-use Modules\Product\Entities\Products;
+use Modules\Product\Entities\Product;
 use Modules\Product\Entities\ProductImage;
 use Modules\Product\Entities\Video;
 use Modules\Product\Entities\ProductVariation;
@@ -60,21 +60,21 @@ class ShopController extends Controller {
         if ($brandDetails) {
             $brndUsrId = $brandDetails->user_id;
             //all products count
-            $allProductsCount = Products::where('user_id', $brndUsrId)->where('status', 'publish')->count();
+            $allProductsCount = Product::where('user_id', $brndUsrId)->where('status', 'publish')->count();
 
             //new products count
-            $newProductsCount = Products::where('user_id', $brndUsrId)->where('status', 'publish')->where('created_at', '>', now()->subDays(7)->endOfDay())->count();
+            $newProductsCount = Product::where('user_id', $brndUsrId)->where('status', 'publish')->where('created_at', '>', now()->subDays(7)->endOfDay())->count();
 
 
             $categories = [];
-            $categoryRes = Products::select(DB::raw("count(*) as prdct_count"), "category")->where('status', 'publish')->where('user_id', $brndUsrId)->groupBy('category')->get();
+            $categoryRes = Product::select(DB::raw("count(*) as prdct_count"), "category")->where('status', 'publish')->where('user_id', $brndUsrId)->groupBy('category')->get();
 
 
             foreach ($categoryRes as $cat) {
                 if ($cat->category != 0) {
                     $categoryDetails = Category::find($cat->category);
                     $maincategoryDetails = Category::where('id', $categoryDetails->parent_id)->where('parent_id', 0)->first();
-                    $scatres = Products::select(DB::raw("count(*) as prdct_count"), "sub_category")->where('status', 'publish')->where('category', $cat->category)->where('user_id', $brndUsrId)->groupBy('sub_category')->get();
+                    $scatres = Product::select(DB::raw("count(*) as prdct_count"), "sub_category")->where('status', 'publish')->where('category', $cat->category)->where('user_id', $brndUsrId)->groupBy('sub_category')->get();
                     $subCategories = [];
                     foreach ($scatres as $scat) {
                         $scategoryDetails = Category::where('id', $scat->sub_category)->first();
@@ -101,7 +101,7 @@ class ShopController extends Controller {
 
                 $categories[] = $cat_array;
             }
-            $allPrdctQuery = Products::where('user_id', $brndUsrId)->where('status', 'publish');
+            $allPrdctQuery = Product::where('user_id', $brndUsrId)->where('status', 'publish');
             switch ($request->sort_key) {
                 case 1:
                     $allPrdctQuery->orderBy('order_by', 'ASC');
@@ -219,7 +219,7 @@ class ShopController extends Controller {
 
         $data = array();
 
-        $productDetails = Products::where('product_key', $request->id)->first();
+        $productDetails = Product::where('product_key', $request->id)->first();
         if ($productDetails) {
             $wishList = Wishlist::where('product_id', $productDetails->id)->where('user_id', $request->user_id)->where('cart_id', null)->where('variant_id', null)->first();
 
@@ -466,7 +466,7 @@ class ShopController extends Controller {
             $data['variation_options'] = $variationOptions;
             $data['variation_colors'] = $variationColors;
             $relatedProducts = [];
-            $relatedProducts = Products::where('user_id', $productDetails->user_id)->where('id', '!=', $productDetails->id)->where('main_category', $productDetails->main_category)->where('status', 'publish')->inRandomOrder()->limit(9)->get();
+            $relatedProducts = Product::where('user_id', $productDetails->user_id)->where('id', '!=', $productDetails->id)->where('main_category', $productDetails->main_category)->where('status', 'publish')->inRandomOrder()->limit(9)->get();
             $data['related_products'] = $relatedProducts;
 
             $recentViewedProdutcs = [];
@@ -475,7 +475,7 @@ class ShopController extends Controller {
                 $recent_views = UserRecentView::where('user_id', $request->user_id)->where('product_id', '!=', $productDetails->id)->orderBy('id', 'DESC')->get();
                 if ($recent_views) {
                     foreach ($recent_views as $view) {
-                        $productDet = Products::find($view->product_id);
+                        $productDet = Product::find($view->product_id);
                         if($productDet) {
 
                             $recentViewedProdutcs[] = array(

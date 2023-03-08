@@ -37,15 +37,27 @@ class BrandController extends Controller
     }
 
 
+    /**
+     * Get list of brands
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function index(Request $request): JsonResponse
+    {
 
+        $response = $this->brandService->getBrands($request);
+
+        return response()->json($response);
+    }
 
     /**
      * Store a newly created brand in storage
      *
      * @param StoreBrandRequest $request
-     * @return mixed
+     * @return JsonResponse
      */
-    public function store(StoreBrandRequest $request)
+    public function store(StoreBrandRequest $request): JsonResponse
     {
         $response = $this->brandService->store($request->validated());
 
@@ -57,9 +69,9 @@ class BrandController extends Controller
      * Store a newly created brand in storage
      *
      * @param UpdateBrandRequest $request
-     * @return mixed
+     * @return JsonResponse
      */
-    public function update(UpdateBrandRequest $request)
+    public function update(UpdateBrandRequest $request): JsonResponse
     {
 
         $response = $this->brandService->update($request);
@@ -69,42 +81,23 @@ class BrandController extends Controller
     }
 
     /**
-     * @param $id
-     * @return mixed
-     */
-    public function all($id)
-    {
-        $user = User::find($id);
-        if ($user) {
-            $brandUsers = User::where('country_id', $user->country_id)->where('role', 'brand')->get();
-        }
-
-        if ($brandUsers) {
-            foreach ($brandUsers as $brandv) {
-                $brand = Brand::where('user_id', $brandv['id'])->first();
-                    if(!empty($brand))
-                    {
-                    $data[] = array(
-                    'brand_key' => $brand->bazaar_direct_link,
-                    'brand_id' => $brand->id,
-                    'brand_name' => $brand->brand_name,
-                    'brand_logo' => $brand->logo_image != '' ? asset('public') . '/' . $brand->logo_image : asset('public/img/logo-image.png'),
-                    );
-                    }
-
-            }
-        }
-        $response = ['res' => true, 'msg' => "", 'data' => $data];
-        return response()->json($response);
-    }
-
-    /**
      * @param $userId
      * @return JsonResponse
      */
     public function show(int $userId): JsonResponse
     {
         $response = $this->brandService->get($userId);
+
+        return response()->json($response);
+    }
+
+    /**
+     * @param string $brandKey
+     * @return JsonResponse
+     */
+    public function showShop(string $brandKey): JsonResponse
+    {
+        $response = $this->brandService->getShop($brandKey);
 
         return response()->json($response);
     }
