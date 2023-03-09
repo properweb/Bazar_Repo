@@ -2,7 +2,6 @@
 
 namespace Modules\Product\Http\Controllers;
 
-use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Modules\Product\Entities\Product;
@@ -297,7 +296,7 @@ class ProductController extends Controller
                 if ($response_obj->success === true) {
                     $response = ['res' => true, 'msg' => "", 'data' => $response_obj->rates];
                 }
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 $response = ['res' => false, 'msg' => "Something went wrong", 'data' => ""];
             }
         }
