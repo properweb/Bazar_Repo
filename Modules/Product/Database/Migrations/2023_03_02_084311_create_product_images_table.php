@@ -14,8 +14,9 @@ return new class extends Migration
     public function up()
     {
         Schema::create('product_images', function (Blueprint $table) {
-            $table->increments('id');
-            $table->integer('product_id')->default('0');
+            $table->id();
+            $table->unsignedBigInteger('product_id')->nullable();
+            $table->foreign('product_id')->references('id')->on('products')->onDelete('CASCADE');
             $table->string('images')->nullable();
             $table->integer('image_id')->nullable();
             $table->integer('image_sort')->default('0');

@@ -14,11 +14,12 @@ return new class extends Migration
     public function up()
     {
         Schema::create('product_variations', function (Blueprint $table) {
-            $table->increments('id');
+            $table->id();
             $table->string('variant_key')->nullable();
             $table->string('image')->nullable();
             $table->string('swatch_image')->nullable();
-            $table->integer('product_id')->nullable();
+            $table->unsignedBigInteger('product_id')->nullable();
+            $table->foreign('product_id')->references('id')->on('products')->onDelete('CASCADE');
             $table->float('price')->nullable();
             $table->string('options1')->nullable();
             $table->string('options2')->nullable();
