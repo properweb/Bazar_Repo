@@ -64,11 +64,8 @@ class ShopController extends Controller {
 
             //new products count
             $newProductsCount = Product::where('user_id', $brndUsrId)->where('status', 'publish')->where('created_at', '>', now()->subDays(7)->endOfDay())->count();
-
-
             $categories = [];
             $categoryRes = Product::select(DB::raw("count(*) as prdct_count"), "category")->where('status', 'publish')->where('user_id', $brndUsrId)->groupBy('category')->get();
-
 
             foreach ($categoryRes as $cat) {
                 if ($cat->category != 0) {
@@ -466,6 +463,7 @@ class ShopController extends Controller {
             $data['variation_options'] = $variationOptions;
             $data['variation_colors'] = $variationColors;
             $relatedProducts = [];
+
             $relatedProducts = Product::where('user_id', $productDetails->user_id)->where('id', '!=', $productDetails->id)->where('main_category', $productDetails->main_category)->where('status', 'publish')->inRandomOrder()->limit(9)->get();
             $data['related_products'] = $relatedProducts;
 
@@ -477,7 +475,6 @@ class ShopController extends Controller {
                     foreach ($recent_views as $view) {
                         $productDet = Product::find($view->product_id);
                         if($productDet) {
-
                             $recentViewedProdutcs[] = array(
                                 'id' => $productDet->id,
                                 'product_key' => $productDet->product_key,

@@ -53,6 +53,7 @@ class Product extends Model
         'slug'
 
     ];
+
 }
 
 
