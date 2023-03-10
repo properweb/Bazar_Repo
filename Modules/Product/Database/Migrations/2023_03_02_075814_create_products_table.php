@@ -14,10 +14,11 @@ return new class extends Migration
     public function up()
     {
         Schema::create('products', function (Blueprint $table) {
-            $table->increments('id');
+            $table->id();
             $table->string('product_key')->nullable();
             $table->string('import_type')->nullable();
-            $table->integer('user_id')->nullable();
+			      $table->unsignedBigInteger('user_id')->nullable();
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('CASCADE');
             $table->string('name')->charset('utf8');
             $table->string('slug');
             $table->integer('main_category')->default('0');

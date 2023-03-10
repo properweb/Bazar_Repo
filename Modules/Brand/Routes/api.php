@@ -14,22 +14,22 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::prefix('brands')->group(function () {
-    Route::post('/', 'BrandController@store')->name('brand.store');
-});
-Route::prefix('brands')->group(function () {
-    Route::post('/update', 'BrandController@update')->name('brand.update');
-});
-Route::prefix('brands')->group(function () {
-    Route::get('/{brand}', 'BrandController@show')->name('brand.show');
-});
+
+Route::prefix('brands')
+    ->name('brand.')
+    ->group(function () {
+        Route::get('/', 'BrandController@index')->name('list');
+        Route::post('/', 'BrandController@store')->name('store');
+        Route::post('/update', 'BrandController@update')->name('update');
+        Route::get('/{brand}', 'BrandController@show')->name('show');
+        Route::get('/shop/{brand}', 'BrandController@showShop')->name('show_shop');
+    });
 Route::middleware('auth:api')
     ->prefix('brands')
     ->name('brand.')
     ->group(function () {
-
-        Route::put('/update/shop', 'BrandController@updateShop')->name('update.shop');
-        Route::put('/update/account', 'BrandController@updateAccount')->name('update.account');
+        Route::put('/update/shop', 'BrandController@updateShop')->name('update_shop');
+        Route::put('/update/account', 'BrandController@updateAccount')->name('update_account');
     });
 
 

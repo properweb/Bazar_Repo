@@ -67,7 +67,7 @@ class UserController extends Controller
                     if ($user->role == 'brand') {
                         $brand = Brand::where('user_id', $user->id)->first();
                         $stepCount = $brand ? (int)$brand->step_count : 0;
-                        $brand->profile_photo = $brand->profile_photo != '' ? asset('public') . '/' . $brand->profile_photo : asset('public/admin/dist/img/profile-photo.png');
+                        $brand->profile_photo = !empty($brand->profile_photo) ? asset('public') . '/' . $brand->profile_photo : asset('public/admin/dist/img/profile-photo.png');
                         $brand->first_name = $user->first_name;
                         $brand->last_name = $user->last_name;
                         $brandData = $brand ? $brand : [];
