@@ -57,7 +57,6 @@ class ProductController extends Controller
             ]);
         }
         $response = $this->productService->fetch($request);
-
         return response()->json($response);
     }
 
@@ -80,7 +79,6 @@ class ProductController extends Controller
         }
 
         $response = $this->productService->arrangeProduct($request);
-
         return response()->json($response);
     }
 
@@ -107,7 +105,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Product Details for respected product
+     * Product Details for respective product
      *
      * @param Request $request
      * @return JsonResponse
@@ -194,6 +192,7 @@ class ProductController extends Controller
     }
 
     /**
+
      * Delete product image by respected product and image id
      *
      * @param Request $request
@@ -212,6 +211,7 @@ class ProductController extends Controller
                 'data' => ""
             ]);
         }
+
         $response = $this->productService->deleteImage($request);
 
         return response()->json($response);
@@ -228,6 +228,7 @@ class ProductController extends Controller
     {
         $user = auth()->user();
         $video = Product::where('id', $request->product_id)->where('user_id', $user->id)->first();
+
         if ($user->cannot('delete', $video)) {
             return response()->json([
                 'res' => false,
@@ -248,6 +249,7 @@ class ProductController extends Controller
      * @return JsonResponse
      */
     public function reorderProduct(Request $request): JsonResponse
+
     {
         $user = auth()->user();
         if ($user->cannot('viewAny', Product::class)) {

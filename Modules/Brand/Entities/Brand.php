@@ -8,5 +8,4 @@ use Illuminate\Support\Str;
 class Brand extends Model {
 
     protected $guarded = [];
-
 }

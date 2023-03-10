@@ -37,6 +37,7 @@ class BrandController extends Controller
     }
 
 
+
     /**
      * Get list of brands
      *
