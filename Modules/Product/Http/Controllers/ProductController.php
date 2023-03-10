@@ -61,6 +61,7 @@ class ProductController extends Controller
     }
 
     /**
+
      * Fetch Arrange Product List
      *
      * @param Request $request
@@ -76,6 +77,7 @@ class ProductController extends Controller
                 'data' => ""
             ]);
         }
+
         $response = $this->productService->arrangeProduct($request);
         return response()->json($response);
     }
@@ -259,7 +261,6 @@ class ProductController extends Controller
         }
 
         $response = $this->productService->reorderProduct($request);
-
         return response()->json($response);
     }
 
@@ -281,7 +282,6 @@ class ProductController extends Controller
         }
 
         $response = $this->productService->updateStock($request);
-
         return response()->json($response);
     }
 

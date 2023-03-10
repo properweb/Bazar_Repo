@@ -712,6 +712,7 @@ class ProductService
 
     /**
      * Update product by ID
+     *
      * @param $request
      * @return array
      */
@@ -1070,8 +1071,8 @@ class ProductService
      * @param $request
      * @return array
      */
-
     public function updateStock($request): array
+
     {
         if ($request->variant_id) {
             ProductVariation::where('id', $request->variant_id)->update(array('stock' => $request->stock));
@@ -1080,7 +1081,6 @@ class ProductService
         }
         return ['res' => true, 'msg' => "", 'data' => ""];
     }
-
 
     /** 
      *Function of image upload

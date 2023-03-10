@@ -64,6 +64,7 @@ class ShopController extends Controller {
 
             //new products count
             $newProductsCount = Product::where('user_id', $brndUsrId)->where('status', 'publish')->where('created_at', '>', now()->subDays(7)->endOfDay())->count();
+
             $categories = [];
             $categoryRes = Product::select(DB::raw("count(*) as prdct_count"), "category")->where('status', 'publish')->where('user_id', $brndUsrId)->groupBy('category')->get();
 
@@ -71,7 +72,9 @@ class ShopController extends Controller {
                 if ($cat->category != 0) {
                     $categoryDetails = Category::find($cat->category);
                     $maincategoryDetails = Category::where('id', $categoryDetails->parent_id)->where('parent_id', 0)->first();
+
                     $scatres = Product::select(DB::raw("count(*) as prdct_count"), "sub_category")->where('status', 'publish')->where('category', $cat->category)->where('user_id', $brndUsrId)->groupBy('sub_category')->get();
+
                     $subCategories = [];
                     foreach ($scatres as $scat) {
                         $scategoryDetails = Category::where('id', $scat->sub_category)->first();
@@ -98,6 +101,7 @@ class ShopController extends Controller {
 
                 $categories[] = $cat_array;
             }
+
             $allPrdctQuery = Product::where('user_id', $brndUsrId)->where('status', 'publish');
             switch ($request->sort_key) {
                 case 1:
