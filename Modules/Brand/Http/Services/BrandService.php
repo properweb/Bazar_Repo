@@ -43,7 +43,6 @@ class BrandService
         $requestData = Arr::except($requestData, ['email', 'password', 'first_name', 'last_name', 'role', 'verified']);
         $brand = $this->createBrand($requestData);
 
-
         return [
             'res' => true,
             'msg' => '',
@@ -353,7 +352,6 @@ class BrandService
         return $brandRelPath . $imageName;
     }
 
-
     public function updateAccount($request): array
     {
         $validator = Validator::make($request->all(), [
@@ -477,7 +475,6 @@ class BrandService
 
         return $response;
     }
-
 
     /**
      * Remove the specified Brand from storage.

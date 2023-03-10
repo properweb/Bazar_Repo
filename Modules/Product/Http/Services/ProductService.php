@@ -192,6 +192,7 @@ class ProductService
      */
     public function fetchStock($request): array
     {
+
         $resultArray = [];
         $productVariationsTbl = DB::raw("(SELECT product_id as vProductId,id as variant_id,value1,value2,value3,sku as vSku,stock as vStock,image as vImage
 		FROM product_variations WHERE status='1') as pv");// Raw query is needed as nested query using for this function with alias.
@@ -930,8 +931,9 @@ class ProductService
                 }
             }
         }
-
-        if($sellType<>3){
+        
+        if($sellType<>3)
+        {
             ProductPrepack::where('product_id', $productId)->delete();
         }
 
@@ -1030,6 +1032,8 @@ class ProductService
         ProductImage::where('id', $request->image_id)->delete();
 
         return ['res' => true, 'msg' => "Deleted Successfully", 'data' => ""];
+
+
     }
 
     /**
@@ -1082,9 +1086,8 @@ class ProductService
         return ['res' => true, 'msg' => "", 'data' => ""];
     }
 
-    /** 
+    /**
      *Function of image upload
-     *
      * @param $image
      * @return string
      */
