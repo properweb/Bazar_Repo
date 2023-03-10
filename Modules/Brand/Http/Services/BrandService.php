@@ -4,6 +4,7 @@ namespace Modules\Brand\Http\Services;
 
 use Illuminate\Support\Str;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
@@ -11,15 +12,14 @@ use Modules\Brand\Entities\Catalog;
 use Modules\Country\Entities\Country;
 use Modules\User\Entities\User;
 use Modules\Brand\Entities\Brand;
-use File;
 
 
 class BrandService
 {
     protected Brand $brand;
     protected User $user;
-    private $brandAbsPath = "";
-    private $brandRelPath = "";
+    private string $brandAbsPath = "";
+    private string $brandRelPath = "";
 
     public function __construct()
     {
@@ -188,7 +188,6 @@ class BrandService
             ];
         }
 
-
         $brand->profile_photo = $brand->profile_photo != '' ? asset('public') . '/' . $brand->profile_photo : asset('public/img/profile-photo.png');
         $brand->featured_image = $brand->featured_image != '' ? asset('public') . '/' . $brand->featured_image : asset('public/img/featured-image.png');
         $brand->cover_image = $brand->cover_image != '' ? asset('public') . '/' . $brand->cover_image : asset('public/img/cover-image.png');
@@ -199,9 +198,9 @@ class BrandService
         //country
         $country = Country::where('id', $brand->country)->first();
         $brand->country = $country->name;
-        //headquater
-        $headquateredCountry = Country::where('id', $brand->headquatered)->first();
-        $brand->headquatered = $headquateredCountry->name;
+        //headquarter
+        $headquarteredCountry = Country::where('id', $brand->headquatered)->first();
+        $brand->headquatered = $headquarteredCountry->name;
         //shipped from
         $productShippedCountry = Country::where('id', $brand->product_shipped)->first();
         $brand->product_shipped = $productShippedCountry->name;
@@ -214,10 +213,12 @@ class BrandService
     }
 
     /**
+     * Update the specified Brand.
+     *
      * @param $request
-     * @return mixed
+     * @return array
      */
-    public function update($request)
+    public function update($request): array
     {
         $data = (array)$request->all();
         $request->bazaar_direct_link = Str::slug($request->bazaar_direct_link, '-');
@@ -227,19 +228,19 @@ class BrandService
             $slug = $slug . '-' . $count;
         }
         $request->brand_slug = $slug;
-        $exstBrand = Brand::where('user_id', $request->user_id)->first();
+        $existBrand = Brand::where('user_id', $request->user_id)->first();
 
-        if ($exstBrand) {
+        if ($existBrand) {
 
-            if ($request->bazaar_direct_link && $request->bazaar_direct_link != $exstBrand->bazaar_direct_link) {
-                $exstBrandLink = Brand::where('bazaar_direct_link', $request->bazaar_direct_link)->where('user_id', '<>', $exstBrand->bazaar_direct_link)->first();
+            if ($request->bazaar_direct_link && $request->bazaar_direct_link != $existBrand->bazaar_direct_link) {
+                $existBrandLink = Brand::where('bazaar_direct_link', $request->bazaar_direct_link)->where('user_id', '<>', $existBrand->bazaar_direct_link)->first();
 
-                if ($exstBrandLink) {
+                if ($existBrandLink) {
                     $response = ['res' => false, 'msg' => 'Direct link exists!', 'data' => ''];
                     return $response;
                 }
-                $exstBrand->bazaar_direct_link = $request->bazaar_direct_link;
-                $exstBrand->save();
+                $existBrand->bazaar_direct_link = $request->bazaar_direct_link;
+                $existBrand->save();
             }
 
         }
@@ -305,7 +306,7 @@ class BrandService
                 $brand->save();
             }
             $response = ['res' => true, 'msg' => "", 'data' => $data];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $errorCode = $e->getCode();
             if ($errorCode == 23000) {
                 $errorMessage = "direct link already exists";
@@ -325,7 +326,7 @@ class BrandService
      * @param $image
      * @param $previousFile
      * @param $replaceable
-     * @return Stringable
+     * @return Stringable|string
      */
     private function imageUpload(int $brand, $image, $previousFile, $replaceable): Stringable|string
     {
@@ -345,7 +346,6 @@ class BrandService
         }
 
         $image_64 = $image; //your base64 encoded data
-        $extension = explode('/', explode(':', substr($image_64, 0, strpos($image_64, ';')))[1])[1];   // .jpg .png .pdf
         $replace = substr($image_64, 0, strpos($image_64, ',') + 1);
         $image_64 = str_replace($replace, '', $image_64);
         $image_64 = str_replace(' ', '+', $image_64);
@@ -354,128 +354,102 @@ class BrandService
         return $brandRelPath . $imageName;
     }
 
-    public function updateAccount($request): array
+    /**
+     * Update account details of the specified Brand.
+     *
+     * @param array $requestData
+     * @return array
+     */
+    public function updateAccount(array $requestData): array
     {
-        $validator = Validator::make($request->all(), [
-            'first_name' => 'required|regex:/^[a-zA-Z]+$/u|max:255',
-            'last_name' => 'required|regex:/^[a-zA-Z]+$/u|max:255',
-            'phone_number' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:9',
-        ]);
-        if ($validator->fails()) {
-            $response = ['res' => false, 'msg' => $validator->errors()->first(), 'data' => ""];
-        } else {
 
-            $user = User::find($request->user_id);
-            $user->first_name = $request->first_name;
-            $user->last_name = $request->last_name;
-            $brand = Brand::where('user_id', $request->user_id)->first();
-            $brand->country_code = $request->country_code;
-            $brand->phone_number = $request->phone_number;
-            $brand->save();
-
-            $status = $user->save();
-            if ($status) {
-                if ($request->new_password != '') {
-                    $validator2 = Validator::make($request->all(), [
-                        'old_password' => 'required',
-                        'new_password' => [
-                            'required',
-                            'different:old_password',
-                            Password::min(8)
-                                ->letters()
-                                ->mixedCase()
-                                ->numbers()
-                                ->symbols()
-                        ],
-                        'confirm_password' => 'required|same:new_password'
-                    ]);
-                    if ($validator2->fails()) {
-                        $response = ['res' => false, 'msg' => $validator2->errors()->first(), 'data' => ""];
-                    } else {
-                        if (Hash::check($request->old_password, $user->password)) {
-                            $user->password = Hash::make($request->new_password);
-                            $user->save();
-                            $response = ['res' => true, 'msg' => "Successfully updated your account", 'data' => ''];
-                        } else {
-                            $response = ['res' => false, 'msg' => 'old password does not match our record.', 'data' => ""];
-                        }
-                    }
-                } else {
-                    $response = ['res' => true, 'msg' => "Successfully updated your account", 'data' => ''];
-                }
+        $user = User::find($requestData['user_id']);
+        $user->first_name = $requestData['first_name'];
+        $user->last_name = $requestData['last_name'];
+        if($requestData['new_password'] != ''){
+            if (Hash::check($requestData['old_password'], $user->password)) {
+                $user->password = Hash::make($requestData['new_password']);
             } else {
-                $response = ['res' => false, 'msg' => "Please try again!", 'data' => ''];
+                return ['res' => false, 'msg' => 'old password does not match our record.', 'data' => ""];
             }
+        }
+        $user->save();
+
+        $brand = Brand::where('user_id', $requestData['user_id'])->first();
+        $brand->country_code = $requestData['country_code'];
+        $brand->phone_number = $requestData['phone_number'];
+        $brand->save();
+
+        return ['res' => true, 'msg' => "Successfully updated your account", 'data' => ''];
+
+    }
+
+    /**
+     * Update shop details of the specified Brand.
+     *
+     * @param array $requestData
+     * @return array
+     */
+    public function updateShop(array $requestData): array
+    {
+        $userId = $requestData['user_id'];
+        $brand = Brand::where('user_id', $userId)->first();
+        $brandId = $brand->id;
+
+        $brand = Brand::updateOrCreate(['user_id' => $requestData['user_id']], Arr::except($requestData, ['email', 'featured_image', 'profile_photo', 'cover_image', 'logo_image']));
+        if (isset($requestData['email'])) {
+            $user = User::find($userId);
+            $user->email = $requestData['email'];
+            $user->save();
+        }
+        $profilePhoto = $requestData['profile_photo'];
+        if (isset($profilePhoto) && $profilePhoto != "") {
+            $brand->profile_photo = $this->imageUpload($brandId, $profilePhoto, $brand->profile_photo, true);
+        }
+
+        $coverImage = $requestData['cover_image'];
+        if (isset($coverImage) && $coverImage != "") {
+            $brand->cover_image = $this->imageUpload($brandId, $coverImage, $brand->cover_image, true);
+        }
+
+        $featuredImage = $requestData['featured_image'];
+        if (isset($featuredImage) && $featuredImage != "") {
+            $brand->featured_image = $this->imageUpload($brandId, $featuredImage, $brand->featured_image, true);
+        }
+
+        $logoImage = $requestData['logo_image'];
+        if (isset($logoImage) && $logoImage != "") {
+            $brand->logo_image = $this->imageUpload($brandId, $logoImage, $brand->logo_image, true);
+        }
+
+        $brand->first_visit = '1';
+        $status = $brand->save();
+        if ($status) {
+            $response = ['res' => true, 'msg' => "Successfully updated your account", 'data' => ''];
+        } else {
+            $response = ['res' => false, 'msg' => "Please try again!", 'data' => ''];
         }
 
         return $response;
     }
 
     /**
-     * @param $request
+     * Update the specified Brand's status to live.
+     *
+     * @param int $brandId
      * @return array
      */
-    public function updateShop($request): array
+    public function liveShop(int $brandId): array
     {
-        $userId = $request->user_id;
-        $brand = Brand::where('user_id', $request->user_id)->first();
-        $brandId = $brand->id;
-        $request->brand_slug = Str::slug($request->brand_name, '-');
-        $validator = Validator::make($request->all(), [
-            'email' => 'string|email|unique:users,email,' . $userId . ',id',
-            'brand_slug' => 'string|unique:brands,brand_slug,' . $brandId . ',id',
-            'brand_name' => 'string|max:255',
-            'website_url' => ['regex:/^(?!(http|https)\.)\w+(\.\w+)+$/'],
-            'insta_handle' => ['regex:/^(?!.*\.\.)(?!.*\.$)[^\W][\w.]{0,29}$/'],
-            'established_year' => 'digits:4|integer|min:1900|max:' . date('Y'),
-            'first_order_min' => 'numeric|min:1|max:99999',
-            're_order_min' => 'numeric|min:1|max:99999',
-            'avg_lead_time' => 'numeric|min:1|max:180',
-            'product_made' => 'integer|exists:countries,id',
-            'headquatered' => 'integer|exists:countries,id',
-            'shared_brd_story' => 'string|max:1500',
-            'tag_shop_page' => 'string|max:1500',
-        ]);
-        if ($validator->fails()) {
-            $response = ['res' => false, 'msg' => $validator->errors()->first(), 'data' => ""];
-        } else {
+        $brand = Brand::find($brandId);
+        $brand->go_live = '2';
+        $brand->save();
 
-            $brand = Brand::updateOrCreate(['user_id' => request()->user_id], $request->except(['email', 'featured_image', 'profile_photo', 'cover_image', 'logo_image']));
-            if (isset($request->email)) {
-                $user = User::find($userId);
-                $user->email = $request->email;
-                $user->save();
-            }
-            $profilePhoto = $request->profile_photo;
-            if (isset($profilePhoto) && $profilePhoto != "") {
-                $brand->profile_photo = $this->imageUpload($brandId, $profilePhoto, $brand->profile_photo, true);
-            }
-
-            $coverImage = $request->cover_image;
-            if (isset($coverImage) && $coverImage != "") {
-                $brand->cover_image = $this->imageUpload($brandId, $coverImage, $brand->cover_image, true);
-            }
-
-            $featuredImage = $request->featured_image;
-            if (isset($featuredImage) && $featuredImage != "") {
-                $brand->featured_image = $this->imageUpload($brandId, $featuredImage, $brand->featured_image, true);
-            }
-
-            $logoImage = $request->logo_image;
-            if (isset($logoImage) && $logoImage != "") {
-                $brand->logo_image = $this->imageUpload($brandId, $logoImage, $brand->logo_image, true);
-            }
-
-            $brand->first_visit = '1';
-            $status = $brand->save();
-            if ($status) {
-                $response = ['res' => true, 'msg' => "Successfully updated your account", 'data' => ''];
-            } else {
-                $response = ['res' => false, 'msg' => "Please try again!", 'data' => ''];
-            }
-        }
-
-        return $response;
+        return [
+            'res' => true,
+            'msg' => 'Your shop is now live !',
+            'data' => ""
+        ];
     }
 
     /**

@@ -21,6 +21,29 @@ class BrandPolicy
     }
 
     /**
+     * Determine whether the user can update the brand.
+     *
+     * @param User $user
+     * @param Brand $brand
+     * @return bool
+     */
+    public function update(User $user, Brand $brand): bool
+    {
+        return $this->isOwner($user, $brand);
+    }
+
+    /**
+     * Determine whether the user is brand.
+     *
+     * @param User $user
+     * @return bool
+     */
+    protected function isBrand(User $user): bool
+    {
+        return $user->role === User::ROLE_BRAND;
+    }
+
+    /**
      * Determine whether the user created the brand.
      *
      * @param User $user
