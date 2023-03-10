@@ -9,5 +9,4 @@ class Brand extends Model {
 
     protected $guarded = [];
 
-
 }

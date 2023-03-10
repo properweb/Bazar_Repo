@@ -37,7 +37,6 @@ class ProductController extends Controller
             ]);
         }
         $response = $this->productService->create($request);
-
         return response()->json($response);
     }
 
@@ -63,6 +62,7 @@ class ProductController extends Controller
     }
 
     /**
+
      * Fetch Arrange Product List
      *
      * @param Request $request
@@ -78,6 +78,7 @@ class ProductController extends Controller
                 'data' => ""
             ]);
         }
+
         $response = $this->productService->arrangeProduct($request);
 
         return response()->json($response);
@@ -99,6 +100,7 @@ class ProductController extends Controller
                 'data' => ""
             ]);
         }
+
         $response = $this->productService->fetchStock($request);
 
         return response()->json($response);
@@ -202,6 +204,7 @@ class ProductController extends Controller
         $user = auth()->user();
 
         $image = Product::where('id', $request->product_id)->where('user_id', $user->id)->first();
+
         if ($user->cannot('delete', $image)) {
             return response()->json([
                 'res' => false,
@@ -215,6 +218,7 @@ class ProductController extends Controller
     }
 
     /**
+
      * Delete product video by respected product and image id
      *
      * @param Request $request
@@ -231,6 +235,7 @@ class ProductController extends Controller
                 'data' => ""
             ]);
         }
+
         $response = $this->productService->deleteVideo($request);
 
         return response()->json($response);
@@ -252,8 +257,8 @@ class ProductController extends Controller
                 'data' => ""
             ]);
         }
-        $response = $this->productService->reorderProduct($request);
 
+        $response = $this->productService->reorderProduct($request);
         return response()->json($response);
     }
 
@@ -273,8 +278,8 @@ class ProductController extends Controller
                 'data' => ""
             ]);
         }
-        $response = $this->productService->updateStock($request);
 
+        $response = $this->productService->updateStock($request);
         return response()->json($response);
     }
 

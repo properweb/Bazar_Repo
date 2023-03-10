@@ -51,6 +51,7 @@ class BrandController extends Controller
         return response()->json($response);
     }
 
+
     /**
      * Store a newly created brand in storage
      *
@@ -73,9 +74,7 @@ class BrandController extends Controller
      */
     public function update(UpdateBrandRequest $request): JsonResponse
     {
-
         $response = $this->brandService->update($request);
-
         return response()->json($response);
 
     }
@@ -87,7 +86,6 @@ class BrandController extends Controller
     public function show(int $userId): JsonResponse
     {
         $response = $this->brandService->get($userId);
-
         return response()->json($response);
     }
 
@@ -98,7 +96,6 @@ class BrandController extends Controller
     public function showShop(string $brandKey): JsonResponse
     {
         $response = $this->brandService->getShop($brandKey);
-
         return response()->json($response);
     }
 
@@ -108,9 +105,7 @@ class BrandController extends Controller
      */
     public function updateAccount(Request $request)
     {
-
         $response = $this->brandService->updateAccount($request);
-
         return response()->json($response);
     }
 
@@ -121,7 +116,6 @@ class BrandController extends Controller
     public function updateShop(Request $request)
     {
         $response = $this->brandService->updateShop($request);
-
         return response()->json($response);
     }
 

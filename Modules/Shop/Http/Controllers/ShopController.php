@@ -65,16 +65,16 @@ class ShopController extends Controller {
             //new products count
             $newProductsCount = Product::where('user_id', $brndUsrId)->where('status', 'publish')->where('created_at', '>', now()->subDays(7)->endOfDay())->count();
 
-
             $categories = [];
             $categoryRes = Product::select(DB::raw("count(*) as prdct_count"), "category")->where('status', 'publish')->where('user_id', $brndUsrId)->groupBy('category')->get();
-
 
             foreach ($categoryRes as $cat) {
                 if ($cat->category != 0) {
                     $categoryDetails = Category::find($cat->category);
                     $maincategoryDetails = Category::where('id', $categoryDetails->parent_id)->where('parent_id', 0)->first();
+
                     $scatres = Product::select(DB::raw("count(*) as prdct_count"), "sub_category")->where('status', 'publish')->where('category', $cat->category)->where('user_id', $brndUsrId)->groupBy('sub_category')->get();
+
                     $subCategories = [];
                     foreach ($scatres as $scat) {
                         $scategoryDetails = Category::where('id', $scat->sub_category)->first();
@@ -101,6 +101,7 @@ class ShopController extends Controller {
 
                 $categories[] = $cat_array;
             }
+
             $allPrdctQuery = Product::where('user_id', $brndUsrId)->where('status', 'publish');
             switch ($request->sort_key) {
                 case 1:
@@ -466,6 +467,7 @@ class ShopController extends Controller {
             $data['variation_options'] = $variationOptions;
             $data['variation_colors'] = $variationColors;
             $relatedProducts = [];
+
             $relatedProducts = Product::where('user_id', $productDetails->user_id)->where('id', '!=', $productDetails->id)->where('main_category', $productDetails->main_category)->where('status', 'publish')->inRandomOrder()->limit(9)->get();
             $data['related_products'] = $relatedProducts;
 
@@ -477,7 +479,6 @@ class ShopController extends Controller {
                     foreach ($recent_views as $view) {
                         $productDet = Product::find($view->product_id);
                         if($productDet) {
-
                             $recentViewedProdutcs[] = array(
                                 'id' => $productDet->id,
                                 'product_key' => $productDet->product_key,

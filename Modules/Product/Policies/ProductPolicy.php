@@ -43,6 +43,7 @@ class ProductPolicy
     }
 
     /**
+
      * Determine whether the user can view the product.
      *
      * @param User $user

@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+
 Route::prefix('brands')
     ->name('brand.')
     ->group(function () {

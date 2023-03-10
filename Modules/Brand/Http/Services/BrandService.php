@@ -86,7 +86,6 @@ class BrandService
         }
         $brandData["brand_slug"] = $slug;
         $brandData["bazaar_direct_link"] = $slug;
-
         //create Brand
         $brand = new Brand();
         $brand->fill($brandData);
@@ -125,7 +124,6 @@ class BrandService
 
             }
         }
-
         return ['res' => true, 'msg' => "", 'data' => $data];
     }
 

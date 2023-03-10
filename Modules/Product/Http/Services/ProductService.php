@@ -12,8 +12,6 @@ use Modules\Product\Entities\Category;
 use File;
 use DB;
 
-
-
 class ProductService
 {
     private $productAbsPath = "";
@@ -406,7 +404,6 @@ class ProductService
                 $productVariation = new ProductVariation();
                 $productVariation->fill($variationData);
                 $productVariation->save();
-
             }
         }
 
@@ -418,7 +415,6 @@ class ProductService
                         'sell_type' => 3
                     ]);
                 foreach ($prePacks as $prePack) {
-
                     $packData['product_id'] = $lastInsertId;
                     $packData['style'] = $prePack['style'];
                     $packData['pack_name'] = $prePack['pack_name'];
@@ -717,6 +713,7 @@ class ProductService
 
     /**
      * Update product by ID
+     *
      * @param $request
      * @return array
      */
@@ -904,7 +901,6 @@ class ProductService
             if (!empty($prePacks)) {
                 Product::where('id', $productId)->update(array('sell_type' => '3'));
                 foreach ($prePacks as $prePack) {
-
                     if (isset($prePack['id']) && !empty($prePack['id'])) {
                         if (isset($prePack['status']) && $prePack['status'] == 'deleted') {
                             ProductPrepack::where('id', $prePack['id'])->delete();
@@ -918,11 +914,9 @@ class ProductService
                                     'size_range' => $prePack['size_range_value'],
                                     'packs_price' => $packsPrice,
                                     'active' => $prePack['active']
-
                                 ]);
                         }
                     } else {
-
                         $packData['product_id'] = $productId;
                         $packData['style'] = $prePack['style'];
                         $packData['pack_name'] = $prePack['pack_name'];
@@ -937,6 +931,7 @@ class ProductService
                 }
             }
         }
+        
         if($sellType<>3)
         {
             ProductPrepack::where('product_id', $productId)->delete();
@@ -1080,8 +1075,8 @@ class ProductService
      * @param $request
      * @return array
      */
-
     public function updateStock($request): array
+
     {
         if ($request->variant_id) {
             ProductVariation::where('id', $request->variant_id)->update(array('stock' => $request->stock));
@@ -1091,7 +1086,8 @@ class ProductService
         return ['res' => true, 'msg' => "", 'data' => ""];
     }
 
-    /** Function of image upload
+    /**
+     *Function of image upload
      * @param $image
      * @return string
      */
