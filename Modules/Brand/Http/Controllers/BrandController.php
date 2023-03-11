@@ -11,6 +11,7 @@ use Modules\Brand\Http\Requests\UpdateBrandRequest;
 use Modules\Brand\Http\Requests\UpdateBrandAccountRequest;
 use Modules\Brand\Http\Requests\UpdateBrandShopRequest;
 use Modules\Brand\Http\Services\BrandService;
+use Modules\Brand\Entities\Brand;
 
 
 class BrandController extends Controller
@@ -106,6 +107,7 @@ class BrandController extends Controller
     public function updateAccount(UpdateBrandAccountRequest $request): JsonResponse
     {
         $user = auth()->user();
+
         $brand = Brand::where('user_id', $request->user_id)->first();
 
         // return error if no Brand found
