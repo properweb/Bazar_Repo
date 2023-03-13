@@ -157,12 +157,18 @@ class ProductController extends Controller
     public function status(Request $request): JsonResponse
     {
         $user = auth()->user();
-        if ($user->cannot('viewAny', Product::class)) {
-            return response()->json([
-                'res' => false,
-                'msg' => 'User is not authorized !',
-                'data' => ""
-            ]);
+        $ids = explode(",", $request->id);
+        if(!empty($ids)) {
+            foreach ($ids as $id) {
+                $product = Product::where('id', $id)->where('user_id', $user->id)->first();
+                if ($user->cannot('update', $product)) {
+                    return response()->json([
+                        'res' => false,
+                        'msg' => 'User is not authorized !',
+                        'data' => ""
+                    ]);
+                }
+            }
         }
         $response = $this->productService->status($request);
 
@@ -245,12 +251,16 @@ class ProductController extends Controller
     public function reorderProduct(Request $request): JsonResponse
     {
         $user = auth()->user();
-        if ($user->cannot('viewAny', Product::class)) {
-            return response()->json([
-                'res' => false,
-                'msg' => 'User is not authorized !',
-                'data' => ""
-            ]);
+        $items = $request->items;
+        foreach ($items as $v) {
+            $product = Product::where('id', $v)->where('user_id', $user->id)->first();
+            if ($user->cannot('update', $product)) {
+                return response()->json([
+                    'res' => false,
+                    'msg' => 'User is not authorized !',
+                    'data' => ""
+                ]);
+            }
         }
         $response = $this->productService->reorderProduct($request);
 
@@ -266,7 +276,8 @@ class ProductController extends Controller
     public function updateStock(Request $request): JsonResponse
     {
         $user = auth()->user();
-        if ($user->cannot('viewAny', Product::class)) {
+        $product = Product::where('id', $request->id)->where('user_id', $user->id)->first();
+        if ($user->cannot('update', $product)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
@@ -285,24 +296,21 @@ class ProductController extends Controller
      * @param $price
      * @return JsonResponse
      */
-    public function convertPrice(Request $request, $price): JsonResponse
+    public function convertPrice(Request $request): JsonResponse
     {
-        $response = '';
-        $req_url = 'https://api.exchangerate.host/latest?base=USD&symbols=USD,CAD,GBP,AUD,EUR&places=2&amount=' . $price;
-        $response_json = file_get_contents($req_url);
-        if (false !== $response_json) {
-            try {
-                $response_obj = json_decode($response_json);
-                if ($response_obj->success === true) {
-                    $response = ['res' => true, 'msg' => "", 'data' => $response_obj->rates];
-                }
-            } catch (\Exception $e) {
-                $response = ['res' => false, 'msg' => "Something went wrong", 'data' => ""];
-            }
+        $user = auth()->user();
+        if ($user->cannot('create', Product::class)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
         }
+        $response = $this->productService->convertPrice($request);
 
         return response()->json($response);
     }
+
 
 
 }
