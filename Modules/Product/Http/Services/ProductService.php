@@ -9,8 +9,8 @@ use Modules\Product\Entities\ProductVariation;
 use Modules\Product\Entities\ProductImage;
 use Modules\Product\Entities\ProductPrepack;
 use Modules\Product\Entities\Category;
-use File;
-use DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\DB;
 
 
 
