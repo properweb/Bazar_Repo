@@ -2,15 +2,15 @@
 
 namespace Modules\Brand\Http\Services;
 
+use Exception;
 use Illuminate\Support\Str;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rules\Password;
-use Modules\Brand\Entities\Catalog;
+use Illuminate\Support\Facades\File;
 use Modules\Country\Entities\Country;
 use Modules\User\Entities\User;
 use Modules\Brand\Entities\Brand;
+use Modules\Brand\Entities\Catalog;
 
 
 class BrandService
@@ -85,6 +85,7 @@ class BrandService
         }
         $brandData["brand_slug"] = $slug;
         $brandData["bazaar_direct_link"] = $slug;
+
 
         //create Brand
         $brand = new Brand();
@@ -305,7 +306,7 @@ class BrandService
                 $brand->save();
             }
             $response = ['res' => true, 'msg' => "", 'data' => $data];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $errorCode = $e->getCode();
             if ($errorCode == 23000) {
                 $errorMessage = "direct link already exists";
@@ -365,7 +366,7 @@ class BrandService
         $user = User::find($requestData['user_id']);
         $user->first_name = $requestData['first_name'];
         $user->last_name = $requestData['last_name'];
-        if($requestData['new_password'] != ''){
+        if ($requestData['new_password'] != '') {
             if (Hash::check($requestData['old_password'], $user->password)) {
                 $user->password = Hash::make($requestData['new_password']);
             } else {
