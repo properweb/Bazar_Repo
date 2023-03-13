@@ -1,4 +1,6 @@
 <?php
+use Illuminate\Support\Facades\Route;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -11,16 +13,27 @@
 |
 */
 
-Route::prefix('orders')->group(function () {
-    Route::get('/', 'OrderController@index');
-    Route::post('/', 'OrderController@store');
-    Route::get('/{order}', 'OrderController@show');
-    Route::post('/packing-slip', 'OrderController@packingSlip');
-    Route::post('/accept', 'OrderController@accept');
-    Route::post('/change-date', 'OrderController@changeDate');
-    Route::post('/change-address', 'OrderController@changeAddress');
-    Route::post('/update', 'OrderController@update');
-    Route::post('/split', 'OrderController@split');
-    Route::post('/cancel', 'OrderController@cancel');
-    Route::get('/csv', 'OrderController@csv');
-});
+Route::middleware('auth:sanctum')
+    ->prefix('orders')
+    ->name('order.')
+    ->group(function () {
+        Route::get('/', 'OrderController@index')->name('index');
+        Route::post('/', 'OrderController@checkout')->name('checkout');
+        Route::post('details/', 'OrderController@show')->name('show');
+        Route::post('/packing-slip', 'OrderController@packingSlip')->name('packingSlip');
+        Route::post('/updatebilling', 'OrderController@UpdateBilling')->name('UpdateBilling');
+        Route::post('/accept', 'OrderController@accept')->name('accept');
+        Route::post('/change-date', 'OrderController@changeDate')->name('changeDate');
+        Route::post('/change-address', 'OrderController@changeAddress')->name('changeAddress');
+        Route::post('/update', 'OrderController@update')->name('update');
+        Route::post('/split', 'OrderController@split')->name('split');
+        Route::post('/cancel', 'OrderController@cancel')->name('cancel');
+        Route::get('/csv', 'OrderController@csv')->name('csv');
+
+
+    });
+
+
+
+
+

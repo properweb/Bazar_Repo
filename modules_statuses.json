@@ -16,5 +16,6 @@
     "Backend": true,
     "Campaign": true,
     "Promotion": true,
-    "Customer": true
+    "Customer": true,
+    "Shipping": true
 }

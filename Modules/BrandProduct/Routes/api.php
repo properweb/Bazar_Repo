@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,5 +27,5 @@ Route::prefix('brandproduct')->group(function () {
     Route::get('/fetchproductbyvendor', 'BrandProductController@fetchProductByVendor');
 });
 Route::prefix('brandproduct')->group(function () {
-    Route::GET('fetch-products', 'BrandProductController@fetchProducts');
+    Route::get('/fetch-products', 'BrandProductController@fetchProducts');
 });

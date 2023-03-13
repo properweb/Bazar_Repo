@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -13,31 +14,25 @@ use Illuminate\Http\Request;
 |
 */
 
-Route::prefix('brand')->group(function () {
-    Route::post('/register', 'BrandController@register');
-});
-Route::prefix('brand')->group(function () {
-    Route::post('/create', 'BrandController@create');
-});
-Route::prefix('brand')->group(function () {
-    Route::get('/edit/{id}', 'BrandController@edit');
-});
-Route::prefix('brand')->group(function () {
-    Route::post('/update-account', 'BrandController@updateAccount');
-});
-Route::prefix('brand')->group(function () {
-    Route::post('/update-shop', 'BrandController@updateShop');
-});
-Route::prefix('brand')->group(function () {
-    Route::post('/golive', 'BrandController@goLive');
-});
-Route::prefix('brand')->group(function () {
-    Route::get('/all/{retailer}', 'BrandController@all');
-});
-Route::prefix('brand')->group(function () {
-    Route::get('/customers', 'BrandController@customers');
-});
-Route::prefix('brand')->group(function () {
-    Route::post('/add-customer', 'BrandController@addCustomer');
-});
+Route::prefix('brands')
+    ->name('brand.')
+    ->group(function () {
+        Route::get('/', 'BrandController@index')->name('list');
+        Route::post('/', 'BrandController@store')->name('store');
+        Route::post('/update', 'BrandController@update')->name('update');
+        Route::get('/count', 'BrandController@count')->name('count');
+        Route::get('/{brand}', 'BrandController@show')->name('show');
+        Route::get('/shop/{brand}', 'BrandController@showShop')->name('show_shop');
+    });
+Route::middleware('auth:api')
+    ->prefix('brands')
+    ->name('brand.')
+    ->group(function () {
+        Route::post('/update/shop', 'BrandController@updateShop')->name('update_shop');
+        Route::post('/update/account', 'BrandController@updateAccount')->name('update_account');
+        Route::post('/shop/live', 'BrandController@liveShop')->name('live_shop');
+    });
+
+
+
 

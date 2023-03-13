@@ -6,14 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Modules\Campaign\Entities\Campaign;
-use Modules\Promotion\Entities\Promotion;
-//jwt
-//use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
-//use Tymon\JWTAuth\Contracts\JWTSubject;
-// sanctum
-//use Laravel\Passport\HasApiTokens;
-use Laravel\Sanctum\HasApiTokens;
+use Laravel\Passport\HasApiTokens;
 
 class User extends Authenticatable
 {

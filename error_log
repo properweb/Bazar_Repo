@@ -1,20 +1,11 @@
-[17-Nov-2022 11:12:57 UTC] PHP Warning:  require(/home/bazarcenter/public_html/staging.bazarcenter.ca/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/bazarcenter/public_html/staging.bazarcenter.ca/index.php on line 34
-[17-Nov-2022 11:12:57 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/bazarcenter/public_html/staging.bazarcenter.ca/../vendor/autoload.php' (include_path='.:/opt/cpanel/ea-php81/root/usr/share/pear') in /home/bazarcenter/public_html/staging.bazarcenter.ca/index.php:34
-Stack trace:
-#0 {main}
-  thrown in /home/bazarcenter/public_html/staging.bazarcenter.ca/index.php on line 34
-[17-Nov-2022 11:13:00 UTC] PHP Warning:  require(/home/bazarcenter/public_html/staging.bazarcenter.ca/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/bazarcenter/public_html/staging.bazarcenter.ca/index.php on line 34
-[17-Nov-2022 11:13:00 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/bazarcenter/public_html/staging.bazarcenter.ca/../vendor/autoload.php' (include_path='.:/opt/cpanel/ea-php81/root/usr/share/pear') in /home/bazarcenter/public_html/staging.bazarcenter.ca/index.php:34
-Stack trace:
-#0 {main}
-  thrown in /home/bazarcenter/public_html/staging.bazarcenter.ca/index.php on line 34
-[17-Nov-2022 11:21:32 UTC] PHP Warning:  require(/home/bazarcenter/public_html/staging.bazarcenter.ca/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/bazarcenter/public_html/staging.bazarcenter.ca/index.php on line 34
-[17-Nov-2022 11:21:32 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/bazarcenter/public_html/staging.bazarcenter.ca/../vendor/autoload.php' (include_path='.:/opt/cpanel/ea-php81/root/usr/share/pear') in /home/bazarcenter/public_html/staging.bazarcenter.ca/index.php:34
-Stack trace:
-#0 {main}
-  thrown in /home/bazarcenter/public_html/staging.bazarcenter.ca/index.php on line 34
-[17-Nov-2022 11:21:35 UTC] PHP Warning:  require(/home/bazarcenter/public_html/staging.bazarcenter.ca/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/bazarcenter/public_html/staging.bazarcenter.ca/index.php on line 34
-[17-Nov-2022 11:21:35 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/bazarcenter/public_html/staging.bazarcenter.ca/../vendor/autoload.php' (include_path='.:/opt/cpanel/ea-php81/root/usr/share/pear') in /home/bazarcenter/public_html/staging.bazarcenter.ca/index.php:34
-Stack trace:
-#0 {main}
-  thrown in /home/bazarcenter/public_html/staging.bazarcenter.ca/index.php on line 34
+[25-Feb-2023 10:37:47 UTC] PHP Fatal error:  Cannot declare class Modules\Announce\Http\Controllers\ShippingController, because the name is already in use in /home/bazarcenter/public_html/staging.bazarcenter.ca/Modules/Shipping/Http/Controllers/ShippingController.php on line 0
+[25-Feb-2023 10:38:14 UTC] PHP Fatal error:  Cannot declare class Modules\Announce\Http\Requests\AnnounceRequest, because the name is already in use in /home/bazarcenter/public_html/staging.bazarcenter.ca/Modules/Shipping/Http/Requests/ShippingRequest.php on line 0
+[27-Feb-2023 11:16:12 UTC] PHP Fatal error:  Cannot declare class Modules\Shipping\Http\Requests\ShippingRequest, because the name is already in use in /home/bazarcenter/public_html/staging.bazarcenter.ca/Modules/Cart/Http/Requests/CartRequest.php on line 0
+[27-Feb-2023 11:16:28 UTC] PHP Fatal error:  Cannot declare class Modules\Shipping\Http\Requests\ShippingRequest, because the name is already in use in /home/bazarcenter/public_html/staging.bazarcenter.ca/Modules/Cart/Http/Requests/CartRequest.php on line 0
+[27-Feb-2023 11:27:04 UTC] PHP Fatal error:  Cannot declare class Modules\Shipping\Http\Requests\ShippingRequest, because the name is already in use in /home/bazarcenter/public_html/staging.bazarcenter.ca/Modules/Cart/Http/Requests/CartRequest.php on line 0
+[27-Feb-2023 12:34:43 UTC] PHP Fatal error:  Cannot declare class Modules\Shipping\Http\Requests\ShippingRequest, because the name is already in use in /home/bazarcenter/public_html/staging.bazarcenter.ca/Modules/Cart/Http/Requests/CartRequest.php on line 0
+[28-Feb-2023 13:22:00 UTC] PHP Fatal error:  Allowed memory size of 67108864 bytes exhausted (tried to allocate 56627200 bytes) in /home/bazarcenter/public_html/staging.bazarcenter.ca/Modules/Order/Http/Controllers/OrderController.php on line 97
+[02-Mar-2023 12:08:20 UTC] PHP Fatal error:  Cannot declare class Modules\Brand\Http\Requests\StoreUserRequest, because the name is already in use in /home/bazarcenter/public_html/staging.bazarcenter.ca/Modules/User/Http/Requests/StoreUserRequest.php on line 0
+[02-Mar-2023 12:08:33 UTC] PHP Fatal error:  Cannot declare class Modules\Brand\Http\Requests\StoreUserRequest, because the name is already in use in /home/bazarcenter/public_html/staging.bazarcenter.ca/Modules/User/Http/Requests/StoreUserRequest.php on line 0
+[02-Mar-2023 12:10:51 UTC] PHP Fatal error:  Cannot declare class Modules\Brand\Http\Requests\StoreUserRequest, because the name is already in use in /home/bazarcenter/public_html/staging.bazarcenter.ca/Modules/User/Http/Requests/StoreUserRequest.php on line 0
+[02-Mar-2023 12:11:29 UTC] PHP Fatal error:  Cannot declare class Modules\Brand\Http\Requests\StoreUserRequest, because the name is already in use in /home/bazarcenter/public_html/staging.bazarcenter.ca/Modules/User/Http/Requests/StoreUserRequest.php on line 0

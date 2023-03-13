@@ -2,26 +2,29 @@
 
 namespace Modules\Shop\Http\Controllers;
 
-
+use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\User\Entities\User;
 use Modules\User\Entities\UserRecentView;
 use Modules\Brand\Entities\Brand;
-use Modules\Product\Entities\Products;
+use Modules\Product\Entities\Product;
 use Modules\Product\Entities\ProductImage;
 use Modules\Product\Entities\Video;
 use Modules\Product\Entities\ProductVariation;
 use Modules\Product\Entities\ProductPrepack;
 use Modules\Product\Entities\Category;
 use Modules\Country\Entities\Country;
+use Modules\Wishlist\Entities\Wishlist;
 use DB;
 
-class ShopController extends Controller
-{
+class ShopController extends Controller {
 
-    public function brand(Request $request, $id)
-    {
+    /**
+     * Display a listing of the resource.
+     * @return Renderable
+     */
+    public function brand(Request $request, $id) {
         $data = [];
         $brand = Brand::where('bazaar_direct_link', $id)->first();
         if ($brand) {
@@ -31,13 +34,13 @@ class ShopController extends Controller
             $brand->logo_image = $brand->logo_image != '' ? asset('public') . '/' . $brand->logo_image : asset('public/img/logo-image.png');
             $brand->tools_used = $brand->tools_used != '' ? explode(',', $brand->tools_used) : array();
             $brand->tag_shop_page = $brand->tag_shop_page != '' ? explode(',', $brand->tag_shop_page) : array();
-
+            //country
             $country = Country::where('id', $brand->country)->first();
             $brand->country = $country->name;
-
+            //headquater
             $headquatered = Country::where('id', $brand->headquatered)->first();
             $brand->headquatered = $headquatered->name;
-
+            //shipped from
             $productShipped = Country::where('id', $brand->product_shipped)->first();
             $brand->product_shipped = $productShipped->name;
             $data = $brand;
@@ -47,8 +50,7 @@ class ShopController extends Controller
         return response()->json($response);
     }
 
-    public function products(Request $request)
-    {
+    public function products(Request $request) {
 
         $product_arr = [];
         $categories = [];
@@ -57,22 +59,22 @@ class ShopController extends Controller
         $brandDetails = Brand::where('bazaar_direct_link', $request->brand_id)->where('go_live', '2')->first();
         if ($brandDetails) {
             $brndUsrId = $brandDetails->user_id;
+            //all products count
+            $allProductsCount = Product::where('user_id', $brndUsrId)->where('status', 'publish')->count();
 
-            $allProductsCount = Products::where('user_id', $brndUsrId)->where('status', 'publish')->count();
-
-
-            $newProductsCount = Products::where('user_id', $brndUsrId)->where('status', 'publish')->where('created_at', '>', now()->subDays(7)->endOfDay())->count();
+            //new products count
+            $newProductsCount = Product::where('user_id', $brndUsrId)->where('status', 'publish')->where('created_at', '>', now()->subDays(7)->endOfDay())->count();
 
 
             $categories = [];
-            $categoryRes = Products::select(DB::raw("count(*) as prdct_count"), "category")->where('status', 'publish')->where('user_id', $brndUsrId)->groupBy('category')->get();
+            $categoryRes = Product::select(DB::raw("count(*) as prdct_count"), "category")->where('status', 'publish')->where('user_id', $brndUsrId)->groupBy('category')->get();
 
 
             foreach ($categoryRes as $cat) {
                 if ($cat->category != 0) {
                     $categoryDetails = Category::find($cat->category);
                     $maincategoryDetails = Category::where('id', $categoryDetails->parent_id)->where('parent_id', 0)->first();
-                    $scatres = Products::select(DB::raw("count(*) as prdct_count"), "sub_category")->where('status', 'publish')->where('category', $cat->category)->where('user_id', $brndUsrId)->groupBy('sub_category')->get();
+                    $scatres = Product::select(DB::raw("count(*) as prdct_count"), "sub_category")->where('status', 'publish')->where('category', $cat->category)->where('user_id', $brndUsrId)->groupBy('sub_category')->get();
                     $subCategories = [];
                     foreach ($scatres as $scat) {
                         $scategoryDetails = Category::where('id', $scat->sub_category)->first();
@@ -99,9 +101,7 @@ class ShopController extends Controller
 
                 $categories[] = $cat_array;
             }
-
-
-            $allPrdctQuery = Products::where('user_id', $brndUsrId)->where('status', 'publish');
+            $allPrdctQuery = Product::where('user_id', $brndUsrId)->where('status', 'publish');
             switch ($request->sort_key) {
                 case 1:
                     $allPrdctQuery->orderBy('order_by', 'ASC');
@@ -115,7 +115,9 @@ class ShopController extends Controller
                 case 4:
                     $allPrdctQuery->orderBy('usd_retail_price', 'DESC');
                     break;
-
+                default:
+                    $allPrdctQuery->orderBy('order_by', 'ASC');
+                    break;
             }
             switch ($request->sort_cat) {
                 case 'all':
@@ -146,16 +148,18 @@ class ShopController extends Controller
                     }
                     break;
             }
+
             $products = $allPrdctQuery->get();
             if ($products) {
                 foreach ($products as $v) {
                     $stock = $v->stock;
                     $prdctOptionsCount = ProductVariation::where('product_id', $v->id)->where('status', '1')->count();
-
+                    //return count of product options if any
                     if ($prdctOptionsCount > 0) {
                         $prdctOptionsCount = ProductVariation::where('product_id', $v->id)->where('status', '1')->sum('stock');
                         $stock = $prdctOptionsCount;
                     }
+
 
                     $product_arr[] = array(
                         'id' => $v->id,
@@ -191,11 +195,13 @@ class ShopController extends Controller
                         'slug' => $v->slug,
                         'featured_image' => $v->featured_image,
                         'stock' => $stock,
-                        'default_currency' => $v->default_currency,
+                        'default_currency' => $v->default_currency
+
                     );
                 }
             }
         }
+
 
 
         $data = array(
@@ -205,18 +211,27 @@ class ShopController extends Controller
             "products" => $product_arr,
         );
 
-
         $response = ['res' => true, 'msg' => "", 'data' => $data];
         return response()->json($response);
     }
 
-    public function product(Request $request)
-    {
+    public function product(Request $request) {
 
         $data = array();
 
-        $productDetails = Products::where('product_key', $request->id)->first();
+        $productDetails = Product::where('product_key', $request->id)->first();
         if ($productDetails) {
+            $wishList = Wishlist::where('product_id', $productDetails->id)->where('user_id', $request->user_id)->where('cart_id', null)->where('variant_id', null)->first();
+
+
+            if(!empty($wishList))
+            {
+                $wishlistId = $wishList->id;
+            }
+            else
+            {
+                $wishlistId = '';
+            }
             $data['id'] = $productDetails->id;
             $data['name'] = $productDetails->name;
             $data['description'] = $productDetails->description;
@@ -226,6 +241,7 @@ class ShopController extends Controller
             $data['min_order_qty'] = $productDetails->min_order_qty;
             $data['default_currency'] = $productDetails->default_currency;
             $data['sell_type'] = $productDetails->sell_type;
+            $data['wishlistId'] = $wishlistId;
             $brandDetails = Brand::where('user_id', $productDetails->user_id)->first();
             if ($brandDetails) {
                 $data['brand_name'] = $brandDetails->brand_name;
@@ -252,7 +268,42 @@ class ShopController extends Controller
             $data['videos'] = $productVideos;
             $productVariations = ProductVariation::where('product_id', $productDetails->id)->where('status', '1')->get();
             $productPrepacks = ProductPrepack::where('product_id', $productDetails->id)->where('active', '1')->get();
-            $data['prepacks'] = $productPrepacks;
+            if (!empty($productPrepacks)) {
+                $prepackVar = array();
+                foreach ($productPrepacks as $key => $var) {
+
+                    $preWishList = Wishlist::where('product_id', $productDetails->id)->where('user_id', $request->user_id)->where('cart_id', null)->where('variant_id', $var->id)->first();
+                    if(!empty($preWishList))
+                    {
+                        $preWishListId = $preWishList->id;
+                    }
+                    else
+                    {
+                        $preWishListId = '';
+                    }
+
+                    $prepackVar[] = array(
+                        'id' => $var->id,
+                        'style' => $var->style,
+                        'pack_name' => $var->pack_name,
+                        'size_ratio' => $var->size_ratio,
+                        'size_range' => $var->size_range,
+                        'packs_price' => $var->packs_price,
+                        'active' => $var->active,
+                        'created_at' => $var->created_at,
+                        'updated_at' => $var->updated_at,
+                        'variationWishId' => $preWishListId
+                    );
+
+
+
+
+
+                }
+            }
+
+            $data['prepacks'] = $prepackVar;
+
 
             $allvariations = array();
             $swatches = array();
@@ -276,6 +327,16 @@ class ShopController extends Controller
                     }
                     $values_str = implode('_', $values);
 
+                    $variationWishList = Wishlist::where('product_id', $productDetails->id)->where('user_id', $request->user_id)->where('cart_id', null)->where('variant_id', $var->id)->first();
+                    if(!empty($variationWishList))
+                    {
+                        $variationWishId = $variationWishList->id;
+                    }
+                    else
+                    {
+                        $variationWishId = '';
+                    }
+
                     $variations[$values_str] = array(
                         'variant_id' => $var->id,
                         'option1' => ucfirst(strtolower($var->options1)),
@@ -291,6 +352,7 @@ class ShopController extends Controller
                         'preview_images' => $var->image,
                         'swatch_image' => $var->swatch_image,
                         'values' => $values,
+                        'variationWishId' => $variationWishId
                     );
                     if ($var->options1 != null && $var->value1 != null) {
                         $option = ucfirst(strtolower($var->options1));
@@ -357,22 +419,21 @@ class ShopController extends Controller
 
             if (!empty($values1)) {
                 foreach ($values1 as $value1) {
-                    $values[0][] = (object)["display" => $value1, "value" => $value1];
+                    $values[0][] = (object) ["display" => $value1, "value" => $value1];
                 }
             }
 
             if (!empty($values2)) {
                 foreach ($values2 as $value2) {
-                    $values[1][] = (object)["display" => $value2, "value" => $value2];
+                    $values[1][] = (object) ["display" => $value2, "value" => $value2];
                 }
             }
 
             if (!empty($values3)) {
                 foreach ($values3 as $value3) {
-                    $values[2][] = (object)["display" => $value3, "value" => $value3];
+                    $values[2][] = (object) ["display" => $value3, "value" => $value3];
                 }
             }
-
 
             $variationOptions = [];
             $variationColors = [];
@@ -388,7 +449,9 @@ class ShopController extends Controller
                         case 2:
                             $values = $values3;
                             break;
-
+                        default:
+                            $values = $values1;
+                            break;
                     }
                     if ($option == 'Color') {
                         $variationColors = $swatches;
@@ -402,7 +465,8 @@ class ShopController extends Controller
             $data['options'] = $options;
             $data['variation_options'] = $variationOptions;
             $data['variation_colors'] = $variationColors;
-            $relatedProducts = Products::where('user_id', $productDetails->user_id)->where('id', '!=', $productDetails->id)->where('main_category', $productDetails->main_category)->where('status', 'publish')->inRandomOrder()->limit(9)->get();
+            $relatedProducts = [];
+            $relatedProducts = Product::where('user_id', $productDetails->user_id)->where('id', '!=', $productDetails->id)->where('main_category', $productDetails->main_category)->where('status', 'publish')->inRandomOrder()->limit(9)->get();
             $data['related_products'] = $relatedProducts;
 
             $recentViewedProdutcs = [];
@@ -411,30 +475,34 @@ class ShopController extends Controller
                 $recent_views = UserRecentView::where('user_id', $request->user_id)->where('product_id', '!=', $productDetails->id)->orderBy('id', 'DESC')->get();
                 if ($recent_views) {
                     foreach ($recent_views as $view) {
-                        $productDet = Products::find($view->product_id);
-                        $recentViewedProdutcs[] = array(
-                            'id' => $productDet->id,
-                            'product_key' => $productDet->product_key,
-                            'name' => $productDet->name,
-                            'status' => $productDet->status,
-                            'country' => $productDet->country,
-                            'case_quantity' => $productDet->case_quantity,
-                            'min_order_qty' => $productDet->min_order_qty,
-                            'min_order_qty_type' => $productDet->min_order_qty_type,
-                            'sku' => $productDet->sku,
-                            'usd_wholesale_price' => $productDet->usd_wholesale_price,
-                            'usd_retail_price' => $productDet->usd_retail_price,
-                            'cad_wholesale_price' => $productDet->cad_wholesale_price,
-                            'cad_retail_price' => $productDet->cad_retail_price,
-                            'gbr_wholesale_price' => $productDet->gbr_wholesale_price,
-                            'gbr_retail_price' => $productDet->gbr_retail_price,
-                            'eur_wholesale_price' => $productDet->eur_wholesale_price,
-                            'eur_retail_price' => $productDet->eur_retail_price,
-                            'usd_tester_price' => $productDet->usd_tester_price,
-                            'slug' => $productDet->slug,
-                            'featured_image' => $productDet->featured_image,
-                            'stock' => $productDet->stock,
-                        );
+                        $productDet = Product::find($view->product_id);
+                        if($productDet) {
+
+                            $recentViewedProdutcs[] = array(
+                                'id' => $productDet->id,
+                                'product_key' => $productDet->product_key,
+                                'name' => $productDet->name,
+                                'status' => $productDet->status,
+                                'country' => $productDet->country,
+                                'case_quantity' => $productDet->case_quantity,
+                                'min_order_qty' => $productDet->min_order_qty,
+                                'min_order_qty_type' => $productDet->min_order_qty_type,
+                                'sku' => $productDet->sku,
+                                'usd_wholesale_price' => $productDet->usd_wholesale_price,
+                                'usd_retail_price' => $productDet->usd_retail_price,
+                                'cad_wholesale_price' => $productDet->cad_wholesale_price,
+                                'cad_retail_price' => $productDet->cad_retail_price,
+                                'gbr_wholesale_price' => $productDet->gbr_wholesale_price,
+                                'gbr_retail_price' => $productDet->gbr_retail_price,
+                                'eur_wholesale_price' => $productDet->eur_wholesale_price,
+                                'eur_retail_price' => $productDet->eur_retail_price,
+                                'usd_tester_price' => $productDet->usd_tester_price,
+                                'slug' => $productDet->slug,
+                                'featured_image' => $productDet->featured_image,
+                                'stock' => $productDet->stock
+
+                            );
+                        }
                     }
                 }
                 $last_viewed = UserRecentView::where('user_id', $request->user_id)->orderBy('id', 'DESC')->first();

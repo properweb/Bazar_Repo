@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -13,20 +14,22 @@ use Illuminate\Http\Request;
 |
 */
 Route::prefix('user')->group(function () {
-    Route::post('/login', 'UserController@login')->name('login');
+    Route::post('/login', 'UserController@login')->name('user.login');
 });
 Route::prefix('user')->group(function () {
-    Route::post('/forget-password', 'UserController@forgetPassword');
+    Route::post('/forget-password', 'UserController@forgetPassword')->name('user.forgot_password');
 });
 Route::prefix('user')->group(function () {
-    Route::post('/reset-password', 'UserController@resetPassword');
+    Route::post('/reset-password', 'UserController@resetPassword')->name('user.reset_password');
 });
-Route::prefix('user')->group(function () {
-    Route::post('/details', 'UserController@details');
-});
-Route::prefix('user')->group(function () {
-    Route::get('/fetch-cart/{id}', 'UserController@fetchCart');
-});
-Route::prefix('user')->group(function () {
-    Route::get('/fetch-brands/{id}', 'UserController@fetchBrands');
-});
+
+
+Route::middleware('auth:sanctum')
+    ->prefix('user')
+    ->name('user.')
+    ->group(function () {
+        Route::post('/details', 'UserController@details')->name('user.details');
+        Route::get('/fetch-cart/{id}', 'UserController@fetchCart')->name('user.fetch_cart');
+        Route::get('/fetch-brands/{id}', 'UserController@fetchBrands')->name('user.fetch_brands');
+    });
+

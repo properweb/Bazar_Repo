@@ -16,7 +16,8 @@ use Modules\User\Http\Controllers\UserController;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
-Route::middleware('auth:sanctum')
+
+Route::middleware('auth:api')
     ->prefix('promotions')
     ->name('promotion.')
     ->group(function () {

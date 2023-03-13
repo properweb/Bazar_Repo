@@ -13,39 +13,24 @@ use Illuminate\Http\Request;
 |
 */
 
-Route::prefix('product')->group(function () {
-    Route::get('/', 'ProductController@index');
-});
-Route::prefix('product')->group(function () {
-    Route::post('/create', 'ProductController@create');
-});
+Route::middleware('auth:api')
+    ->prefix('product')
+    ->name('product.')
+    ->group(function () {
+        Route::get('/fetch', 'ProductController@fetch')->name('fetch');
+        Route::get('/arrange', 'ProductController@arrangeProduct')->name('arrangeProduct');
+        Route::get('/fetch-stock', 'ProductController@fetchStock')->name('fetchStock');
+        Route::get('/details', 'ProductController@details')->name('details');
+        Route::post('/create', 'ProductController@create')->name('create');
+        Route::post('/update', 'ProductController@update')->name('update');
+        Route::post('/status', 'ProductController@status')->name('status');
+        Route::post('/delete', 'ProductController@delete')->name('delete');
+        Route::post('/delete-image', 'ProductController@deleteImage')->name('deleteImage');
+        Route::post('/delete-video', 'ProductController@deleteVideo')->name('deleteVideo');
+        Route::post('/reorder', 'ProductController@reorderProduct')->name('reorderProduct');
+        Route::post('/update-stock', 'ProductController@updateStock')->name('updateStock');
+        Route::get('/convert-price/{price}', 'ProductController@convertPrice')->name('convertPrice');
+    });
 
-Route::prefix('product')->group(function () {
-    Route::get('/convertprice/{price}', 'ProductController@convertPrice');
-});
-
-Route::prefix('product')->group(function () {
-    Route::post('/updateproduct', 'ProductController@update');
-});
-Route::prefix('product')->group(function () {
-    Route::get('/statusproduct', 'ProductController@changeStatus');
-});
-Route::prefix('product')->group(function () {
-    Route::get('/deleteproduct', 'ProductController@delete');
-});
-Route::prefix('product')->group(function () {
-    Route::get('/deleteproductimage', 'ProductController@deleteProductImage');
-});
-Route::prefix('product')->group(function () {
-    Route::get('/deleteproductvideo', 'ProductController@deleteProductVideo');
-});
-
-Route::prefix('product')->group(function () {
-    Route::post('/productsreorder', 'ProductController@productsReorder');
-});
-
-Route::prefix('product')->group(function () {
-    Route::post('/update-products-stock', 'ProductController@updateProductsStock');
-});
 
 

@@ -17,7 +17,7 @@ use Modules\User\Http\Controllers\UserController;
 |
 */
 
-Route::middleware('auth:sanctum')
+Route::middleware('auth:api')
     ->prefix('campaigns')
     ->name('campaign.')
     ->group(function () {

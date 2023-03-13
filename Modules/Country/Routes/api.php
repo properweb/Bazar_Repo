@@ -22,3 +22,6 @@ Route::prefix('country')->group(function () {
 Route::prefix('country')->group(function () {
     Route::get('/city', 'CountryController@city');
 });
+Route::prefix('country')->group(function () {
+    Route::get('/promotion', 'CountryController@promotion');
+});

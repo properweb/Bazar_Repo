@@ -26,7 +26,7 @@ class PromotionController extends Controller
      */
     public function index(): JsonResponse
     {
-        $user = auth('sanctum')->user();
+        $user = auth()->user();
 
         // return error if user is not a brand
         if ($user->cannot('viewAny', Promotion::class)) {
@@ -50,7 +50,7 @@ class PromotionController extends Controller
      */
     public function store(StorePromotionRequest $request): JsonResponse
     {
-        $user = auth('sanctum')->user();
+        $user = auth()->user();
 
         // return error if user cannot create promotion
         if ($user->cannot('create', Promotion::class)) {
@@ -74,7 +74,7 @@ class PromotionController extends Controller
      */
     public function show(string $promotionKey): JsonResponse
     {
-        $user = auth('sanctum')->user();
+        $user = auth()->user();
         $promotion = Promotion::where('promotion_key', $promotionKey)->first();
 
         // return error if user not created the promotion
@@ -98,7 +98,7 @@ class PromotionController extends Controller
      */
     public function update(UpdatePromotionRequest $request): JsonResponse
     {
-        $user = auth('sanctum')->user();
+        $user = auth()->user();
 
         // return error if user cannot update promotion
         if ($user->cannot('update', Promotion::class)) {
@@ -122,7 +122,7 @@ class PromotionController extends Controller
      */
     public function destroy(string $promotionKey): JsonResponse
     {
-        $user = auth('sanctum')->user();
+        $user = auth()->user();
         $promotion = Promotion::where('promotion_key', $promotionKey)->first();
 
         // return error if user not created the promotion

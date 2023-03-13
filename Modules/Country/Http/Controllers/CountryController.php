@@ -66,4 +66,23 @@ class CountryController extends Controller
         $response = ['res' => true, 'msg' => "", 'data' => $result_array];
         return response()->json($response);
     }
+    
+    public function promotion(Request $request)
+    {
+
+        $result_array = array();
+        $countries = Country::orderBy('name', 'ASC')->where('in_promotion','1')->get();
+        foreach ($countries as $v) {
+            $result_array[] = array(
+                'id' => $v->id,
+                'country_code' => $v->shortname,
+                'country_name' => $v->name,
+                'phone_code' => $v->phonecode
+            );
+        }
+
+
+        $response = ['res' => true, 'msg' => "", 'data' => $result_array];
+        return response()->json($response);
+    }
 }

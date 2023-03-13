@@ -2,7 +2,6 @@
 
 namespace Modules\Customer\Http\Controllers;
 
-use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -39,7 +38,7 @@ class CustomerController extends Controller
 
     /**
      * Get list of customers
-     * 
+     *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
@@ -128,7 +127,7 @@ class CustomerController extends Controller
 
     /**
      * Store a newly created customer in storage
-     * 
+     *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
@@ -164,7 +163,7 @@ class CustomerController extends Controller
 
     /**
      * store imported customers
-     * 
+     *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
@@ -220,7 +219,7 @@ class CustomerController extends Controller
 
     /**
      * Fetch the specified customer
-     * 
+     *
      * @param string $customerKey
      * @return \Illuminate\Http\JsonResponse
      */
@@ -237,7 +236,7 @@ class CustomerController extends Controller
 
     /**
      * Update the specified customer in storage.
-     * 
+     *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
@@ -259,7 +258,7 @@ class CustomerController extends Controller
 
     /**
      * Remove multiple customers from storage
-     * 
+     *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
@@ -277,8 +276,8 @@ class CustomerController extends Controller
     }
 
     /**
-     * Export selected customers 
-     * 
+     * Export selected customers
+     *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */

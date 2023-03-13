@@ -8,6 +8,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Modules\User\Entities\User;
@@ -20,26 +21,37 @@ class UserController extends Controller
 
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['login']]);
+        //$this->middleware('auth:sanctum', ['except' => ['login']]);
     }
+
     /**
      * Store a newly created resource in storage.
      * @param Request $request
      * @return Renderable
      */
-    public function login(Request $request) {
+    public function login(Request $request)
+    {
 
         $validator = Validator::make($request->all(), [
-                    'email' => 'required|email',
-                    'password' => 'required|min:6',
+            'email' => 'required|email',
+            'password' => [
+                'required',
+                Password::min(8)
+                    ->letters()
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols()
+            ]
         ]);
         if ($validator->fails()) {
             $response = ['res' => false, 'msg' => $validator->errors()->first(), 'data' => ""];
         } else {
             $user = User::where('email', $request->email)->first();
+
             if ($user) {
-                if (Hash::check($request->password, $user->password)) { //Hash::check($input, $hash)
-                    Auth::login($user);
+
+                if (Auth::attempt($request->only('email', 'password'))) {
+                    //Auth::login($user);
 
                     //$credentials = $request->only('email', 'password');
 
@@ -54,15 +66,15 @@ class UserController extends Controller
 
                     if ($user->role == 'brand') {
                         $brand = Brand::where('user_id', $user->id)->first();
-                        $stepCount = $brand ? (int) $brand->step_count : 0;
-                        $brand->profile_photo = $brand->profile_photo != '' ? asset('public') . '/' . $brand->profile_photo : asset('public/admin/dist/img/profile-photo.png');
+                        $stepCount = $brand ? (int)$brand->step_count : 0;
+                        $brand->profile_photo = !empty($brand->profile_photo) ? asset('public') . '/' . $brand->profile_photo : asset('public/admin/dist/img/profile-photo.png');
                         $brand->first_name = $user->first_name;
                         $brand->last_name = $user->last_name;
                         $brandData = $brand ? $brand : [];
                     }
                     $authUser = Auth::user();
                     //$authUser->tokens()->where('name', 'bazarAuth')->delete();
-                    $token = $authUser->createToken('bazarAuth')->plainTextToken;
+                    $token = $authUser->createToken('bazarAuth')->accessToken;
                     //$token = Auth::login($user);
                     //$token = $user->createToken('API Token')->accessToken;
                     $data = array(
@@ -88,7 +100,8 @@ class UserController extends Controller
     }
 
 
-    public function forgetPassword(Request $request) {
+    public function forgetPassword(Request $request)
+    {
         $user = User::where('email', $request->email_address)->first();
         if ($user) {
             $token = Str::random(64);
@@ -106,12 +119,29 @@ class UserController extends Controller
         }
         return response()->json($response);
     }
-    
-    public function resetPassword(Request $request) {
-        $user = User::where('token', $request->token)->first();
-        $user->password = Hash::make($request->password);
-        $user->save();
-        $response = ['res' => true, 'msg' => "Your password reset successfully!", 'data' => ''];
+
+    public function resetPassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'password' => [
+                'required',
+                Password::min(8)
+                    ->letters()
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols()
+            ]
+        ]);
+        if ($validator->fails()) {
+            $response = ['res' => false, 'msg' => $validator->errors()->first(), 'data' => ""];
+        } else {
+            $user = User::where('email', $request->email)->first();
+            $user->password = Hash::make($request->password);
+            $user->save();
+            $response = ['res' => true, 'msg' => "Your password reset successfully!", 'data' => $user->password];
+        }
+
         return response()->json($response);
     }
 
