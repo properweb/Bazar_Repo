@@ -11,6 +11,7 @@ use Modules\Country\Entities\Country;
 use Modules\User\Entities\User;
 use Modules\Brand\Entities\Brand;
 use Modules\Brand\Entities\Catalog;
+use DB;
 
 
 class BrandService
@@ -79,7 +80,7 @@ class BrandService
         $brandData["brand_key"] = 'bmc_' . Str::lower(Str::random(10));
 
         $slug = Str::slug($brandData["brand_name"], '-');
-        $count = Brand::where('brand_slug', $slug)->count();
+        $count = Brand::where(DB::raw('lower(brand_name)'), strtolower($brandData["brand_name"]))->count();
         if ($count > 0) {
             $slug = $slug . '-' . $count;
         }
@@ -222,16 +223,9 @@ class BrandService
     {
         $data = (array)$request->all();
         $request->bazaar_direct_link = Str::slug($request->bazaar_direct_link, '-');
-        $slug = Str::slug($request->brand_name, '-');
-        $count = Brand::where('brand_slug', $slug)->where('user_id', '<>', $request->user_id)->count();
-        if ($count > 0) {
-            $slug = $slug . '-' . $count;
-        }
-        $request->brand_slug = $slug;
         $existBrand = Brand::where('user_id', $request->user_id)->first();
 
         if ($existBrand) {
-
             if ($request->bazaar_direct_link && $request->bazaar_direct_link != $existBrand->bazaar_direct_link) {
                 $existBrandLink = Brand::where('bazaar_direct_link', $request->bazaar_direct_link)->where('user_id', '<>', $existBrand->bazaar_direct_link)->first();
 
@@ -242,7 +236,6 @@ class BrandService
                 $existBrand->bazaar_direct_link = $request->bazaar_direct_link;
                 $existBrand->save();
             }
-
         }
 
         try {
@@ -366,7 +359,7 @@ class BrandService
         $user = User::find($requestData['user_id']);
         $user->first_name = $requestData['first_name'];
         $user->last_name = $requestData['last_name'];
-        if ($requestData['new_password'] != '') {
+        if (!empty($requestData['new_password'])) {
             if (Hash::check($requestData['old_password'], $user->password)) {
                 $user->password = Hash::make($requestData['new_password']);
             } else {
@@ -402,35 +395,51 @@ class BrandService
             $user->email = $requestData['email'];
             $user->save();
         }
-        $profilePhoto = $requestData['profile_photo'];
-        if (isset($profilePhoto) && $profilePhoto != "") {
-            $brand->profile_photo = $this->imageUpload($brandId, $profilePhoto, $brand->profile_photo, true);
-        }
 
-        $coverImage = $requestData['cover_image'];
-        if (isset($coverImage) && $coverImage != "") {
-            $brand->cover_image = $this->imageUpload($brandId, $coverImage, $brand->cover_image, true);
+        if (!filter_var($requestData['profile_photo'], FILTER_VALIDATE_URL)) {
+            $brand->profile_photo = $this->imageUpload($brandId, $requestData['profile_photo'], null, false);
         }
-
-        $featuredImage = $requestData['featured_image'];
-        if (isset($featuredImage) && $featuredImage != "") {
-            $brand->featured_image = $this->imageUpload($brandId, $featuredImage, $brand->featured_image, true);
+        if (!filter_var($requestData['cover_image'], FILTER_VALIDATE_URL)) {
+            $brand->cover_image = $this->imageUpload($brandId, $requestData['cover_image'], null, false);
         }
-
-        $logoImage = $requestData['logo_image'];
-        if (isset($logoImage) && $logoImage != "") {
-            $brand->logo_image = $this->imageUpload($brandId, $logoImage, $brand->logo_image, true);
+        if (!filter_var($requestData['featured_image'], FILTER_VALIDATE_URL)) {
+            $brand->featured_image = $this->imageUpload($brandId, $requestData['featured_image'], null, false);
         }
-
+        if (!filter_var($requestData['logo_image'], FILTER_VALIDATE_URL)) {
+            $brand->logo_image = $this->imageUpload($brandId, $requestData['logo_image'], null, false);
+        }
         $brand->first_visit = '1';
         $status = $brand->save();
+
         if ($status) {
-            $response = ['res' => true, 'msg' => "Successfully updated your account", 'data' => ''];
+            $response = ['res' => true, 'msg' => "Successfully updated your shop", 'data' => ''];
         } else {
             $response = ['res' => false, 'msg' => "Please try again!", 'data' => ''];
         }
 
         return $response;
+    }
+
+    /**
+     * Update info details of the specified Brand.
+     *
+     * @param array $requestData
+     * @return array
+     */
+    public function updateInfo(array $requestData): array
+    {
+
+        $brand = Brand::where('user_id', $requestData['user_id'])->first();
+        if (!filter_var($requestData['profile_photo'], FILTER_VALIDATE_URL)) {
+            $requestData['profile_photo'] = $this->imageUpload($brand->id, $requestData['profile_photo'], null, false);
+        }else{
+            $requestData['profile_photo'] = $brand->profile_photo;
+        }
+        $brand->fill($requestData);
+        $brand->save();
+
+        return ['res' => true, 'msg' => "Successfully updated your account", 'data' => ''];
+
     }
 
     /**

@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('brand_key')->unique();
             $table->string('brand_name');
             $table->string('brand_slug')->unique();
+            $table->string('about_us')->nullable();
             $table->string('num_store')->nullable();
             $table->string('prime_cat')->nullable();
             $table->string('website_url')->nullable();
