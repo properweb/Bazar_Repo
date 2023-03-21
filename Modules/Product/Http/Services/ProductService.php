@@ -351,7 +351,7 @@ class ProductService
             }
         }
 
-        $variations = json_decode($request->variations, true);
+        $variations = $request->variations;
 
         if (is_countable($variations) && count($variations) > 0) {
             foreach ($variations as $vars) {
@@ -404,7 +404,7 @@ class ProductService
         }
 
         if ($request->sell_type == 3) {
-            $prePacks = json_decode($request->pre_packs, true);
+            $prePacks = $request->pre_packs;
             if ($prePacks) {
                 Product::where('id', $lastInsertId)
                     ->update([
@@ -816,7 +816,7 @@ class ProductService
             }
         }
 
-        $variations = json_decode($request->variations, true);
+        $variations = $request->variations;
 
         if (!empty($variations)) {
             ProductVariation::where('product_id', $productId)->delete();
@@ -892,7 +892,7 @@ class ProductService
         }
 
         if ($sellType == 3) {
-            $prePacks = json_decode($request->pre_packs, true);
+            $prePacks = $request->pre_packs;
             if (!empty($prePacks)) {
                 Product::where('id', $productId)->update(array('sell_type' => '3'));
                 foreach ($prePacks as $prePack) {
