@@ -1,13 +1,13 @@
 <?php
 
-namespace Modules\Shipping\Http\Requests;
+namespace Modules\Cart\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\JsonResponse;
 
-class ShippingRequest extends FormRequest
+class CartRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -28,10 +28,14 @@ class ShippingRequest extends FormRequest
     {
         return [
             'product_id' => 'required|integer',
-            'variant_id' => 'integer',
+            'variant_id' => 'nullable|integer',
             'user_id' => 'required|integer',
             'quantity' => 'required|integer',
-
+            'price' =>  'nullable',
+            'prepack_id' => 'nullable|integer',
+            'variationWishId' => 'nullable|integer',
+            'openSizingArray' => 'nullable',
+            'board_id' => 'nullable|integer',
         ];
     }
 
