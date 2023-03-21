@@ -317,11 +317,11 @@ class CartService
      */
 
 
-
     /**
      * User can delete product from his cart
      *
-     * @param $requestData
+     * @param $id
+     * @param $user_id
      * @return array
      */
     public function delete($id, $user_id): array
