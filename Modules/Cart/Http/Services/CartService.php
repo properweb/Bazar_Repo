@@ -323,13 +323,6 @@ class CartService
         return ($response);
     }
 
-
-    /**
-     * @param array $cartData
-     * @return array
-     */
-
-
     /**
      * User can delete product from his cart
      *
