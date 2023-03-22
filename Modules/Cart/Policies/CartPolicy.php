@@ -56,22 +56,16 @@ class CartPolicy
         return $this->isRetailer($user);
     }
 
+    /**
+     * Check the user is retailer
+     *
+     * @param User $user
+     * @return bool
+     */
+
     protected function isRetailer(User $user): bool
     {
         return $user->role === User::ROLE_RETAILER;
-    }
-
-    /**
-     * Determine whether the user can delete the cart.
-     *
-     * @param User $user
-     * @param Cart $cart
-     * @return bool
-     */
-    public function delete(User $user, Cart $cart): bool
-    {
-
-        return $this->isCreator($user, $cart);
     }
 
     /**
@@ -81,9 +75,22 @@ class CartPolicy
      * @param Cart $cart
      * @return bool
      */
-    public function update(User $user, Cart $cart): bool
+    public function delete(User $user,Cart $cart): bool
     {
 
-        return $this->isCreator($user, $cart);
+        return $this->isCreator($user,$cart);
+    }
+
+    /**
+     * Determine whether the user can update the cart.
+     *
+     * @param User $user
+     * @param Cart $cart
+     * @return bool
+     */
+    public function update(User $user,Cart $cart): bool
+    {
+
+        return $this->isCreator($user,$cart);
     }
 }

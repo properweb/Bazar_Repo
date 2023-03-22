@@ -45,7 +45,7 @@ class CartController extends Controller
     /**
      * User can add product on their cart
      *
-     * @param Request $request
+     * @param CartRequest $request
      * @return JsonResponse
      */
     public function add(CartRequest $request): JsonResponse
@@ -73,7 +73,7 @@ class CartController extends Controller
     public function delete(Request $request): JsonResponse
     {
         $user = auth()->user();
-        $cart = Cart::where('id', $request->id)->where('user_id', $user->id)->first();
+        $cart = Cart::where('id', $request->id)->first();
         if ($user->cannot('delete', $cart)) {
             return response()->json([
                 'res' => false,
@@ -98,7 +98,7 @@ class CartController extends Controller
         $carts = $request->cart;
 
         foreach ($carts as $v) {
-            $cart = Cart::where('id', $v['id'])->where('user_id', $user->id)->first();
+            $cart = Cart::where('id', $v['id'])->first();
             if ($user->cannot('update', $cart)) {
                 return response()->json([
                     'res' => false,
