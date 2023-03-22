@@ -86,5 +86,31 @@ class CartController extends Controller
         return response()->json($response);
     }
 
+    /**
+     * User can update product from existing cart
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function update(Request $request): JsonResponse
+    {
+        $user = auth()->user();
+        $carts = $request->cart;
+
+        foreach ($carts as $v) {
+            $cart = Cart::where('id', $v['id'])->where('user_id', $user->id)->first();
+            if ($user->cannot('update', $cart)) {
+                return response()->json([
+                    'res' => false,
+                    'msg' => 'You are not authorized !',
+                    'data' => ""
+                ]);
+            }
+        }
+        $response = $this->cartService->update($request);
+
+        return response()->json($response);
+    }
+
 
 }

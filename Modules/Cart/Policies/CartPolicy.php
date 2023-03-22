@@ -73,4 +73,17 @@ class CartPolicy
 
         return $this->isCreator($user, $cart);
     }
+
+    /**
+     * Determine whether the user can update the cart.
+     *
+     * @param User $user
+     * @param Cart $cart
+     * @return bool
+     */
+    public function update(User $user, Cart $cart): bool
+    {
+
+        return $this->isCreator($user, $cart);
+    }
 }

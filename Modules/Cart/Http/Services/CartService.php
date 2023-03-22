@@ -47,31 +47,38 @@ class CartService
             ];
         }
         $variantId = '';
+        $getVariant = $request->variant_id;
+        $preID = $request->prepack_id;
 
-        if (!empty($request->variant_id)) {
-            $variant = ProductVariation::find($request->variant_id);
+        if (!empty($getVariant)) {
+            $variant = ProductVariation::find($getVariant);
             $variantId = $variant->id;
             if (!empty($request->openSizingArray)) {
                 $productType = 'OPEN_SIZING';
             }
             if (!empty($request->prepack_id)) {
                 $productType = 'PREPACK';
-                $variantId = $request->prepack_id;
+                $variantId = $preID;
+
+            }
+        }
+        if (!empty($request->prepack_id)) {
+            $alreadyCart = Cart::where('user_id', $request->user_id)->where('order_id', null)->where('product_id', $product->id)->where('reference', $getVariant)->where('type', $productType)->first();
+        } else {
+            if (!empty($getVariant) && !empty($variant)) {
+                $alreadyCart = Cart::where('user_id', $request->user_id)->where('order_id', null)->where('product_id', $product->id)->where('variant_id', $variantId)->where('type', $productType)->first();
+            } else {
+                $alreadyCart = Cart::where('user_id', $request->user_id)->where('order_id', null)->where('product_id', $product->id)->where('type', $productType)->first();
             }
         }
 
-        if (!empty($request->variant_id) && !empty($variant)) {
-            $alreadyCart = Cart::where('user_id', $request->user_id)->where('order_id', null)->where('product_id', $product->id)->where('variant_id', $variantId)->where('type', $productType)->first();
-        } else {
-            $alreadyCart = Cart::where('user_id', $request->user_id)->where('order_id', null)->where('product_id', $product->id)->where('type', $productType)->first();
-        }
 
         if ($alreadyCart) {
 
             $alreadyCart->quantity = $alreadyCart->quantity + (int)$request->quantity;
             $alreadyCart->amount = $product->price + $alreadyCart->amount;
 
-            if (!empty($request->variant_id) && !empty($variant)) {
+            if (!empty($getVariant) && !empty($variant)) {
                 if ($productType == 'OPEN_SIZING') {
                     $optionsArr = [];
                     $styleArr = [];
@@ -126,10 +133,15 @@ class CartService
                     $alreadyCart->reference = serialize($optionsArr);
                 }
                 if ($productType == 'PREPACK') {
-                    $pPackVariant = ProductPrepack::where('id', $request->prepack_id)->first();
+                    $pPackVariant = ProductPrepack::where('id', $preID)->first();
                     $alreadyCart->price = $pPackVariant->packs_price;
                     $alreadyCart->style_name = $pPackVariant->style;
                     $alreadyCart->style_group_name = $pPackVariant->size_ratio . ';' . $pPackVariant->size_range;
+                    if ($variant->stock < $alreadyCart->quantity || $variant->stock <= 0) {
+
+                        return ['res' => false, 'msg' => 'Stock not sufficient!.', 'data' => ""];
+
+                    }
                 }
                 if ($productType == 'SINGLE_PRODUCT') {
                     if ($variant->stock < $alreadyCart->quantity || $variant->stock <= 0) {
@@ -213,12 +225,13 @@ class CartService
                     $cart->variant_id = $request->variant_id;
                 }
                 if ($productType == 'PREPACK') {
-                    $pPackVariant = ProductPrepack::where('id', $request->prepack_id)->first();
+                    $pPackVariant = ProductPrepack::where('id', $preID)->first();
                     $cart->price = $pPackVariant->packs_price;
                     $cart->style_name = $pPackVariant->style;
                     $cart->style_group_name = $pPackVariant->size_ratio . ';' . $pPackVariant->size_range;
-                    $cart->reference = $request->variant_id;
-                    $cart->variant_id = $request->prepack_id;
+                    $cart->reference = $getVariant;
+                    $cart->variant_id = $preID;
+
                 }
                 if ($productType == 'SINGLE_PRODUCT') {
                     if ($variant->stock < $cart->quantity || $variant->stock <= 0) {
@@ -233,7 +246,7 @@ class CartService
                     $cart->style_name = rtrim(implode(',', $styleArr), ',');
                     $cart->style_group_name = rtrim(implode(',', $styleGrpArr), ',');
                     $cart->reference = $variant->id;
-                    $cart->variant_id = $request->variant_id;
+                    $cart->variant_id = $getVariant;
                 }
             } else {
                 $cart->price = $product->usd_wholesale_price;
@@ -339,6 +352,55 @@ class CartService
         return [
             'res' => true,
             'msg' => 'Cart successfully removed',
+            'data' => ""
+        ];
+    }
+
+    /**
+     * Update existing cart
+     *
+     * @param $request
+     * @return array
+     */
+    public function update($request): array
+    {
+        $carts = $request->cart;
+        $error = 0;
+        foreach ($carts as $v) {
+            $cart = Cart::where('id', $v['id'])->where('user_id', $v['user_id'])->first();
+
+            if (!empty($cart->variant_id) && $cart->type === 'SINGLE_PRODUCT') {
+                $variant = ProductVariation::where('id', $cart->variant_id)->first();
+                if ($v['product_qty'] > $variant->stock) {
+                    $error = 1;
+                }
+
+            } else if ($cart->type === 'PREPACK') {
+                $variantPrePack = ProductVariation::where('id', $cart->reference)->first();
+                if ($v['product_qty'] > $variantPrePack->stock) {
+                    $error = 1;
+                }
+            } else {
+                $product = Product::where('id', $cart->product_id)->first();
+                if ($v['product_qty'] > $product->stock) {
+                    $error = 1;
+                }
+
+            }
+        }
+        if ($error == 1) {
+            return [
+                'res' => false,
+                'msg' => 'Stock is not sufficient',
+                'data' => ""
+            ];
+        }
+        foreach ($carts as $v) {
+            Cart::where('id', $v['id'])->where('order_id', null)->update(['quantity' => $v['product_qty']]);
+        }
+        return [
+            'res' => true,
+            'msg' => '',
             'data' => ""
         ];
     }
