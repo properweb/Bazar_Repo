@@ -6,6 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Modules\Cart\Entities\Cart;
 use Modules\Cart\Http\Requests\CartRequest;
+use Modules\Cart\Http\Requests\UpdateRequest;
 use Modules\Cart\Http\Services\CartService;
 use Illuminate\Http\Request;
 
@@ -89,10 +90,10 @@ class CartController extends Controller
     /**
      * User can update product from existing cart
      *
-     * @param Request $request
+     * @param UpdateRequest $request
      * @return JsonResponse
      */
-    public function update(Request $request): JsonResponse
+    public function update(UpdateRequest $request): JsonResponse
     {
         $user = auth()->user();
         $carts = $request->cart;
