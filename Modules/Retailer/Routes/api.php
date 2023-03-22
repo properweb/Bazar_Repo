@@ -19,7 +19,7 @@ Route::get('/resetpassword', 'RetailerController@resetPassword')->name('retailer
 Route::prefix('retailer')->group(function () {
     Route::post('/register', 'RetailerController@register');
 });
-Route::middleware('auth:sanctum')
+Route::middleware('auth:api')
     ->prefix('retailer')
     ->name('retailer.')
     ->group(function () {

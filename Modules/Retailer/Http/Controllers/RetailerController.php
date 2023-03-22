@@ -107,9 +107,9 @@ class RetailerController extends Controller
         $retailer->last_name = $user->last_name;
         $retailer->email = $user->email;
         $retailer->verified = $user->verified;
-        $retailer->state_name = $state->name;
+        $retailer->state_name = $state ? $state->name : '';
         $retailer->country_name = $country->name;
-        $retailer->town_name = $town->name;
+        $retailer->town_name = $town ? $town->name : '';
 
         $response = ['res' => true, 'msg' => "", 'data' => $retailer];
         return response()->json($response);

@@ -29,7 +29,7 @@ class UpdateBrandRequest extends FormRequest
         return [
             'brand_name' => 'nullable|string|max:255',
             'prime_cat' => 'nullable|integer|exists:categories,id',
-            'website_url' => ['nullable','regex:/^(?!(http|https)\.)\w+(\.\w+)+$/'],
+            'website_url' => ['nullable','regex:/^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$/'],
             'country_code' => 'nullable|numeric',
             'country' => 'nullable|integer|exists:countries,id',
             'phone_number' => 'nullable|numeric|digits:10',
