@@ -27,13 +27,23 @@ class StoreRetailerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => 'nullable|integer|exists:users,id',
-            'store_name' => 'nullable|string|max:255',
-            'country_code' => 'nullable|numeric',
-            'country' => 'nullable|numeric',
-            'phone_number' => 'nullable|numeric|digits:10',
-            'established_year' => 'nullable|digits:4|integer|min:1900|max:'.date('Y'),
-            'scheduled_date' => 'nullable|date_format:Y-m-d',
+            'first_name' => 'required|regex:/^[a-zA-Z]+$/u|max:255',
+            'last_name' => 'required|regex:/^[a-zA-Z]+$/u|max:255',
+            'email' => 'required|email|regex:/^([a-z0-9\+_\-]+)(\.[a-z0-9\+_\-]+)*@([a-z0-9\-]+\.)+[a-z]{2,6}$/ix|unique:users,email',
+            'password' => [
+                'required',
+                Password::min(8)
+                    ->letters()
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols()
+            ],
+            'store_name' => 'required|string|max:255',
+            'country_code' => 'required|numeric',
+            'country' => 'required|integer|exists:countries,id',
+            'phone_number' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:9',
+            'language' => 'required|string',
+            'website_url' => ['required','regex:/^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$/'],
         ];
     }
 

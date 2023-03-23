@@ -32,8 +32,8 @@ return new class extends Migration
             $table->string('store_tags')->nullable();
             $table->text('store_about')->nullable();
             $table->string('website_url')->nullable();
-            $table->float('annual_sales')->nullable();
-            $table->tinyInteger('years_in_business')->default(1);
+            $table->string('annual_sales')->nullable();
+            $table->string('years_in_business')->nullable();
             $table->tinyInteger('sign_up_for_email')->default(1);
             $table->timestamps();
 

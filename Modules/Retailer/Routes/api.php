@@ -13,16 +13,16 @@ use Illuminate\Support\Facades\Route;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
-Route::prefix('retailer')->group(function () {
+Route::prefix('retailers')->group(function () {
 Route::get('/resetpassword', 'RetailerController@resetPassword')->name('retailer.reset_password');
 });
-Route::prefix('retailer')->group(function () {
-    Route::post('/register', 'RetailerController@register');
+Route::prefix('retailers')->group(function () {
+    Route::post('/', 'RetailerController@store')->name('store');
 });
 Route::middleware('auth:api')
-    ->prefix('retailer')
+    ->prefix('retailers')
     ->name('retailer.')
     ->group(function () {
-        Route::get('/edit/{id}', 'RetailerController@edit');
-        Route::post('/update-account', 'RetailerController@update');
+        Route::get('/{retailer}', 'RetailerController@show')->name('show');
+        Route::put('/{retailer}', 'RetailerController@update')->name('update');
     });
