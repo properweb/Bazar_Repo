@@ -29,7 +29,6 @@ class CartRequest extends FormRequest
         return [
             'product_id' => 'required|integer',
             'variant_id' => 'nullable|integer',
-            'user_id' => 'required|integer',
             'quantity' => 'required|integer',
             'price' =>  'nullable',
             'prepack_id' => 'nullable|integer',

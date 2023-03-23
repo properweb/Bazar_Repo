@@ -82,7 +82,7 @@ class CartController extends Controller
                 'data' => ""
             ]);
         }
-        $response = $this->cartService->delete($request->id,$request->user_id);
+        $response = $this->cartService->delete($request->id);
 
         return response()->json($response);
     }

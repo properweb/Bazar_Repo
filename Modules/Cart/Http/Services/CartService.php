@@ -34,6 +34,7 @@ class CartService
     public function add($request): array
     {
 
+        $user_id = auth()->user()->id;
         $product = Product::find($request->product_id);
         $productType = 'SINGLE_PRODUCT';
         $productName = $product->name;
@@ -63,12 +64,12 @@ class CartService
             }
         }
         if (!empty($request->prepack_id)) {
-            $alreadyCart = Cart::where('user_id', $request->user_id)->where('order_id', null)->where('product_id', $product->id)->where('reference', $getVariant)->where('type', $productType)->first();
+            $alreadyCart = Cart::where('user_id', $user_id)->where('order_id', null)->where('product_id', $product->id)->where('reference', $getVariant)->where('type', $productType)->first();
         } else {
             if (!empty($getVariant) && !empty($variant)) {
-                $alreadyCart = Cart::where('user_id', $request->user_id)->where('order_id', null)->where('product_id', $product->id)->where('variant_id', $variantId)->where('type', $productType)->first();
+                $alreadyCart = Cart::where('user_id', $user_id)->where('order_id', null)->where('product_id', $product->id)->where('variant_id', $variantId)->where('type', $productType)->first();
             } else {
-                $alreadyCart = Cart::where('user_id', $request->user_id)->where('order_id', null)->where('product_id', $product->id)->where('type', $productType)->first();
+                $alreadyCart = Cart::where('user_id', $user_id)->where('order_id', null)->where('product_id', $product->id)->where('type', $productType)->first();
             }
         }
 
@@ -161,7 +162,7 @@ class CartService
         } else {
             $cart = new Cart;
 
-            $cart->user_id = $request->user_id;
+            $cart->user_id = $user_id;
             $cart->product_id = $product->id;
             $cart->brand_id = $product->user_id;
             $cart->product_name = $productName;
@@ -259,7 +260,7 @@ class CartService
             $cart->amount = $cart->price * $cart->quantity;
             $cart->type = $productType;
             $cart->save();
-            Wishlist::where('user_id', $request->user_id)->where('cart_id', null)->update(['cart_id' => $cart->id]);
+            Wishlist::where('user_id', $user_id)->where('cart_id', null)->update(['cart_id' => $cart->id]);
         }
 
         return ['res' => true, 'msg' => 'Product successfully added to cart', 'data' => ""];
@@ -278,7 +279,7 @@ class CartService
 
         $cartCount = 0;
         $cartArr = [];
-        $id = $requestData->id;
+        $id = auth()->user()->id;
         $user = User::find($id);
         if ($user) {
             $cartCount = Cart::where('user_id', $id)->where('order_id', null)->sum('quantity');
@@ -327,12 +328,11 @@ class CartService
      * User can delete product from his cart
      *
      * @param $id
-     * @param $user_id
      * @return array
      */
-    public function delete($id, $user_id): array
+    public function delete($id): array
     {
-        $cart = Cart::where('id', $id)->where('user_id', $user_id)->first();
+        $cart = Cart::where('id', $id)->first();
         if (empty($cart)) {
             return [
                 'res' => false,
@@ -360,7 +360,7 @@ class CartService
         $carts = $request->cart;
         $error = 0;
         foreach ($carts as $v) {
-            $cart = Cart::where('id', $v['id'])->where('user_id', $v['user_id'])->first();
+            $cart = Cart::where('id', $v['id'])->first();
 
             if (!empty($cart->variant_id) && $cart->type === 'SINGLE_PRODUCT') {
                 $variant = ProductVariation::where('id', $cart->variant_id)->first();

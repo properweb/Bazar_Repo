@@ -35,7 +35,7 @@ class UpdateRequest extends FormRequest
             'cart.*.product_name' => 'required|string|max:60',
             'cart.*.product_price' => 'required|regex:/^\d{0,9}(\.\d{0,2})?$/',
             'cart.*.product_qty' => 'required|integer',
-            'cart.*.user_id' => 'required|integer',
+
 
         ];
     }
