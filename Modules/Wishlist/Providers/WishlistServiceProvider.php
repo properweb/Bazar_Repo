@@ -3,7 +3,7 @@
 namespace Modules\Wishlist\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Database\Eloquent\Factory;
+
 
 class WishlistServiceProvider extends ServiceProvider
 {

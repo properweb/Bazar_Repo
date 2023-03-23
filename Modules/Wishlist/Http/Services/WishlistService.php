@@ -8,7 +8,7 @@ use Modules\Wishlist\Entities\Wishlist;
 use Modules\Wishlist\Entities\Board;
 use Modules\User\Entities\User;
 use Modules\Brand\Entities\Brand;
-use Modules\Product\Entities\Products;
+use Modules\Product\Entities\Product;
 use Modules\Product\Entities\ProductVariation;
 use Modules\Product\Entities\ProductPrepack;
 use Modules\Country\Entities\Country;
@@ -20,22 +20,31 @@ class WishlistService
 
     protected User $user;
 
-    public function add($request) {
+    /**
+     * Add wishlist By Logged User
+     *
+     * @param $request
+     * @return array
+     */
+    public function add($request): array
+    {
 
         if (empty($request->product_id)) {
-            $response = ['res' => false, 'msg' => 'Invalid Product', 'data' => ""];
-            return $response;
-        }
 
-        $product = Products::find($request->product_id);
+            return ['res' => false, 'msg' => 'Invalid Product', 'data' => ""];
+        }
+        $user_id = auth()->user()->id;
+        $product = Product::find($request->product_id);
         $productType = 'SINGLE_PRODUCT';
         $productName = $product->name;
         $productSKU = $product->sku;
 
         if (empty($product)) {
-            $response = ['res' => false, 'msg' => 'Invalid Product', 'data' => ""];
-            return response()->json($response);
+
+            return ['res' => false, 'msg' => 'Invalid Product', 'data' => ""];
         }
+        $variant = '';
+        $variantId = '';
         if (!empty($request->variant_id)) {
             $variant = ProductVariation::find($request->variant_id);
             $variantId = $variant->id;
@@ -49,39 +58,37 @@ class WishlistService
         }
 
         if (!empty($request->variant_id) && $variant) {
-            $alreadyWished = Wishlist::where('user_id', $request->user_id)->where('cart_id', null)->where('product_id', $product->id)->where('variant_id', $variantId)->where('type', $productType)->first();
+            $alreadyWished = Wishlist::where('user_id', $user_id)->where('cart_id', null)->where('product_id', $product->id)->where('variant_id', $variantId)->where('type', $productType)->first();
         } else {
-            $alreadyWished = Wishlist::where('user_id', $request->user_id)->where('cart_id', null)->where('product_id', $product->id)->where('type', $productType)->first();
+            $alreadyWished = Wishlist::where('user_id', $user_id)->where('cart_id', null)->where('product_id', $product->id)->where('type', $productType)->first();
         }
         if ($alreadyWished) {
-            $response = ['res' => false, 'msg' => 'Product is already in your wish list', 'data' => ""];
+
+            return ['res' => false, 'msg' => 'Product is already in your wish list', 'data' => ""];
+
         } else {
-            $boardCount = Board::where('user_id', $request->user_id)->get()->count();
+            $boardCount = Board::where('user_id', $user_id)->get()->count();
             if ($boardCount === 0) {
                 $newBoard = new Board;
-                $newBoard->user_id = $request->user_id;
+                $newBoard->user_id = $user_id;
                 $newBoard->board_key = 'rb_' . Str::lower(Str::random(10));
                 $newBoard->name = 'Saved Products';
                 $newBoard->visibility = '1';
                 $newBoard->save();
             }
-            if (!empty($request->board_id))
-            {
-                $board_id = $request->board_id;
-            }
-            else
-            {
-                $board_id = 0;
+            if (!empty($request->board_id)) {
+                $boardId = $request->board_id;
+            } else {
+                $boardId = 0;
             }
             $wishlist = new Wishlist;
-            $board = Board::where('user_id', $request->user_id)->orderBy('id', 'desc')->first();
-            $wishlist->board_id = $board_id;
-            $wishlist->user_id = $request->user_id;
+            $wishlist->board_id = $boardId;
+            $wishlist->user_id = $user_id;
             $wishlist->product_id = $product->id;
             $wishlist->brand_id = $product->user_id;
             $wishlist->product_name = $productName;
             $wishlist->product_sku = $productSKU;
-            $wishlist->quantity = (int) $request->quantity;
+            $wishlist->quantity = (int)$request->quantity;
 
             if (!empty($request->variant_id) && $variant) {
                 $wishlist->price = $variant->price;
@@ -89,7 +96,6 @@ class WishlistService
                     $optionsArr = [];
                     $styleArr = [];
                     $styleGrpArr = [];
-                    $sizeArr = [];
                     $priceArr = [];
                     $qtyArr = [];
 
@@ -106,11 +112,11 @@ class WishlistService
                                 $sizeVariant = ProductVariation::where('product_id', $product->id)->where('options3', "Size")->where('value3', $size['value'])->where('value2', $variant->value2)->where('value1', $variant->value1)->first();
                             }
                             if ($sizeVariant->stock < $wishlist->quantity || $sizeVariant->stock <= 0) {
-                                $response = ['res' => false, 'msg' => 'Stock not sufficient!.', 'data' => ""];
-                                return response()->json($response);
+
+                                return ['res' => false, 'msg' => 'Stock not sufficient!.', 'data' => ""];
                             }
                             $optionsArr[$sizeVariant->id] = $size['qty'];
-                            $sizeArr[] = $size['value'];
+
                             $styleGrpArr[] = "(" . $size['qty'] . ")" . $size['value'];
                             $priceArr[] = $sizeVariant->price;
                             $qtyArr[] = $size['qty'];
@@ -128,28 +134,28 @@ class WishlistService
                         $styleArr[] = $variant->value2;
                         $styleArr[] = $variant->value1;
                     }
-                    $tprice = 0;
+                    $tPrice = 0;
                     foreach ($qtyArr as $qk => $qv) {
-                        $tprice += $priceArr[$qk] * $qv;
+                        $tPrice += $priceArr[$qk] * $qv;
                     }
-                    $wishlist->price = $tprice;
+                    $wishlist->price = $tPrice;
                     $wishlist->style_name = rtrim(implode(',', $styleArr), ',');
                     $wishlist->style_group_name = rtrim(implode(',', $styleGrpArr), ',');
                     $wishlist->reference = serialize($optionsArr);
                     $wishlist->variant_id = $request->variant_id;
                 }
                 if ($productType === 'PREPACK') {
-                    $prepackVariant = ProductPrepack::where('id', $request->prepack_id)->first();
-                    $wishlist->price = $prepackVariant->packs_price;
-                    $wishlist->style_name = $prepackVariant->style;
-                    $wishlist->style_group_name = $prepackVariant->size_ratio . ';' . $prepackVariant->size_range;
+                    $prdVariant = ProductPrepack::where('id', $request->prepack_id)->first();
+                    $wishlist->price = $prdVariant->packs_price;
+                    $wishlist->style_name = $prdVariant->style;
+                    $wishlist->style_group_name = $prdVariant->size_ratio . ';' . $prdVariant->size_range;
                     $wishlist->reference = $request->variant_id;
                     $wishlist->variant_id = $request->prepack_id;
                 }
                 if ($productType === 'SINGLE_PRODUCT') {
                     if ($variant->stock < $wishlist->quantity || $variant->stock <= 0) {
-                        $response = ['res' => false, 'msg' => 'Stock not sufficient!.', 'data' => ""];
-                        return $response;
+
+                        return ['res' => false, 'msg' => 'Stock not sufficient!.', 'data' => ""];
                     }
                     $styleArr = [];
                     $styleGrpArr = [];
@@ -164,85 +170,95 @@ class WishlistService
             } else {
                 $wishlist->price = $product->usd_wholesale_price;
                 if ($product->stock < $wishlist->quantity || $product->stock <= 0) {
-                    $response = ['res' => false, 'msg' => 'Stock not sufficient!.', 'data' => ""];
-                    return $response;
+
+                    return ['res' => false, 'msg' => 'Stock not sufficient!.', 'data' => ""];
                 }
             }
             $wishlist->amount = $wishlist->price * $wishlist->quantity;
             $wishlist->type = $productType;
             $wishlist->save();
-            $response = ['res' => true, 'msg' => 'Product successfully added to wish list', 'data' => ""];
+
+            return ['res' => true, 'msg' => 'Product successfully added to wish list', 'data' => ""];
         }
 
-        return $response;
+
     }
 
-    public function fetch($request) {
+    /**
+     * Fetch wishlist by user
+     *
+     * @param $request
+     * @return array
+     */
+    public function fetch($request): array
+    {
         $boardArr = [];
         $brandArr = [];
         $productArr = [];
-         $id = $request->id;
+        $id = auth()->user()->id;
         $user = User::find($id);
+        $wishesBrand = '';
+        $wishesByBoard = '';
 
         if ($user) {
-            $wishesByBrand = Wishlist::where('user_id', $id)->where('cart_id', null)->groupBy('brand_id')->get()->toArray();
+            $wishesBrand = Wishlist::where('user_id', $id)->where('cart_id', null)->groupBy('brand_id')->get()->toArray();
             $wishesByBoard = Board::where('user_id', $id)->orderBy('updated_at', 'desc')->get();
         }
-        if ($wishesByBrand) {
-            foreach ($wishesByBrand as $brandk => $brandv) {
-                $brand = Brand::where('user_id', $brandv['brand_id'])->first();
-                $brandArr[$brandk]['brand_key'] = $brand->brand_key;
-                $brandArr[$brandk]['brand_id'] = $brand->user_id;
-                $brandArr[$brandk]['brand_name'] = $brand->brand_name;
-                $brandArr[$brandk]['brand_logo'] = $brand->logo_image != '' ? asset('public') . '/' . $brand->logo_image : asset('public/img/logo-image.png');
-                $brandArr[$brandk]['avg_lead_time'] = $brand->avg_lead_time;
-                $brandArr[$brandk]['first_order_min'] = $brand->first_order_min;
+        if ($wishesBrand) {
+            foreach ($wishesBrand as $brandK => $brandV) {
+                $brand = Brand::where('user_id', $brandV['brand_id'])->first();
+                $brandArr[$brandK]['brand_key'] = $brand->brand_key;
+                $brandArr[$brandK]['brand_id'] = $brand->user_id;
+                $brandArr[$brandK]['brand_name'] = $brand->brand_name;
+                $brandArr[$brandK]['brand_logo'] = $brand->logo_image != '' ? asset('public') . '/' . $brand->logo_image : asset('public/img/logo-image.png');
+                $brandArr[$brandK]['avg_lead_time'] = $brand->avg_lead_time;
+                $brandArr[$brandK]['first_order_min'] = $brand->first_order_min;
 
                 $country = Country::where('id', $brand->country)->first();
-                $brandArr[$brandk]['country'] = $country->name;
-                $headQuatered = Country::where('id', $brand->headquatered)->first();
-                $brandArr[$brandk]['headquatered'] = $headQuatered->name;
+                $brandArr[$brandK]['country'] = $country->name;
+                $headQuarter = Country::where('id', $brand->headquatered)->first();
+                $brandArr[$brandK]['headquatered'] = $headQuarter->name;
                 $productShipped = Country::where('id', $brand->product_shipped)->first();
-                $brandArr[$brandk]['product_shipped'] = $productShipped->name;
+                $brandArr[$brandK]['product_shipped'] = $productShipped->name;
 
-                $prdctArr = Wishlist::where('user_id', $id)->where('cart_id', null)->where('brand_id', $brandv['brand_id'])->get()->toArray();
-                if (!empty($prdctArr)) {
-                    foreach ($prdctArr as $prdctK => $prdctV) {
-                        $product = Products::find($prdctV['product_id']);
+                $prdArr = Wishlist::where('user_id', $id)->where('cart_id', null)->where('brand_id', $brandV['brand_id'])->get()->toArray();
+                if (!empty($prdArr)) {
+                    foreach ($prdArr as $prdK => $prdV) {
+                        $product = Product::find($prdV['product_id']);
                         $productWholeSalePrice = $product->usd_wholesale_price;
                         $productRetailPrice = $product->usd_retail_price;
-                        if (!empty($prdctV['variant_id']) && $prdctV['type']!='PREPACK') {
-                            $variant = ProductVariation::find($prdctV['variant_id']);
+                        if (!empty($prdV['variant_id']) && $prdV['type'] != 'PREPACK') {
+                            $variant = ProductVariation::find($prdV['variant_id']);
                             $productWholeSalePrice = $variant->price;
                             $productRetailPrice = $variant->retail_price;
                         }
-                        if (!empty($prdctV['variant_id']) && $prdctV['type']=='PREPACK') {
-                            $variant = ProductPrepack::find($prdctV['variant_id']);
+                        if (!empty($prdV['variant_id']) && $prdV['type'] == 'PREPACK') {
+                            $variant = ProductPrepack::find($prdV['variant_id']);
                             $productWholeSalePrice = $variant->packs_price;
                             $productRetailPrice = $variant->packs_price;
                         }
-                        $brandArr[$brandk]['products'][$prdctK]['id'] = $prdctV['id'];
-                        $brandArr[$brandk]['products'][$prdctK]['product_id'] = $product->id;
-                        $brandArr[$brandk]['products'][$prdctK]['product_key'] = $product->product_key;
-                        $brandArr[$brandk]['products'][$prdctK]['product_name'] = $product->name;
-                        $brandArr[$brandk]['products'][$prdctK]['product_wholesale_price'] = $productWholeSalePrice;
-                        $brandArr[$brandk]['products'][$prdctK]['product_retail_price'] = $productRetailPrice;
-                        $brandArr[$brandk]['products'][$prdctK]['product_qty'] = $prdctV['quantity'];
-                        $brandArr[$brandk]['products'][$prdctK]['style_name'] = $prdctV['style_name'];
-                        $brandArr[$brandk]['products'][$prdctK]['style_group_name'] = $prdctV['style_group_name'];
-                        $brandArr[$brandk]['products'][$prdctK]['type'] = $prdctV['type'];
-                        $brandArr[$brandk]['products'][$prdctK]['product_image'] = $product->featured_image != '' ? $product->featured_image : asset('public/img/logo-image.png');
+                        $brandArr[$brandK]['products'][$prdK]['id'] = $prdV['id'];
+                        $brandArr[$brandK]['products'][$prdK]['product_id'] = $product->id;
+                        $brandArr[$brandK]['products'][$prdK]['product_key'] = $product->product_key;
+                        $brandArr[$brandK]['products'][$prdK]['product_name'] = $product->name;
+                        $brandArr[$brandK]['products'][$prdK]['product_wholesale_price'] = $productWholeSalePrice;
+                        $brandArr[$brandK]['products'][$prdK]['product_retail_price'] = $productRetailPrice;
+                        $brandArr[$brandK]['products'][$prdK]['product_qty'] = $prdV['quantity'];
+                        $brandArr[$brandK]['products'][$prdK]['style_name'] = $prdV['style_name'];
+                        $brandArr[$brandK]['products'][$prdK]['style_group_name'] = $prdV['style_group_name'];
+                        $brandArr[$brandK]['products'][$prdK]['type'] = $prdV['type'];
+                        $brandArr[$brandK]['products'][$prdK]['product_image'] = $product->featured_image != '' ? $product->featured_image : asset('public/img/logo-image.png');
 
-                        $productDet['id'] = $prdctV['id'];
+                        $productDet['id'] = $prdV['id'];
                         $productDet['product_id'] = $product->id;
                         $productDet['product_key'] = $product->product_key;
                         $productDet['product_name'] = $product->name;
                         $productDet['product_wholesale_price'] = $productWholeSalePrice;
                         $productDet['product_retail_price'] = $productRetailPrice;
-                        $productDet['product_qty'] = $prdctV['quantity'];
-                        $productDet['style_name'] = $prdctV['style_name'];
-                        $productDet['style_group_name'] = $prdctV['style_group_name'];
-                        $productDet['type'] = $prdctV['type'];
+                        $productDet['product_qty'] = $prdV['quantity'];
+                        $productDet['style_name'] = $prdV['style_name'];
+                        $productDet['style_group_name'] = $prdV['style_group_name'];
+                        $productDet['type'] = $prdV['type'];
                         $productDet['product_image'] = $product->featured_image != '' ? $product->featured_image : asset('public/img/logo-image.png');
                         $productArr[] = $productDet;
                     }
@@ -250,22 +266,22 @@ class WishlistService
             }
         }
         if ($wishesByBoard) {
-            foreach ($wishesByBoard as $boardk => $boardv) {
-                $wishesByBoard = Wishlist::where('board_id', $boardv->id)->where('cart_id', null)->groupBy('board_id')->first();
-                $wishesByBoardCount = Wishlist::where('board_id', $boardv->id)->where('cart_id', null)->get()->count();
+            foreach ($wishesByBoard as $brdK => $brdV) {
+                $wishesByBoard = Wishlist::where('board_id', $brdV->id)->where('cart_id', null)->groupBy('board_id')->first();
+                $wishesByBoardCount = Wishlist::where('board_id', $brdV->id)->where('cart_id', null)->get()->count();
                 $productImage = '';
                 if ($wishesByBoard && $wishesByBoardCount > 0) {
-                    $productDetails = Products::find($wishesByBoard->product_id);
+                    $productDetails = Product::find($wishesByBoard->product_id);
                     $productImage = $productDetails->featured_image;
                 }
-                $board = Board::find($boardv->id);
+                $board = Board::find($brdV->id);
                 if ($board) {
-                    $boardArr[$boardk]['board_key'] = $board->board_key;
-                    $boardArr[$boardk]['board_id'] = $board->id;
-                    $boardArr[$boardk]['board_name'] = $board->name;
-                    $boardArr[$boardk]['board_visibility'] = $board->visibility;
-                    $boardArr[$boardk]['board_image'] = $productImage != '' ? $productImage : asset('public/img/board-image.png');
-                    $boardArr[$boardk]['products_count'] = $wishesByBoardCount;
+                    $boardArr[$brdK]['board_key'] = $board->board_key;
+                    $boardArr[$brdK]['board_id'] = $board->id;
+                    $boardArr[$brdK]['board_name'] = $board->name;
+                    $boardArr[$brdK]['board_visibility'] = $board->visibility;
+                    $boardArr[$brdK]['board_image'] = $productImage != '' ? $productImage : asset('public/img/board-image.png');
+                    $boardArr[$brdK]['products_count'] = $wishesByBoardCount;
                 }
             }
         }
@@ -276,45 +292,61 @@ class WishlistService
             'product_arr' => $productArr,
         );
 
-        $response = ['res' => true, 'msg' => "", 'data' => $data];
-        return $response;
+
+        return ['res' => true, 'msg' => "", 'data' => $data];
     }
 
-    public function fetchBoards($request) {
+    /**
+     * Fetch Boards by logged user
+     *
+     * @param $request
+     * @return array
+     */
+    public function fetchBoards($request): array
+    {
         $boardArr = [];
-        $id = $request->id;
+        $id = auth()->user()->id;
         $user = User::find($id);
+        $wishesByBoard = '';
         if ($user) {
             $wishesByBoard = Board::where('user_id', $id)->orderBy('updated_at', 'desc')->get();
         }
         if ($wishesByBoard) {
-            foreach ($wishesByBoard as $boardk => $boardv) {
-                $wishesByBoard = Wishlist::where('board_id', $boardv->id)->where('cart_id', null)->groupBy('board_id')->first();
-                $wishesByBoardCount = Wishlist::where('board_id', $boardv->id)->where('cart_id', null)->get()->count();
+            foreach ($wishesByBoard as $brdK => $brdV) {
+                $wishesByBoard = Wishlist::where('board_id', $brdV->id)->where('cart_id', null)->groupBy('board_id')->first();
+                $wishesByBoardCount = Wishlist::where('board_id', $brdV->id)->where('cart_id', null)->get()->count();
                 $productImage = '';
                 if ($wishesByBoard && $wishesByBoardCount > 0) {
-                    $productDetails = Products::find($wishesByBoard->product_id);
+                    $productDetails = Product::find($wishesByBoard->product_id);
                     $productImage = $productDetails->featured_image;
                 }
-                $board = Board::find($boardv->id);
+                $board = Board::find($brdV->id);
                 if ($board) {
-                    $boardArr[$boardk]['board_key'] = $board->board_key;
-                    $boardArr[$boardk]['board_id'] = $board->id;
-                    $boardArr[$boardk]['board_name'] = $board->name;
-                    $boardArr[$boardk]['board_visibility'] = $board->visibility;
-                    $boardArr[$boardk]['board_image'] = $productImage != '' ? $productImage : asset('public/img/board-image.png');
-                    $boardArr[$boardk]['products_count'] = $wishesByBoardCount;
+                    $boardArr[$brdK]['board_key'] = $board->board_key;
+                    $boardArr[$brdK]['board_id'] = $board->id;
+                    $boardArr[$brdK]['board_name'] = $board->name;
+                    $boardArr[$brdK]['board_visibility'] = $board->visibility;
+                    $boardArr[$brdK]['board_image'] = $productImage != '' ? $productImage : asset('public/img/board-image.png');
+                    $boardArr[$brdK]['products_count'] = $wishesByBoardCount;
                 }
             }
         }
 
         $data = $boardArr;
 
-        $response = ['res' => true, 'msg' => "", 'data' => $data];
-        return $response;
+
+        return ['res' => true, 'msg' => "", 'data' => $data];
     }
 
-    public function fetchBoard($request) {
+    /**
+     * Fetch board by Key
+     *
+     * @param $request
+     * @return array
+     */
+
+    public function fetchBoard($request): array
+    {
         $boardArr = [];
         $productArr = [];
         $key = $request->key;
@@ -323,15 +355,15 @@ class WishlistService
             $wishesByBoard = Wishlist::where('board_id', $board->id)->where('cart_id', null)->get();
             if ($wishesByBoard) {
                 foreach ($wishesByBoard as $wish) {
-                    $product = Products::find($wish->product_id);
+                    $product = Product::find($wish->product_id);
                     $productWholeSalePrice = $product->usd_wholesale_price;
                     $productRetailPrice = $product->usd_retail_price;
-                    if (!empty($wish->variant_id) && $wish->type!='PREPACK') {
+                    if (!empty($wish->variant_id) && $wish->type != 'PREPACK') {
                         $variant = ProductVariation::find($wish->variant_id);
                         $productWholeSalePrice = $variant->price;
                         $productRetailPrice = $variant->retail_price;
                     }
-                    if (!empty($wish->variant_id) && $wish->type=='PREPACK') {
+                    if (!empty($wish->variant_id) && $wish->type == 'PREPACK') {
                         $variant = ProductPrepack::find($wish->variant_id);
                         $productWholeSalePrice = $variant->packs_price;
                         $productRetailPrice = $variant->packs_price;
@@ -349,51 +381,73 @@ class WishlistService
                     $productArr[] = $productDet;
                 }
             }
-            $wishesByBrandCount = Wishlist::where('board_id', $board->id)->where('cart_id', null)->get()->count();
-            $board->products_count = $wishesByBrandCount;
+            $wishesBrandCount = Wishlist::where('board_id', $board->id)->where('cart_id', null)->get()->count();
+            $board->products_count = $wishesBrandCount;
             $boardArr = $board;
         }
         $data = array(
             'board_arr' => $boardArr,
             'product_arr' => $productArr,
         );
-        $response = ['res' => true, 'msg' => "", 'data' => $data];
-        return $response;
+
+        return ['res' => true, 'msg' => "", 'data' => $data];
     }
 
-    public function addBoard($request) {
+    /**
+     * Add board by user
+     *
+     * @param $request
+     * @return array
+     */
 
-            $newBoard = new Board;
-            $newBoard->user_id = $request->user_id;
-            $newBoard->board_key = 'rb_' . Str::lower(Str::random(10));
-            $newBoard->name = $request->name;
-            $newBoard->visibility = $request->visibility;
-            $status = $newBoard->save();
-            if ($status) {
-                $response = ['res' => true, 'msg' => "Successfully added your board", 'data' => ''];
-            } else {
-                $response = ['res' => false, 'msg' => "Please try again!", 'data' => ''];
-            }
+    public function addBoard($request): array
+    {
 
-        return $response;
+        $newBoard = new Board;
+        $newBoard->user_id = auth()->user()->id;
+        $newBoard->board_key = 'rb_' . Str::lower(Str::random(10));
+        $newBoard->name = $request['name'];
+        $newBoard->visibility = $request['visibility'];
+        $status = $newBoard->save();
+        if ($status) {
+
+            return ['res' => true, 'msg' => "Successfully added your board", 'data' => ''];
+        } else {
+
+            return ['res' => false, 'msg' => "Please try again!", 'data' => ''];
+        }
+
+
     }
 
-    public function updateBoard($request) {
+    /**
+     * Update board by key
+     * @param $request
+     * @return array
+     */
+    public function updateBoard($request): array
+    {
 
-            $board = Board::where('board_key', $request->key)->first();
-            $board->name = $request->name;
-            $board->visibility = $request->visibility;
-            $status = $board->save();
-            if ($status) {
-                $response = ['res' => true, 'msg' => "Successfully updated your board", 'data' => ''];
-            } else {
-                $response = ['res' => false, 'msg' => "Please try again!", 'data' => ''];
-            }
+        $board = Board::where('board_key', $request['key'])->first();
+        $board->name = $request['name'];
+        $board->visibility = $request['visibility'];
+        $status = $board->save();
+        if ($status) {
+            return ['res' => true, 'msg' => "Successfully updated your board", 'data' => ''];
+        } else {
+            return ['res' => false, 'msg' => "Please try again!", 'data' => ''];
+        }
 
-        return response()->json($response);
+
     }
 
-    public function deleteBoard($request) {
+    /**
+     * Delete board
+     * @param $request
+     * @return array
+     */
+    public function deleteBoard($request): array
+    {
         $board = Board::where('board_key', $request->key)->first();
         if ($board) {
             $wishesByBoard = Wishlist::where('board_id', $board->id)->where('cart_id', null)->get();
@@ -403,40 +457,62 @@ class WishlistService
                 }
             }
             Board::where('id', $board->id)->delete();
-            $response = ['res' => true, 'msg' => 'Board successfully removed', 'data' => ""];
-            return $response;
+
+            return ['res' => true, 'msg' => 'Board successfully removed', 'data' => ""];
+
         }
-        $response = ['res' => false, 'msg' => 'Error please try again', 'data' => ""];
-        return $response;
+
+        return ['res' => false, 'msg' => 'Error please try again', 'data' => ""];
+
     }
 
-    public function changeBoard($request) {
-        $whishlist = Wishlist::find($request->wish_id);
-        if ($whishlist) {
+    /**
+     * Change board by wishlist ID
+     *
+     * @param $request
+     * @return array
+     */
+    public function changeBoard($request): array
+    {
+        $wishList = Wishlist::find($request->wish_id);
+        if ($wishList) {
             $board = Board::where('board_key', $request->board_key)->first();
-            $whishlist->board_id = $board->id;
-            $status = $whishlist->save();
+            $wishList->board_id = $board->id;
+            $status = $wishList->save();
             if ($status) {
-                $response = ['res' => true, 'msg' => 'Product successfully updated', 'data' => ""];
-                return $response;
+
+                return ['res' => true, 'msg' => 'Successfully updated', 'data' => ""];
+
             } else {
-                $response = ['res' => false, 'msg' => "Please try again!", 'data' => ''];
-                return $response;
+
+                return ['res' => false, 'msg' => "Please try again!", 'data' => ''];
+
             }
         }
-        $response = ['res' => false, 'msg' => 'Error please try again', 'data' => ""];
-        return $response;
+
+        return ['res' => false, 'msg' => 'Error please try again', 'data' => ""];
+
     }
 
-    public function delete($request) {
+    /**
+     *
+     * Delete wishlist
+     *
+     * @param $request
+     * @return array
+     */
+
+    public function delete($request): array
+    {
         $wishlist = Wishlist::find($request->id);
         if ($wishlist) {
             $wishlist->delete();
-            $response = ['res' => true, 'msg' => 'Wishlist successfully removed', 'data' => ""];
-            return $response;
+
+            return ['res' => true, 'msg' => 'Wishlist successfully removed', 'data' => ""];
+
         }
-        $response = ['res' => false, 'msg' => 'Error please try again', 'data' => ""];
-        return $response;
+
+        return ['res' => false, 'msg' => 'Error please try again', 'data' => ""];
     }
 
 }

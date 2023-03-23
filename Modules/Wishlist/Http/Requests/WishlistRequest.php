@@ -28,7 +28,6 @@ class WishlistRequest extends FormRequest
     {
         return [
             'name' => ['required', 'regex:/^[\p{L}\s-]+$/u','max:255'],
-            'user_id' => 'required|integer',
             'visibility' => 'nullable|integer'
         ];
     }
