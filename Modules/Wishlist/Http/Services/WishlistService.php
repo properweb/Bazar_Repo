@@ -4,6 +4,7 @@ namespace Modules\Wishlist\Http\Services;
 
 
 use Illuminate\Support\Str;
+use Modules\Cart\Entities\Cart;
 use Modules\Wishlist\Entities\Wishlist;
 use Modules\Wishlist\Entities\Board;
 use Modules\User\Entities\User;
@@ -45,6 +46,8 @@ class WishlistService
         }
         $variant = '';
         $variantId = '';
+        $getVariant = $request->variant_id;
+        $preID = $request->prepack_id;
         if (!empty($request->variant_id)) {
             $variant = ProductVariation::find($request->variant_id);
             $variantId = $variant->id;
@@ -53,15 +56,21 @@ class WishlistService
             }
             if (!empty($request->prepack_id)) {
                 $productType = 'PREPACK';
-                $variantId = $request->prepack_id;
+                $variantId = $preID;
+            }
+        }
+        if (!empty($request->prepack_id)) {
+            $alreadyWished = Wishlist::where('user_id', $user_id)->where('cart_id', null)->where('product_id', $product->id)->where('reference', $getVariant)->where('type', $productType)->first();
+        }
+        else
+        {
+            if (!empty($request->variant_id) && $variant) {
+                $alreadyWished = Wishlist::where('user_id', $user_id)->where('cart_id', null)->where('product_id', $product->id)->where('variant_id', $variantId)->where('type', $productType)->first();
+            } else {
+                $alreadyWished = Wishlist::where('user_id', $user_id)->where('cart_id', null)->where('product_id', $product->id)->where('type', $productType)->first();
             }
         }
 
-        if (!empty($request->variant_id) && $variant) {
-            $alreadyWished = Wishlist::where('user_id', $user_id)->where('cart_id', null)->where('product_id', $product->id)->where('variant_id', $variantId)->where('type', $productType)->first();
-        } else {
-            $alreadyWished = Wishlist::where('user_id', $user_id)->where('cart_id', null)->where('product_id', $product->id)->where('type', $productType)->first();
-        }
         if ($alreadyWished) {
 
             return ['res' => false, 'msg' => 'Product is already in your wish list', 'data' => ""];
@@ -145,6 +154,11 @@ class WishlistService
                     $wishlist->variant_id = $request->variant_id;
                 }
                 if ($productType === 'PREPACK') {
+                    if ($variant->stock < $wishlist->quantity || $variant->stock <= 0) {
+
+                        return ['res' => false, 'msg' => 'Stock not sufficient!.', 'data' => ""];
+
+                    }
                     $prdVariant = ProductPrepack::where('id', $request->prepack_id)->first();
                     $wishlist->price = $prdVariant->packs_price;
                     $wishlist->style_name = $prdVariant->style;

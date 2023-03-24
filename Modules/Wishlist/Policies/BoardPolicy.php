@@ -2,10 +2,11 @@
 
 namespace Modules\Wishlist\Policies;
 
-use Modules\Board\Entities\Board;
+use Modules\Wishlist\Entities\Board;
 
 use Modules\User\Entities\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
+
 
 class BoardPolicy
 {
@@ -22,16 +23,14 @@ class BoardPolicy
     }
 
     /**
-     * Determine whether the user can view any wishlist.
+     * Determine whether the user can view any board.
      *
      * @param User $user
      * @return bool
      */
     public function viewAny(User $user): bool
     {
-
-        return true;
-        // return $this->isRetailer($user);
+        return $this->isRetailer($user);
     }
 
     /**
@@ -43,6 +42,68 @@ class BoardPolicy
     protected function isRetailer(User $user): bool
     {
         return $user->role === User::ROLE_RETAILER;
+    }
+
+    /**
+     * Determine whether the user created the board.
+     *
+     * @param User $user
+     * @param Board $board
+     * @return bool
+     */
+    protected function isCreator(User $user, Board $board): bool
+    {
+        return $user->id === $board->user_id;
+    }
+
+
+    /**
+     * Determine whether the user can view board detail.
+     *
+     * @param User $user
+     * @param Board $board
+     * @return bool
+     */
+
+    public function view(User $user, Board $board): bool
+    {
+        return $this->isCreator($user, $board);
+    }
+
+    /**
+     * Determine whether the user can update their board.
+     *
+     * @param User $user
+     * @param Board $board
+     * @return bool
+     */
+    public function update(User $user, Board $board): bool
+    {
+        return $this->isCreator($user, $board);
+    }
+
+    /**
+     * Determine whether the user can delete their board.
+     *
+     * @param User $user
+     * @param Board $board
+     * @return bool
+     */
+    public function delete(User $user, Board $board): bool
+    {
+        return $this->isCreator($user, $board);
+    }
+
+    /**
+     * Determine whether the user can add their board.
+     *
+     * @param User $user
+     * @return bool
+     */
+
+    public function create(User $user): bool
+    {
+        return $this->isRetailer($user);
     }
 
 

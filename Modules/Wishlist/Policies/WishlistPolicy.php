@@ -3,7 +3,6 @@
 namespace Modules\Wishlist\Policies;
 
 use Modules\Wishlist\Entities\Wishlist;
-use Modules\Wishlist\Entities\Board;
 use Modules\User\Entities\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
@@ -42,7 +41,6 @@ class WishlistPolicy
     {
         return $user->role === User::ROLE_RETAILER;
     }
-
 
 
     /**
@@ -93,63 +91,4 @@ class WishlistPolicy
     }
 
 
-    /**
-     * Determine whether the user can view any board.
-     *
-     * @param User $user
-     * @return bool
-     */
-    public function viewAnyBoard(User $user): bool
-    {
-        return $this->isRetailer($user);
-    }
-
-    /**
-     * Determine whether the user can view board detail.
-     *
-     * @param User $user
-     * @param Board $board
-     * @return bool
-     */
-
-    public function viewBoard(User $user, Board $board): bool
-    {
-        return $this->isCreator($user, $board);
-    }
-
-    /**
-     * Determine whether the user can update their board.
-     *
-     * @param User $user
-     * @param Board $board
-     * @return bool
-     */
-    public function updateBoard(User $user, Board $board): bool
-    {
-        return $this->isCreator($user, $board);
-    }
-
-    /**
-     * Determine whether the user can delete their board.
-     *
-     * @param User $user
-     * @param Board $board
-     * @return bool
-     */
-    public function deleteBoard(User $user, Board $board): bool
-    {
-        return $this->isCreator($user, $board);
-    }
-
-    /**
-     * Determine whether the user can add their board.
-     *
-     * @param User $user
-     * @return bool
-     */
-
-    public function createBoard(User $user): bool
-    {
-        return $this->isRetailer($user);
-    }
 }

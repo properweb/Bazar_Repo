@@ -5,7 +5,7 @@ namespace Modules\Wishlist\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Modules\Wishlist\Entities\Wishlist;
-use Modules\Board\Entities\Board;
+use Modules\Wishlist\Entities\Board;
 use Modules\Wishlist\Http\Requests\WishlistRequest;
 use Modules\Wishlist\Http\Services\WishlistService;
 use Illuminate\Http\Request;
@@ -64,6 +64,28 @@ class WishlistController extends Controller
     }
 
     /**
+     * Delete wishlist by ID
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function delete(Request $request): JsonResponse
+    {
+
+        $user = auth()->user();
+        $wishList = Wishlist::where('id', $request->id)->first();
+        if ($user->cannot('delete', $wishList)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
+        $response = $this->wishlistService->delete($request);
+
+        return response()->json($response);
+    }
+
+    /**
      * Fetch boards which created by logged user
      *
      * @param Request $request
@@ -97,7 +119,7 @@ class WishlistController extends Controller
     {
         $user = auth()->user();
         $board = Board::where('board_key', $request->key)->first();
-        if ($user->cannot('viewBoard', $board)) {
+        if ($user->cannot('view', $board)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
@@ -119,7 +141,7 @@ class WishlistController extends Controller
     public function addBoard(WishlistRequest $request): JsonResponse
     {
         $user = auth()->user();
-        if ($user->cannot('createBoard', Board::class)) {
+        if ($user->cannot('create', Board::class)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
@@ -141,14 +163,14 @@ class WishlistController extends Controller
     {
         $user = auth()->user();
         $board = Board::where('board_key', $request->key)->first();
-        if ($user->cannot('updateBoard', $board)) {
+        if ($user->cannot('update', $board)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
                 'data' => ""
             ]);
         }
-        $response = $this->wishlistService->updateBoard($request->validated());
+        $response = $this->wishlistService->updateBoard($request->all());
 
         return response()->json($response);
     }
@@ -162,7 +184,7 @@ class WishlistController extends Controller
     {
         $user = auth()->user();
         $board = Board::where('board_key', $request->key)->first();
-        if ($user->cannot('deleteBoard', $board)) {
+        if ($user->cannot('delete', $board)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
@@ -183,7 +205,7 @@ class WishlistController extends Controller
     {
         $user = auth()->user();
         $board = Board::where('board_key', $request->key)->first();
-        if ($user->cannot('viewAny', $board)) {
+        if ($user->cannot('update', $board)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
@@ -195,26 +217,6 @@ class WishlistController extends Controller
         return response()->json($response);
     }
 
-    /**
-     * Delete wishlist by ID
-     * @param Request $request
-     * @return JsonResponse
-     */
-    public function delete(Request $request): JsonResponse
-    {
 
-        $user = auth()->user();
-        $wishList = Wishlist::where('id', $request->id)->first();
-        if ($user->cannot('delete', $wishList)) {
-            return response()->json([
-                'res' => false,
-                'msg' => 'User is not authorized !',
-                'data' => ""
-            ]);
-        }
-        $response = $this->wishlistService->delete($request);
-
-        return response()->json($response);
-    }
 
 }
