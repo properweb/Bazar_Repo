@@ -73,7 +73,8 @@ class WishlistController extends Controller
     public function fetchBoards(Request $request): JsonResponse
     {
         $user = auth()->user();
-        if ($user->cannot('viewAnyBoard', Board::class)) {
+
+        if ($user->cannot('viewAny', Board::class)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',

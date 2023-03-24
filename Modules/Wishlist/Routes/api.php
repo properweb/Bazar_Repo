@@ -21,7 +21,7 @@ Route::middleware('auth:api')
         Route::get('/fetch', 'WishlistController@fetch')->name('fetch');
         Route::post('/add', 'WishlistController@add')->name('add');
         Route::post('/delete', 'WishlistController@delete')->name('delete');
-        Route::get('/fetch-boards/{id}', 'WishlistController@fetchBoards')->name('fetchBoards');
+        Route::get('/fetch-boards', 'WishlistController@fetchBoards')->name('fetchBoards');
         Route::post('/add-board', 'WishlistController@addBoard')->name('addBoard');
         Route::get('/fetch-board/{key}', 'WishlistController@fetchBoard')->name('fetchBoard');
         Route::post('/update-board', 'WishlistController@updateBoard')->name('updateBoard');
