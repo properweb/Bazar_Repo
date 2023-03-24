@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Brand\Http\Services;
+namespace Modules\Retailer\Http\Services;
 
 use Illuminate\Support\Str;
 use Illuminate\Support\Arr;
@@ -35,12 +35,12 @@ class RetailerService
         $user = $this->createUser($requestData);
         $requestData['user_id'] = $user->id;
         $requestData = Arr::except($requestData, ['email', 'password', 'first_name', 'last_name', 'role', 'verified']);
-        $brand = $this->createRetailer($requestData);
+        $retailer = $this->createRetailer($requestData);
 
         return [
             'res' => true,
             'msg' => '',
-            'data' => $brand
+            'data' => $retailer
         ];
     }
 
@@ -134,7 +134,13 @@ class RetailerService
         $user->save();
 
         $retailer = Retailer::where('user_id', $user->id)->first();
-        $retailer->update($requestData);
+        $retailer->country = $requestData['country'];
+        $retailer->country_code = $requestData['country_code'];
+        $retailer->phone_number = $requestData['phone_number'];
+        $retailer->store_name = $requestData['store_name'];
+        $retailer->store_type = $requestData['store_type'];
+        $retailer->website_url = $requestData['website_url'];
+        $retailer->save();
 
         return ['res' => true, 'msg' => "Successfully updated your account", 'data' => ''];
 

@@ -5,6 +5,7 @@ namespace Modules\Retailer\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Http\JsonResponse;
 
 class UpdateRetailerRequest extends FormRequest
@@ -34,6 +35,7 @@ class UpdateRetailerRequest extends FormRequest
             'country' => 'required|integer|exists:countries,id',
             'phone_number' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:9',
             'language' => 'required|string',
+            'store_type' => 'required|string',
             'website_url' => ['required','regex:/^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$/'],
             'old_password' => 'sometimes',
             'new_password' => [

@@ -3,6 +3,7 @@
 namespace Modules\Retailer\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Modules\Retailer\Entities\Retailer;
 use Modules\Retailer\Http\Requests\StoreRetailerRequest;
@@ -74,12 +75,13 @@ class RetailerController extends Controller
      * @param UpdateRetailerRequest $request
      * @return JsonResponse
      */
-    public function update(UpdateRetailerRequest $request): JsonResponse
+    public function update(UpdateRetailerRequest $request, string $retailerKey): JsonResponse
     {
         $user = auth()->user();
+        $retailer = Retailer::where('retailer_key', $retailerKey)->first();
 
         // return error if user cannot update retailer
-        if ($user->cannot('update', Retailer::class)) {
+        if ($user->cannot('update', $retailer)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',

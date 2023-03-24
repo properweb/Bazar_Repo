@@ -5,6 +5,7 @@ namespace Modules\Retailer\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Http\JsonResponse;
 
 class StoreRetailerRequest extends FormRequest
