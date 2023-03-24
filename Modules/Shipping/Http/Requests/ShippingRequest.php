@@ -27,14 +27,14 @@ class ShippingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'regex:/^[\p{L}\s-]+$/u','max:255'],
+            'name' => ['required', 'regex:/^[\p{L}\s-]+$/u', 'max:255'],
             'country' => 'required|integer',
-            'user_id' => 'required|integer',
+            'id' => 'nullable|integer',
             'street' => 'required|regex:/(^[-0-9A-Za-z.,\/ ]+$)/',
-            'suite' => 'required|regex:/(^[-0-9A-Za-z.,\/ ]+$)/',
+            'suite' => 'nullable|regex:/(^[-0-9A-Za-z.,\/ ]+$)/',
             'state' => 'required|integer',
             'town' => 'required|integer',
-            'zip' => ['required','max:10'],
+            'zip' => ['required', 'max:10'],
             'phoneCode' => 'required|integer',
             'phone' => ['required', 'digits:10']
 

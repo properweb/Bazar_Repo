@@ -3,7 +3,7 @@
 namespace Modules\Shipping\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Database\Eloquent\Factory;
+
 
 class ShippingServiceProvider extends ServiceProvider
 {

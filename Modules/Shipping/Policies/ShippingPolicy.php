@@ -28,7 +28,7 @@ class ShippingPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $this->isBrand($user);
+        return $this->isRetailer($user);
     }
 
     /**
@@ -37,13 +37,13 @@ class ShippingPolicy
      * @param User $user
      * @return bool
      */
-    protected function isBrand(User $user): bool
+    protected function isRetailer(User $user): bool
     {
-        return $user->role === User::ROLE_BRAND;
+        return $user->role === User::ROLE_RETAILER;
     }
 
     /**
-     * Determine whether the user can view the campaign.
+     * Determine whether the user can view the shipping.
      *
      * @param User $user
      * @param Shipping $shipping
@@ -67,14 +67,14 @@ class ShippingPolicy
     }
 
     /**
-     * Determine whether the user can create Shippings.
+     * Determine whether the user can create Shipping's.
      *
      * @param User $user
      * @return bool
      */
     public function create(User $user): bool
     {
-        return $this->isBrand($user);
+        return $this->isRetailer($user);
     }
 
     /**
