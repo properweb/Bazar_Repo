@@ -45,31 +45,21 @@ class WishlistService
             return ['res' => false, 'msg' => 'Invalid Product', 'data' => ""];
         }
         $variant = '';
-        $variantId = '';
-        $getVariant = $request->variant_id;
-        $preID = $request->prepack_id;
+
         if (!empty($request->variant_id)) {
             $variant = ProductVariation::find($request->variant_id);
-            $variantId = $variant->id;
+
             if (!empty($request->openSizingArray)) {
                 $productType = 'OPEN_SIZING';
             }
             if (!empty($request->prepack_id)) {
                 $productType = 'PREPACK';
-                $variantId = $preID;
+
             }
         }
-        if (!empty($request->prepack_id)) {
-            $alreadyWished = Wishlist::where('user_id', $user_id)->where('cart_id', null)->where('product_id', $product->id)->where('reference', $getVariant)->where('type', $productType)->first();
-        }
-        else
-        {
-            if (!empty($request->variant_id) && $variant) {
-                $alreadyWished = Wishlist::where('user_id', $user_id)->where('cart_id', null)->where('product_id', $product->id)->where('variant_id', $variantId)->where('type', $productType)->first();
-            } else {
-                $alreadyWished = Wishlist::where('user_id', $user_id)->where('cart_id', null)->where('product_id', $product->id)->where('type', $productType)->first();
-            }
-        }
+
+        $alreadyWished = Wishlist::where('user_id', $user_id)->where('cart_id', null)->where('product_id', $product->id)->first();
+
 
         if ($alreadyWished) {
 
