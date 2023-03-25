@@ -12,7 +12,9 @@ class CheckOptionDuplicates implements Rule
      */
     public function passes($attribute, $variations)
     {
-
+        if (empty($variations)) {
+            return true;
+        }
         foreach ($variations as $vars) {
 
             if (!empty($vars['value1'])) {
