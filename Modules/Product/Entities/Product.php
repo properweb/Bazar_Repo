@@ -20,6 +20,7 @@ class Product extends Model
         'case_quantity',
         'min_order_qty',
         'sku',
+        'option_items',
         'usd_wholesale_price',
         'usd_retail_price',
         'cad_wholesale_price',

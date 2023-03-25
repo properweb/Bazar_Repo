@@ -2,9 +2,12 @@
 
 namespace Modules\Product\Http\Requests;
 
+use Modules\Product\Rules\CheckOptionDuplicates;
+use Modules\Product\Rules\CheckPrePack;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Contracts\Validation\Validator;
+
 use Illuminate\Http\JsonResponse;
 
 class ProductRequest extends FormRequest
@@ -27,12 +30,11 @@ class ProductRequest extends FormRequest
     public function rules(): array
     {
 
-        $priceOptionRules = 'required_if:options_available,1|regex:/^\d{0,6}(\.\d{0,2})?$/';
-        $priceRules = 'required_if:options_available,0|regex:/^\d{0,6}(\.\d{0,2})?$/';
+        $priceOptionRules = 'required_if:options_available,1|regex:/^\d{0,9}(\.\d{0,2})?$/';
+        $priceRules = 'required_if:options_available,0|regex:/^\d{0,9}(\.\d{0,2})?$/';
 
         return [
             'product_name' => 'required|string|max:60',
-            'user_id' => 'required|integer',
             'product_made' => 'required|integer',
             'usd_wholesale_price' => $priceRules,
             'usd_retail_price' => $priceRules,
@@ -51,14 +53,8 @@ class ProductRequest extends FormRequest
             'shipping_width' => 'nullable:options_available,0|regex:/^[0-9]{0,6}$/',
             'shipping_height' => 'nullable:options_available,0|regex:/^[0-9]{0,6}$/',
             'shipping_weight' => 'nullable:options_available,0|regex:/^[0-9]{0,6}$/',
-            'order_case_qty' => 'required|regex:/^[0-9]{1,6}$/',
-            'testers_price' =>  "required_if:retailersPrice,1|nullable|regex:/^\d{0,6}(\.\d{0,2})?$/",
-            'reatailers_inst' => "required_if:instructionsRetailers,1|nullable|string|max:70",
-            'reatailer_input_limit' => "required_if:instructionsRetailers,1|nullable|integer|max:6",
-            'retailer_add_charge' => "nullable:instructionsRetailers,1|nullable|regex:/^\d{0,6}(\.\d{0,2})?$/",
-            'retailer_min_qty' => "required_if:instructionsRetailers ,1|nullable|integer",
             'product_images' => 'required_if:fromAdd,1|array|min:1',
-            'variations' => 'required_if:options_available,1|array',
+            'variations' => ['required_if:options_available,1|array', new CheckOptionDuplicates],
             'variations.*' => 'required_if:options_available,1|array',
             'variations.*.usd_wholesale_price' => $priceOptionRules,
             'variations.*.usd_retail_price' => $priceOptionRules,
@@ -77,11 +73,13 @@ class ProductRequest extends FormRequest
             'variations.*.width' => 'nullable:options_available,1|regex:/^[0-9]{0,6}$/',
             'variations.*.height' => 'nullable:options_available,1|regex:/^[0-9]{0,6}$/',
             'variations.*.tariff_code' => 'nullable:options_available,1|regex:/^[0-9]{0,6}$/',
-            'pre_packs' => 'required_if:prepackAvailable,1|array',
-            'pre_packs.*' => 'required_if:prepackAvailable,1|array',
-            'pre_packs.*.pack_name' => 'required_if:prepackAvailable,1|regex:/[a-zA-Z]{0,255}$/',
-            'pre_packs.*.size_ratio' => 'required_if:prepackAvailable,1|regex:/^\d+(-\d+)*$/',
-            'pre_packs.*.size_range_value' => 'required_if:prepackAvailable,1',
+            'order_case_qty' => 'required|regex:/^[0-9]{1,6}$/',
+            'testers_price' =>  "required_if:retailersPrice,1|nullable|regex:/^\d{0,9}(\.\d{0,2})?$/",
+            'reatailers_inst' => "required_if:instructionsRetailers,1|nullable|string|max:70",
+            'reatailer_input_limit' => "required_if:instructionsRetailers,1|nullable|integer|max:6",
+            'retailer_add_charge' => "nullable:instructionsRetailers,1|nullable|regex:/^\d{0,9}(\.\d{0,2})?$/",
+            'retailer_min_qty' => "required_if:instructionsRetailers ,1|nullable|integer",
+            'pre_packs' => ['required_if:prepackAvailable,1|array', new CheckPrePack],
             'product_shipdate' => 'required_if:retailersPreOrderDate,1|nullable',
             'product_endshipdate' => 'required_if:retailersPreOrderDate,1|nullable',
         ];
@@ -115,6 +113,8 @@ class ProductRequest extends FormRequest
             'variations',json_decode($this->request->get('variations'), true)
         );
     }
+
+
 
     /**
      * Pre pack convert to array
