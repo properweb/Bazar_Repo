@@ -24,10 +24,9 @@ class CartController extends Controller
     /**
      * Fetch logged user cart
      *
-     * @param Request $request
      * @return JsonResponse
      */
-    public function fetch(Request $request): JsonResponse
+    public function fetch(): JsonResponse
     {
 
         $user = auth()->user();
@@ -38,7 +37,7 @@ class CartController extends Controller
                 'data' => ""
             ]);
         }
-        $response = $this->cartService->fetch($request);
+        $response = $this->cartService->fetch();
 
         return response()->json($response);
     }
