@@ -5,7 +5,7 @@ namespace Modules\Shipping\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Modules\Shipping\Entities\Shipping;
-use Modules\Shipping\Http\Requests\ShippingRequest;
+use Modules\Shipping\Http\Requests\StoreShippingRequest;
 use Modules\Shipping\Http\Services\ShippingService;
 use Illuminate\Http\Request;
 
@@ -65,10 +65,10 @@ class ShippingController extends Controller
     /**
      * User can add shipping
      *
-     * @param ShippingRequest $request
+     * @param StoreShippingRequest $request
      * @return JsonResponse
      */
-    public function create(ShippingRequest $request): JsonResponse
+    public function create(StoreShippingRequest $request): JsonResponse
     {
         $user = auth()->user();
         if ($user->cannot('create', Shipping::class)) {
@@ -86,11 +86,11 @@ class ShippingController extends Controller
 
     /**
      * Update shipping details by ID
-     * @param ShippingRequest $request
+     * @param StoreShippingRequest $request
      * @return JsonResponse
      */
 
-    public function update(ShippingRequest $request): JsonResponse
+    public function update(StoreShippingRequest $request): JsonResponse
     {
         $user = auth()->user();
         $shipping = Shipping::where('id', $request->id)->first();
