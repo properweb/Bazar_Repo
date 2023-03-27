@@ -7,7 +7,7 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\JsonResponse;
 
-class CartRequest extends FormRequest
+class UpdateRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -27,14 +27,16 @@ class CartRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'product_id' => 'required|integer',
-            'variant_id' => 'nullable|integer',
-            'quantity' => 'required|integer',
-            'price' =>  'nullable',
-            'prepack_id' => 'nullable|integer',
-            'variationWishId' => 'nullable|integer',
-            'openSizingArray' => 'nullable',
-            'board_id' => 'nullable|integer',
+            'cart' => 'required|array',
+            'cart.*' => 'required|array',
+            'cart.*.id' => 'required|integer',
+            'cart.*.product_id' => 'required|integer',
+            'cart.*.product_image' => 'nullable|string',
+            'cart.*.product_name' => 'required|string|max:60',
+            'cart.*.product_price' => 'required|regex:/^\d{0,9}(\.\d{0,2})?$/',
+            'cart.*.product_qty' => 'required|integer',
+
+
         ];
     }
 
