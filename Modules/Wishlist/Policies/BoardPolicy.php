@@ -3,10 +3,8 @@
 namespace Modules\Wishlist\Policies;
 
 use Modules\Wishlist\Entities\Board;
-
 use Modules\User\Entities\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
-
 
 class BoardPolicy
 {
@@ -64,7 +62,6 @@ class BoardPolicy
      * @param Board $board
      * @return bool
      */
-
     public function view(User $user, Board $board): bool
     {
         return $this->isCreator($user, $board);
@@ -100,11 +97,8 @@ class BoardPolicy
      * @param User $user
      * @return bool
      */
-
     public function create(User $user): bool
     {
         return $this->isRetailer($user);
     }
-
-
 }

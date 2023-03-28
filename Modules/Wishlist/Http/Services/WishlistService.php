@@ -4,7 +4,6 @@ namespace Modules\Wishlist\Http\Services;
 
 
 use Illuminate\Support\Str;
-use Modules\Cart\Entities\Cart;
 use Modules\Wishlist\Entities\Wishlist;
 use Modules\Wishlist\Entities\Board;
 use Modules\User\Entities\User;
@@ -24,18 +23,18 @@ class WishlistService
     /**
      * Add wishlist By Logged User
      *
-     * @param $request
+     * @param array $requestData
      * @return array
      */
-    public function add($request): array
+    public function add(array $requestData): array
     {
 
-        if (empty($request->product_id)) {
+        if (empty($requestData->product_id)) {
 
             return ['res' => false, 'msg' => 'Invalid Product', 'data' => ""];
         }
         $user_id = auth()->user()->id;
-        $product = Product::find($request->product_id);
+        $product = Product::find($requestData->product_id);
         $productType = 'SINGLE_PRODUCT';
         $productName = $product->name;
         $productSKU = $product->sku;
@@ -46,13 +45,13 @@ class WishlistService
         }
         $variant = '';
 
-        if (!empty($request->variant_id)) {
-            $variant = ProductVariation::find($request->variant_id);
+        if (!empty($requestData->variant_id)) {
+            $variant = ProductVariation::find($requestData->variant_id);
 
-            if (!empty($request->openSizingArray)) {
+            if (!empty($requestData->openSizingArray)) {
                 $productType = 'OPEN_SIZING';
             }
-            if (!empty($request->prepack_id)) {
+            if (!empty($requestData->prepack_id)) {
                 $productType = 'PREPACK';
 
             }
@@ -75,8 +74,8 @@ class WishlistService
                 $newBoard->visibility = '1';
                 $newBoard->save();
             }
-            if (!empty($request->board_id)) {
-                $boardId = $request->board_id;
+            if (!empty($requestData->board_id)) {
+                $boardId = $requestData->board_id;
             } else {
                 $boardId = 0;
             }
@@ -87,9 +86,9 @@ class WishlistService
             $wishlist->brand_id = $product->user_id;
             $wishlist->product_name = $productName;
             $wishlist->product_sku = $productSKU;
-            $wishlist->quantity = (int)$request->quantity;
+            $wishlist->quantity = (int)$requestData->quantity;
 
-            if (!empty($request->variant_id) && $variant) {
+            if (!empty($requestData->variant_id) && $variant) {
                 $wishlist->price = $variant->price;
                 if ($productType === 'OPEN_SIZING') {
                     $optionsArr = [];
@@ -98,8 +97,8 @@ class WishlistService
                     $priceArr = [];
                     $qtyArr = [];
 
-                    if (!empty($request->openSizingArray)) {
-                        foreach ($request->openSizingArray as $size) {
+                    if (!empty($requestData->openSizingArray)) {
+                        foreach ($requestData->openSizingArray as $size) {
                             $sizeVariant = ProductVariation::where('product_id', $product->id)->where('options1', "Size")->where('value1', $size['value'])->where('value2', $variant->value2)->where('value3', $variant->value3)->first();
                             if ($variant->options1 === 'Size') {
                                 $sizeVariant = ProductVariation::where('product_id', $product->id)->where('options1', "Size")->where('value1', $size['value'])->where('value2', $variant->value2)->where('value3', $variant->value3)->first();
@@ -141,7 +140,7 @@ class WishlistService
                     $wishlist->style_name = rtrim(implode(',', $styleArr), ',');
                     $wishlist->style_group_name = rtrim(implode(',', $styleGrpArr), ',');
                     $wishlist->reference = serialize($optionsArr);
-                    $wishlist->variant_id = $request->variant_id;
+                    $wishlist->variant_id = $requestData->variant_id;
                 }
                 if ($productType === 'PREPACK') {
                     if ($variant->stock < $wishlist->quantity || $variant->stock <= 0) {
@@ -149,12 +148,12 @@ class WishlistService
                         return ['res' => false, 'msg' => 'Stock not sufficient!.', 'data' => ""];
 
                     }
-                    $prdVariant = ProductPrepack::where('id', $request->prepack_id)->first();
+                    $prdVariant = ProductPrepack::where('id', $requestData->prepack_id)->first();
                     $wishlist->price = $prdVariant->packs_price;
                     $wishlist->style_name = $prdVariant->style;
                     $wishlist->style_group_name = $prdVariant->size_ratio . ';' . $prdVariant->size_range;
-                    $wishlist->reference = $request->variant_id;
-                    $wishlist->variant_id = $request->prepack_id;
+                    $wishlist->reference = $requestData->variant_id;
+                    $wishlist->variant_id = $requestData->prepack_id;
                 }
                 if ($productType === 'SINGLE_PRODUCT') {
                     if ($variant->stock < $wishlist->quantity || $variant->stock <= 0) {
@@ -169,7 +168,7 @@ class WishlistService
                     $wishlist->style_name = rtrim(implode(',', $styleArr), ',');
                     $wishlist->style_group_name = rtrim(implode(',', $styleGrpArr), ',');
                     $wishlist->reference = $variant->id;
-                    $wishlist->variant_id = $request->variant_id;
+                    $wishlist->variant_id = $requestData->variant_id;
                 }
             } else {
                 $wishlist->price = $product->usd_wholesale_price;
@@ -191,10 +190,9 @@ class WishlistService
     /**
      * Fetch wishlist by user
      *
-     * @param $request
      * @return array
      */
-    public function fetch($request): array
+    public function fetch(): array
     {
         $boardArr = [];
         $brandArr = [];
@@ -303,10 +301,9 @@ class WishlistService
     /**
      * Fetch Boards by logged user
      *
-     * @param $request
      * @return array
      */
-    public function fetchBoards($request): array
+    public function fetchBoards(): array
     {
         $boardArr = [];
         $id = auth()->user()->id;
@@ -345,15 +342,14 @@ class WishlistService
     /**
      * Fetch board by Key
      *
-     * @param $request
+     * @param array $requestData
      * @return array
      */
-
-    public function fetchBoard($request): array
+    public function fetchBoard(array $requestData): array
     {
         $boardArr = [];
         $productArr = [];
-        $key = $request->key;
+        $key = $requestData->key;
         $board = Board::where('board_key', $key)->first();
         if ($board) {
             $wishesByBoard = Wishlist::where('board_id', $board->id)->where('cart_id', null)->get();
@@ -400,18 +396,16 @@ class WishlistService
     /**
      * Add board by user
      *
-     * @param $request
+     * @param array $requestData
      * @return array
      */
-
-    public function addBoard($request): array
+    public function addBoard(array $requestData): array
     {
-
         $newBoard = new Board;
         $newBoard->user_id = auth()->user()->id;
         $newBoard->board_key = 'rb_' . Str::lower(Str::random(10));
-        $newBoard->name = $request['name'];
-        $newBoard->visibility = $request['visibility'];
+        $newBoard->name = $requestData['name'];
+        $newBoard->visibility = $requestData['visibility'];
         $status = $newBoard->save();
         if ($status) {
 
@@ -420,33 +414,30 @@ class WishlistService
 
             return ['res' => false, 'msg' => "Please try again!", 'data' => ''];
         }
-
-
     }
 
     /**
      * Update board by key
-     * @param $request
+     *
+     * @param array $requestData
      * @return array
      */
-    public function updateBoard($request): array
+    public function updateBoard(array $requestData): array
     {
-
-        $board = Board::where('board_key', $request['key'])->first();
-        $board->name = $request['name'];
-        $board->visibility = $request['visibility'];
+        $board = Board::where('board_key', $requestData['key'])->first();
+        $board->name = $requestData['name'];
+        $board->visibility = $requestData['visibility'];
         $status = $board->save();
         if ($status) {
             return ['res' => true, 'msg' => "Successfully updated your board", 'data' => ''];
         } else {
             return ['res' => false, 'msg' => "Please try again!", 'data' => ''];
         }
-
-
     }
 
     /**
      * Delete board
+     *
      * @param $request
      * @return array
      */
@@ -463,11 +454,9 @@ class WishlistService
             Board::where('id', $board->id)->delete();
 
             return ['res' => true, 'msg' => 'Board successfully removed', 'data' => ""];
-
         }
 
         return ['res' => false, 'msg' => 'Error please try again', 'data' => ""];
-
     }
 
     /**
@@ -499,13 +488,11 @@ class WishlistService
     }
 
     /**
-     *
      * Delete wishlist
      *
      * @param $request
      * @return array
      */
-
     public function delete($request): array
     {
         $wishlist = Wishlist::find($request->id);
@@ -513,10 +500,8 @@ class WishlistService
             $wishlist->delete();
 
             return ['res' => true, 'msg' => 'Wishlist successfully removed', 'data' => ""];
-
         }
 
         return ['res' => false, 'msg' => 'Error please try again', 'data' => ""];
     }
-
 }

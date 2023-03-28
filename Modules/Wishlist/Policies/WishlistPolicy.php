@@ -89,6 +89,4 @@ class WishlistPolicy
     {
         return $this->isCreator($user, $wishList);
     }
-
-
 }
