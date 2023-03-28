@@ -40,6 +40,7 @@ class StoreBrandRequest extends FormRequest
                     ->symbols()
             ],
             'brand_name' => 'required|string|max:255',
+            'brand_email' => 'required|email|max:255|regex:/^([a-z0-9\+_\-]+)(\.[a-z0-9\+_\-]+)*@([a-z0-9\-]+\.)+[a-z]{2,6}$/ix',
             'website_url' => ['required','regex:/^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$/'],
             'country_code' => 'required|numeric',
             'country' => 'required|integer|exists:countries,id',
