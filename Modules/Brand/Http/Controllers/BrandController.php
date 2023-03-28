@@ -8,7 +8,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
 use Modules\Brand\Http\Requests\StoreBrandRequest;
 use Modules\Brand\Http\Requests\UpdateBrandRequest;
-use Modules\Brand\Http\Requests\UpdateBrandInfoRequest;
 use Modules\Brand\Http\Requests\UpdateBrandAccountRequest;
 use Modules\Brand\Http\Requests\UpdateBrandShopRequest;
 use Modules\Brand\Http\Services\BrandService;
@@ -162,44 +161,9 @@ class BrandController extends Controller
                 'data' => ""
             ]);
         }
-        //$request->brand_slug = Str::slug($request->brand_name, '-');
+        $request->brand_slug = Str::slug($request->brand_name, '-');
 
         $response = $this->brandService->updateShop($request->validated());
-
-        return response()->json($response);
-    }
-
-    /**
-     * Update info details of the specified Brand.
-     *
-     * @param UpdateBrandInfoRequest $request
-     * @return JsonResponse
-     */
-    public function updateInfo(UpdateBrandInfoRequest $request): JsonResponse
-    {
-        $user = auth()->user();
-
-        $brand = Brand::where('user_id', $request->user_id)->first();
-
-        // return error if no Brand found
-        if (!$brand) {
-            return [
-                'res' => false,
-                'msg' => 'Brand not found !',
-                'data' => ""
-            ];
-        }
-
-        // return error if user can not update the brand
-        if ($user->cannot('update', $brand)) {
-            return response()->json([
-                'res' => false,
-                'msg' => 'User is not authorized !',
-                'data' => ""
-            ]);
-        }
-
-        $response = $this->brandService->updateInfo($request->validated());
 
         return response()->json($response);
     }
