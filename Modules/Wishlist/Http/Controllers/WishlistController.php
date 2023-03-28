@@ -204,8 +204,8 @@ class WishlistController extends Controller
     public function changeBoard(Request $request): JsonResponse
     {
         $user = auth()->user();
-        $board = Board::where('board_key', $request->key)->first();
-        if ($user->cannot('update', $board)) {
+        $wishList = Wishlist::where('id', $request->wish_id)->first();
+        if ($user->cannot('update', $wishList)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',

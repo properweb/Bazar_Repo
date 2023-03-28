@@ -23,10 +23,10 @@ class WishlistService
     /**
      * Add wishlist By Logged User
      *
-     * @param array $requestData
+     * @param $requestData
      * @return array
      */
-    public function add(array $requestData): array
+    public function add($requestData): array
     {
 
         if (empty($requestData->product_id)) {
@@ -342,10 +342,10 @@ class WishlistService
     /**
      * Fetch board by Key
      *
-     * @param array $requestData
+     * @param $requestData
      * @return array
      */
-    public function fetchBoard(array $requestData): array
+    public function fetchBoard($requestData): array
     {
         $boardArr = [];
         $productArr = [];
