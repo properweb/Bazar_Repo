@@ -2,14 +2,12 @@
 
 namespace Modules\Retailer\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Modules\Retailer\Entities\Retailer;
 use Modules\Retailer\Http\Requests\StoreRetailerRequest;
 use Modules\Retailer\Http\Requests\UpdateRetailerRequest;
 use Modules\Retailer\Http\Services\RetailerService;
-use DB;
 
 
 class RetailerController extends Controller
@@ -32,7 +30,6 @@ class RetailerController extends Controller
         $response = $this->retailerService->store($request->validated());
 
         return response()->json($response);
-
     }
 
     /**
@@ -48,11 +45,11 @@ class RetailerController extends Controller
 
         // return error if no retailer found
         if (!$retailer) {
-            return [
+            return response()->json([
                 'res' => false,
                 'msg' => 'Retailer not found !',
                 'data' => ""
-            ];
+            ]);
         }
 
         // return error if user not view the retailer
@@ -73,6 +70,7 @@ class RetailerController extends Controller
      * Update the specified retailer in storage
      *
      * @param UpdateRetailerRequest $request
+     * @param string $retailerKey
      * @return JsonResponse
      */
     public function update(UpdateRetailerRequest $request, string $retailerKey): JsonResponse
@@ -92,7 +90,6 @@ class RetailerController extends Controller
         $response = $this->retailerService->update($request->validated());
 
         return response()->json($response);
-
     }
 
 }

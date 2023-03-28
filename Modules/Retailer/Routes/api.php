@@ -14,10 +14,8 @@ use Illuminate\Support\Facades\Route;
 |
 */
 Route::prefix('retailers')->group(function () {
-Route::get('/resetpassword', 'RetailerController@resetPassword')->name('retailer.reset_password');
-});
-Route::prefix('retailers')->group(function () {
     Route::post('/', 'RetailerController@store')->name('store');
+    Route::get('/resetpassword', 'RetailerController@resetPassword')->name('retailer.reset_password');
 });
 Route::middleware('auth:api')
     ->prefix('retailers')

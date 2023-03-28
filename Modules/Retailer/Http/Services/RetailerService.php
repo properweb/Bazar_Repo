@@ -5,10 +5,9 @@ namespace Modules\Retailer\Http\Services;
 use Illuminate\Support\Str;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\DB;
 use Modules\User\Entities\User;
 use Modules\Retailer\Entities\Retailer;
-use DB;
 
 
 class RetailerService
@@ -30,7 +29,7 @@ class RetailerService
     public function store(array $requestData): array
     {
 
-        $requestData["role"] = User :: ROLE_RETAILER;
+        $requestData["role"] = User::ROLE_RETAILER;
         $requestData["verified"] = 1;
         $user = $this->createUser($requestData);
         $requestData['user_id'] = $user->id;
@@ -143,7 +142,6 @@ class RetailerService
         $retailer->save();
 
         return ['res' => true, 'msg' => "Successfully updated your account", 'data' => ''];
-
     }
 
 }
