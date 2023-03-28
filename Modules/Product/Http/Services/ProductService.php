@@ -9,8 +9,8 @@ use Modules\Product\Entities\ProductVariation;
 use Modules\Product\Entities\ProductImage;
 use Modules\Product\Entities\ProductPrepack;
 use Modules\Product\Entities\Category;
-use File;
-use DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\DB;
 
 
 
@@ -38,12 +38,9 @@ class ProductService
     {
 
         $resultArray = [];
-        $productFetch = Product::where('user_id', $request->user_id);
-        $productsCount = $productFetch->count();
-        $productPublish = Product::where('user_id', $request->user_id)->where('status', 'publish');
-        $publishCount = $productPublish->count();
-        $productUnpublish = Product::where('user_id', $request->user_id)->where('status', 'unpublish');
-        $unpublishedCount = $productUnpublish->count();
+        $productsCount = Product::where('user_id', $request->user_id)->count();
+        $publishCount = Product::where('user_id', $request->user_id)->where('status', 'publish')->count();
+        $unpublishedCount = Product::where('user_id', $request->user_id)->where('status', 'unpublish')->count();
         $query = Product::where('user_id', $request->user_id);
         switch ($request->status) {
             case 'publish':
@@ -114,7 +111,6 @@ class ProductService
 
         return ['res' => true, 'msg' => "", 'data' => $data];
     }
-
     /**
      * Fetch Arrange Product List
      *
@@ -185,7 +181,6 @@ class ProductService
 
         return ['res' => true, 'msg' => "", 'data' => $resultArray];
     }
-
     /**
      * Fetching product inventory by Logged brand
      *
@@ -279,12 +274,10 @@ class ProductService
 
         return ['res' => true, 'msg' => "", 'data' => $data];
 
-
     }
-
     /**
-     *
      * Create New Product By logged Brand
+     *
      * @param $request
      * @return array
      */
@@ -439,7 +432,6 @@ class ProductService
             'data' => ''
         ];
     }
-
     /**
      * Product Details for respected product
      *
@@ -714,9 +706,9 @@ class ProductService
 
         return ['res' => true, 'msg' => "", 'data' => $resultArray];
     }
-
     /**
      * Update product by ID
+     *
      * @param $request
      * @return array
      */
@@ -944,7 +936,6 @@ class ProductService
 
         return ['res' => true, 'msg' => "Updated Successfully", 'data' => ""];
     }
-
     /**
      * Change status like published, Unpublished of products
      *
@@ -1005,7 +996,6 @@ class ProductService
 
         return $response;
     }
-
     /**
      * Delete product by logged brand
      *
@@ -1025,7 +1015,6 @@ class ProductService
 
 
     }
-
     /**
      * Delete product image by respected product and image id
      *
@@ -1040,7 +1029,6 @@ class ProductService
 
 
     }
-
     /**
      * Delete product video by respected product and image id
      *
@@ -1055,7 +1043,6 @@ class ProductService
 
 
     }
-
     /**
      * Update product sorting by logged brand
      *
@@ -1074,28 +1061,33 @@ class ProductService
 
         return ['res' => true, 'msg' => "", 'data' => ""];
     }
-
     /**
      * Inventory stock by product
+     *
      * @param $request
      * @return array
      */
 
     public function updateStock($request): array
     {
-        if ($request->variant_id) {
+        if ($request->variant_id)
+        {
             ProductVariation::where('id', $request->variant_id)->update(array('stock' => $request->stock));
-        } else {
+        }
+        else
+        {
             Product::where('id', $request->id)->update(array('stock' => $request->stock));
         }
+
         return ['res' => true, 'msg' => "", 'data' => ""];
     }
 
-    /** Function of image upload
+    /**
+     * Function of image upload
+     *
      * @param $image
      * @return string
      */
-
 
     private function image64Upload($image): string
     {
@@ -1104,14 +1096,12 @@ class ProductService
         $image_64 = str_replace($replace, '', $image_64);
         $image_64 = str_replace(' ', '+', $image_64);
         $imageName = Str::random(10) . '.' . 'png';
-
         File::put($this->productAbsPath . "/" . $imageName, base64_decode($image_64));
 
         return $this->productRelPath . $imageName;
     }
-
     /**
-     * function of get variables from request
+     * Function of get variables from request
      *
      * @param $request
      * @return array
@@ -1180,5 +1170,30 @@ class ProductService
            'sku' => $request->shipping_sku
        );
    }
+
+   /**
+     * Convert price from api for other currency from USD
+    *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function convertPrice(Request $request): JsonResponse
+    {
+        $response = '';
+        $req_url = 'https://api.exchangerate.host/latest?base=USD&symbols=USD,CAD,GBP,AUD,EUR&places=2&amount=' . $request;
+        $response_json = file_get_contents($req_url);
+        if (false !== $response_json) {
+            try {
+                $response_obj = json_decode($response_json);
+                if ($response_obj->success === true) {
+                    $response = ['res' => true, 'msg' => "", 'data' => $response_obj->rates];
+                }
+            } catch (\Exception $e) {
+                $response = ['res' => false, 'msg' => "Something went wrong", 'data' => ""];
+            }
+        }
+
+        return $response;
+    }
 
 }
