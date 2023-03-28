@@ -51,10 +51,8 @@ class ShippingService
      *
      * @return array
      */
-
     public function getShipping(): array
     {
-
         $shipping = Shipping::where('user_id', auth()->user()->id)->get();
         $data = [];
         if (!empty($shipping)) {
@@ -114,7 +112,6 @@ class ShippingService
      * @param array $shippingData
      * @return array
      */
-
     public function update(array $shippingData): array
     {
 

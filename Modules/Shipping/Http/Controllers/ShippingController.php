@@ -63,7 +63,7 @@ class ShippingController extends Controller
     }
 
     /**
-     * User can add shipping
+     * Retailer create shipping details
      *
      * @param StoreShippingRequest $request
      * @return JsonResponse
@@ -86,10 +86,10 @@ class ShippingController extends Controller
 
     /**
      * Update shipping details by ID
+     *
      * @param StoreShippingRequest $request
      * @return JsonResponse
      */
-
     public function update(StoreShippingRequest $request): JsonResponse
     {
         $user = auth()->user();
@@ -112,7 +112,6 @@ class ShippingController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
-
     public function delete(Request $request): JsonResponse
     {
         $user = auth()->user();
@@ -128,6 +127,4 @@ class ShippingController extends Controller
 
         return response()->json($response);
     }
-
-
 }
