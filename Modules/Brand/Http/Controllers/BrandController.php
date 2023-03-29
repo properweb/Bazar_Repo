@@ -5,7 +5,6 @@ namespace Modules\Brand\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Str;
 use Modules\Brand\Http\Requests\StoreBrandRequest;
 use Modules\Brand\Http\Requests\UpdateBrandRequest;
 use Modules\Brand\Http\Requests\UpdateBrandInfoRequest;
@@ -162,7 +161,6 @@ class BrandController extends Controller
                 'data' => ""
             ]);
         }
-        //$request->brand_slug = Str::slug($request->brand_name, '-');
 
         $response = $this->brandService->updateShop($request->validated());
 
@@ -183,11 +181,11 @@ class BrandController extends Controller
 
         // return error if no Brand found
         if (!$brand) {
-            return [
+            return response()->json([
                 'res' => false,
                 'msg' => 'Brand not found !',
                 'data' => ""
-            ];
+            ]);
         }
 
         // return error if user can not update the brand

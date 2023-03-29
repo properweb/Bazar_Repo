@@ -28,12 +28,11 @@ class UpdateBrandAccountRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => 'required|integer|exists:users,id',
             'first_name' => 'required|regex:/^[a-zA-Z]+$/u|max:255',
             'last_name' => 'required|regex:/^[a-zA-Z]+$/u|max:255',
             'country_code' => 'required|numeric',
             'phone_number' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:9',
-            'old_password' => 'sometimes',
+            'old_password' => 'sometimes|required_if:new_password',
             'new_password' => [
                 'sometimes',
                 'different:old_password',

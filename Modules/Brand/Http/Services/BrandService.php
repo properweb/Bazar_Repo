@@ -7,11 +7,11 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\DB;
 use Modules\Country\Entities\Country;
 use Modules\User\Entities\User;
 use Modules\Brand\Entities\Brand;
 use Modules\Brand\Entities\Catalog;
-use DB;
 
 
 class BrandService
@@ -432,14 +432,13 @@ class BrandService
         $brand = Brand::where('user_id', $requestData['user_id'])->first();
         if (!filter_var($requestData['profile_photo'], FILTER_VALIDATE_URL)) {
             $requestData['profile_photo'] = $this->imageUpload($brand->id, $requestData['profile_photo'], null, false);
-        }else{
+        } else {
             $requestData['profile_photo'] = $brand->profile_photo;
         }
         $brand->fill($requestData);
         $brand->save();
 
         return ['res' => true, 'msg' => "Successfully updated your account", 'data' => ''];
-
     }
 
     /**
