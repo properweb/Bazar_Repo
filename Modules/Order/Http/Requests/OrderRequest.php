@@ -29,7 +29,6 @@ class OrderRequest extends FormRequest
         return [
 
             'country' => 'required|integer',
-            'user_id' => 'required|integer',
             'state' => 'required|integer',
             'town' => 'required|integer',
             'zip' => ['required','max:10'],

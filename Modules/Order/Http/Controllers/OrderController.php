@@ -2,16 +2,14 @@
 
 namespace Modules\Order\Http\Controllers;
 
+use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
-use Modules\User\Entities\User;
 use Modules\Order\Entities\Order;
 use Modules\Order\Http\Requests\OrderRequest;
 use Modules\Order\Http\Requests\AcceptRequest;
 use Modules\Order\Http\Requests\ChangeRequest;
 use Modules\Order\Http\Services\OrderService;
-use Illuminate\Http\Request;
-
 
 class OrderController extends Controller
 {
@@ -23,23 +21,59 @@ class OrderController extends Controller
         $this->orderService = $orderService;
     }
 
+    /**
+     * Show all order for logged user
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function index(Request $request): JsonResponse
     {
-        $user = auth('sanctum')->user();
+        $user = auth()->user();
+        $role = $user->role;
+        if($role==='brand')
+        {
+            if ($user->cannot('viewAnyBrand', Order::class)) {
+                return response()->json([
+                    'res' => false,
+                    'msg' => 'User is not authorized !',
+                    'data' => ""
+                ]);
+            }
+        }
+        if($role==='retailer')
+        {
+            if ($user->cannot('viewAnyRetailer', Order::class)) {
+                return response()->json([
+                    'res' => false,
+                    'msg' => 'User is not authorized !',
+                    'data' => ""
+                ]);
+            }
+        }
+
 
         $response = $this->orderService->index($request);
 
         return response()->json($response);
     }
+
     /**
-     * Store a newly created order in storage
+     * Add shipping and billing address for order
      *
-     * @param OrderRequest $request
+     * @param Request $request
      * @return JsonResponse
      */
     public function checkout(Request $request): JsonResponse
     {
-        $user = auth('sanctum')->user();
+        $user = auth()->user();
+        if ($user->cannot('viewAnyRetailer', Order::class)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
 
         $response = $this->orderService->checkout($request);
 
@@ -47,40 +81,80 @@ class OrderController extends Controller
     }
 
     /**
+     * Update billing address by retailer
+     *
      * @param OrderRequest $request
      * @return JsonResponse
      */
-    public function UpdateBilling(OrderRequest $request): JsonResponse
+    public function updateBilling(OrderRequest $request): JsonResponse
     {
-        $user = auth('sanctum')->user();
-        $request->request->add(['user_id' => $request->user_id]);
-        $response = $this->orderService->updatebilling($request->validated());
+        $user = auth()->user();
+        if ($user->cannot('viewAnyRetailer', Order::class)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
+
+        $response = $this->orderService->updateBilling($request->validated());
 
         return response()->json($response);
     }
 
     /**
-     * @param Request $request
+     * Get order details by order number
+     *
+     * @param string $orderNumber
      * @return JsonResponse
      */
-    public function show(Request $request): JsonResponse
+    public function show(string $orderNumber): JsonResponse
     {
-        $user = auth('sanctum')->user();
+        $user = auth()->user();
+        $order = Order::where('order_number', $orderNumber)->first();
+        $role = $user->role;
+        if($role==='brand')
+        {
+            if ($user->cannot('viewBrand', $order)) {
+                return response()->json([
+                    'res' => false,
+                    'msg' => 'User is not authorized !',
+                    'data' => ""
+                ]);
+            }
+        }
+        if($role==='retailer')
+        {
+            if ($user->cannot('viewRetailer', $order)) {
+                return response()->json([
+                    'res' => false,
+                    'msg' => 'User is not authorized !',
+                    'data' => ""
+                ]);
+            }
+        }
 
-        $response = $this->orderService->show($request);
+        $response = $this->orderService->show($orderNumber);
 
         return response()->json($response);
     }
 
-
-
     /**
+     * Create packing slip by order
+     *
      * @param Request $request
      * @return JsonResponse
      */
     public function packingSlip(Request $request): JsonResponse
     {
-        $user = auth('sanctum')->user();
+        $user = auth()->user();
+        if ($user->cannot('viewAnyBrand', Order::class)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
 
         $response = $this->orderService->packingSlip($request);
 
@@ -88,25 +162,60 @@ class OrderController extends Controller
     }
 
     /**
+     * Order accepted by brand
+     *
      * @param AcceptRequest $request
      * @return JsonResponse
      */
     public function accept(AcceptRequest $request): JsonResponse
     {
-        $user = auth('sanctum')->user();
-       
+        $user = auth()->user();
+        $order = Order::where('order_number', $request->ord_no)->first();
+        if ($user->cannot('viewBrand', $order)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
+
         $response = $this->orderService->accept($request->validated());
 
         return response()->json($response);
     }
 
     /**
+     * Change shipping date of an order
+     *
      * @param Request $request
      * @return JsonResponse
      */
     public function changeDate(Request $request): JsonResponse
     {
-        $user = auth('sanctum')->user();
+        $user = auth()->user();
+        $role = $user->role;
+        if($role==='brand')
+        {
+
+            if ($user->cannot('viewAnyBrand', Order::class)) {
+                return response()->json([
+                    'res' => false,
+                    'msg' => 'User is not authorized !',
+                    'data' => ""
+                ]);
+            }
+        }
+        if($role==='retailer')
+        {
+
+            if ($user->cannot('viewAnyRetailer', Order::class)) {
+                return response()->json([
+                    'res' => false,
+                    'msg' => 'User is not authorized !',
+                    'data' => ""
+                ]);
+            }
+        }
 
         $response = $this->orderService->changeDate($request);
 
@@ -114,25 +223,45 @@ class OrderController extends Controller
     }
 
     /**
+     * Change shipping address
+     *
      * @param ChangeRequest $request
      * @return JsonResponse
      */
     public function changeAddress(ChangeRequest $request): JsonResponse
     {
-        $user = auth('sanctum')->user();
+        $user = auth()->user();
+        $order = Order::where('order_number', $request->ord_no)->first();
+        if ($user->cannot('viewBrand', $order)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
 
-        $response = $this->orderService->changeAddress($request->validated());
+        $response = $this->orderService->changeAddress($request);
 
         return response()->json($response);
     }
 
     /**
+     * Update order details by user
+     *
      * @param Request $request
      * @return JsonResponse
      */
     public function update(Request $request): JsonResponse
     {
-        $user = auth('sanctum')->user();
+        $user = auth()->user();
+        $order = Order::where('id', $request->order_id)->first();
+        if ($user->cannot('viewBrand', $order)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
 
         $response = $this->orderService->update($request);
 
@@ -140,12 +269,22 @@ class OrderController extends Controller
     }
 
     /**
+     * Split order by users
+     *
      * @param Request $request
      * @return JsonResponse
      */
     public function split(Request $request): JsonResponse
     {
-        $user = auth('sanctum')->user();
+        $user = auth()->user();
+        $order = Order::where('id', $request->order_id)->first();
+        if ($user->cannot('viewBrand', $order)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
 
         $response = $this->orderService->split($request);
 
@@ -153,12 +292,22 @@ class OrderController extends Controller
     }
 
     /**
+     * Cancel order by users
+     *
      * @param Request $request
      * @return JsonResponse
      */
     public function cancel(Request $request): JsonResponse
     {
-        $user = auth('sanctum')->user();
+        $user = auth()->user();
+        $order = Order::where('order_id', $request->order_id)->first();
+        if ($user->cannot('viewBrand', $order)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
 
         $response = $this->orderService->cancel($request);
 
@@ -166,16 +315,24 @@ class OrderController extends Controller
     }
 
     /**
+     * download order csv
+     *
      * @param Request $request
      * @return JsonResponse
      */
     public function csv(Request $request): JsonResponse
     {
-        $user = auth('sanctum')->user();
+        $user = auth()->user();
+        if ($user->cannot('viewAnyBrand', Order::class)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
 
         $response = $this->orderService->csv($request);
 
         exit;
     }
-
 }

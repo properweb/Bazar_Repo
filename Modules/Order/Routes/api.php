@@ -13,15 +13,15 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:sanctum')
+Route::middleware('auth:api')
     ->prefix('orders')
     ->name('order.')
     ->group(function () {
         Route::get('/', 'OrderController@index')->name('index');
         Route::post('/', 'OrderController@checkout')->name('checkout');
-        Route::post('details/', 'OrderController@show')->name('show');
+        Route::get('/details/{order}', 'OrderController@show')->name('show');
         Route::post('/packing-slip', 'OrderController@packingSlip')->name('packingSlip');
-        Route::post('/updatebilling', 'OrderController@UpdateBilling')->name('UpdateBilling');
+        Route::post('/update-billing', 'OrderController@updateBilling')->name('updateBilling');
         Route::post('/accept', 'OrderController@accept')->name('accept');
         Route::post('/change-date', 'OrderController@changeDate')->name('changeDate');
         Route::post('/change-address', 'OrderController@changeAddress')->name('changeAddress');
