@@ -101,7 +101,7 @@ class ShippingController extends Controller
                 'data' => ""
             ]);
         }
-        $response = $this->shippingService->update($request->validated());
+        $response = $this->shippingService->update($request->validated(),$request->id);
 
         return response()->json($response);
     }

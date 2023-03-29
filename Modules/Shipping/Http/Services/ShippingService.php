@@ -110,12 +110,12 @@ class ShippingService
      * Update shipping address BY ID
      *
      * @param array $shippingData
+     * @param int $id
      * @return array
      */
-    public function update(array $shippingData): array
+    public function update(array $shippingData,int $id): array
     {
 
-        $id = $shippingData['id'];
         $name = $shippingData['name'];
         $country = $shippingData['country'];
         $street = $shippingData['street'];

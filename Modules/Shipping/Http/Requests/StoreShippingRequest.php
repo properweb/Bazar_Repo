@@ -29,7 +29,6 @@ class StoreShippingRequest extends FormRequest
         return [
             'name' => ['required', 'regex:/^[\p{L}\s-]+$/u', 'max:255'],
             'country' => 'required|integer',
-            'id' => 'nullable|integer',
             'street' => 'required|regex:/(^[-0-9A-Za-z.,\/ ]+$)/',
             'suite' => 'nullable|regex:/(^[-0-9A-Za-z.,\/ ]+$)/',
             'state' => 'required|integer',
