@@ -90,7 +90,6 @@ class WishlistController extends Controller
      *
      * @return JsonResponse
      */
-
     public function fetchBoards(): JsonResponse
     {
         $user = auth()->user();
@@ -135,7 +134,6 @@ class WishlistController extends Controller
      * @param BoardRequest $request
      * @return JsonResponse
      */
-
     public function addBoard(BoardRequest $request): JsonResponse
     {
         $user = auth()->user();
