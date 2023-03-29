@@ -313,6 +313,21 @@ class OrderService
                     );
                 }
             }
+
+            if($order->discount_type=='amount' && $order->has_discount==1)
+            {
+
+                $orderTotal = $order->total_amount - $order->discount;
+            }
+            else if($order->discount_type=='percent' && $order->has_discount==1)
+            {
+                $orderTotal = $order->total_amount - ($order->total_amount*$order->discount/100);
+            }
+            else
+            {
+                $orderTotal= $totalPrice;
+            }
+
             $data = array(
                 'retailer_name' => $user->first_name . ' ' . $user->last_name,
                 'retailer_phone' => $retailer->country_code . ' ' . $retailer->phone_number,
@@ -321,6 +336,7 @@ class OrderService
                 'cart' => $cart,
                 'total_qty' => $totalQty,
                 'total_price' => $totalPrice,
+                'orderTotal' => $orderTotal,
                 'related_orders' => $relatedOrders
             );
         }
@@ -366,9 +382,9 @@ class OrderService
                         $order->town = $town->name;
                     }
                     $cart = Cart::where('brand_id', $brand->user_id)->where('order_id', $orderId)->get();
+                    $totalPrice = 0;
                     if ($cart) {
                         $totalQty = 0;
-                        $totalPrice = 0;
                         foreach ($cart as $cartItem) {
                             $product = Product::where('id', $cartItem->product_id)->first();
                             $subTotal = (float)$cartItem->price * (int)$cartItem->quantity;
@@ -382,13 +398,29 @@ class OrderService
                             $cartItem->product_image = $product->featured_image != '' ? $product->featured_image : asset('public/admin/dist/img/logo-image.png');
                         }
                     }
+
+                    if($order->discount_type=='amount' && $order->has_discount==1)
+                    {
+
+                        $orderTotal = $order->total_amount - $order->discount;
+                    }
+                    else if($order->discount_type=='percent' && $order->has_discount==1)
+                    {
+                        $orderTotal = $order->total_amount - ($order->total_amount*$order->discount/100);
+                    }
+                    else
+                    {
+                        $orderTotal= $totalPrice;
+                    }
+
                     $data[] = array(
                         'retailer_name' => $user->first_name . ' ' . $user->last_name,
                         'retailer_phone' => $retailer->country_code . ' ' . $retailer->phone_number,
                         'brand' => $brand->brand_name,
                         'order' => $order,
                         'cart' => $cart,
-                        'totalPrice' => $totalPrice
+                        'totalPrice' => $totalPrice,
+                        'orderTotal' => $orderTotal
                     );
                 }
             }
@@ -459,7 +491,7 @@ class OrderService
             'country' => $request->shipping_country,
             'street' => $request->shipping_street,
             'suite' => $request->shipping_suite,
-            'phoneCode' => $request->shipping_suite
+            'phoneCode' => $request->shipping_phoneCode
         );
         Shipping::where('id', $request->shipping_id)->update($data);
 
@@ -627,7 +659,6 @@ class OrderService
 
         return ['res' => true, 'msg' => "", 'data' => $data];
     }
-
 
     /**
      * @param $prdArr
