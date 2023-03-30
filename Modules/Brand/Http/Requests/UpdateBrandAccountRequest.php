@@ -43,7 +43,6 @@ class UpdateBrandAccountRequest extends FormRequest
                     ->symbols()
             ],
             'confirm_password' => 'sometimes|same:new_password'
-
         ];
     }
 

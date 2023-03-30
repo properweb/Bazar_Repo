@@ -28,7 +28,6 @@ class UpdateBrandInfoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => 'required|integer|exists:users,id',
             'avg_lead_time' => 'required|numeric|min:1|max:180',
             'brand_name' => 'required|string|max:255',
             'established_year' => 'required|digits:4|integer|min:1900|max:'.date('Y'),

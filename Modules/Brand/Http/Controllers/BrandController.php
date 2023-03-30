@@ -112,11 +112,11 @@ class BrandController extends Controller
 
         // return error if no Brand found
         if (!$brand) {
-            return [
+            return response()->json([
                 'res' => false,
                 'msg' => 'Brand not found !',
                 'data' => ""
-            ];
+            ]);
         }
 
         // return error if user can not update the brand
@@ -146,11 +146,11 @@ class BrandController extends Controller
 
         // return error if no Brand found
         if (!$brand) {
-            return [
+            return response()->json([
                 'res' => false,
                 'msg' => 'Brand not found !',
                 'data' => ""
-            ];
+            ]);
         }
 
         // return error if user can not update the brand
@@ -216,11 +216,11 @@ class BrandController extends Controller
 
         // return error if no Brand found
         if (!$brand) {
-            return [
+            return response()->json([
                 'res' => false,
                 'msg' => 'Brand not found !',
                 'data' => ""
-            ];
+            ]);
         }
 
         // return error if user can not update the brand

@@ -487,5 +487,4 @@ class BrandService
             'data' => ""
         ];
     }
-
 }
