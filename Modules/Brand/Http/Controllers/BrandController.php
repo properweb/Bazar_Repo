@@ -107,8 +107,7 @@ class BrandController extends Controller
     public function updateAccount(UpdateBrandAccountRequest $request): JsonResponse
     {
         $user = auth()->user();
-
-        $brand = Brand::where('user_id', $request->user_id)->first();
+        $brand = Brand::where('user_id', $user->id)->first();
 
         // return error if no Brand found
         if (!$brand) {
@@ -142,7 +141,7 @@ class BrandController extends Controller
     public function updateShop(UpdateBrandShopRequest $request): JsonResponse
     {
         $user = auth()->user();
-        $brand = Brand::where('user_id', $request->user_id)->first();
+        $brand = Brand::where('user_id', $user->id)->first();
 
         // return error if no Brand found
         if (!$brand) {
@@ -177,7 +176,7 @@ class BrandController extends Controller
     {
         $user = auth()->user();
 
-        $brand = Brand::where('user_id', $request->user_id)->first();
+        $brand = Brand::where('user_id', $user->id)->first();
 
         // return error if no Brand found
         if (!$brand) {
@@ -212,7 +211,7 @@ class BrandController extends Controller
     {
 
         $user = auth()->user();
-        $brand = Brand::where('user_id', $request->user_id)->first();
+        $brand = Brand::where('user_id', $user->id)->first();
 
         // return error if no Brand found
         if (!$brand) {
