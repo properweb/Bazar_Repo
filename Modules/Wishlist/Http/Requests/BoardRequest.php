@@ -7,7 +7,7 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\JsonResponse;
 
-class WishlistRequest extends FormRequest
+class BoardRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -28,8 +28,8 @@ class WishlistRequest extends FormRequest
     {
         return [
             'name' => ['required', 'regex:/^[\p{L}\s-]+$/u','max:255'],
-            'user_id' => 'required|integer',
-            'visibility' => 'nullable|integer'
+            'visibility' => 'nullable|integer',
+            'key' => 'nullable|string',
         ];
     }
 
