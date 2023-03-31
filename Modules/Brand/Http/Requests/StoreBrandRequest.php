@@ -28,8 +28,8 @@ class StoreBrandRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'first_name' => 'nullable|regex:/^[a-zA-Z]+$/u|max:255',
-            'last_name' => 'nullable|regex:/^[a-zA-Z]+$/u|max:255',
+            'first_name' => 'required|regex:/^[a-zA-Z]+$/u|max:255',
+            'last_name' => 'required|regex:/^[a-zA-Z]+$/u|max:255',
             'email' => 'required|email|max:255|regex:/^([a-z0-9\+_\-]+)(\.[a-z0-9\+_\-]+)*@([a-z0-9\-]+\.)+[a-z]{2,6}$/ix|unique:users,email',
             'password' => [
                 'required',
@@ -39,11 +39,18 @@ class StoreBrandRequest extends FormRequest
                     ->numbers()
                     ->symbols()
             ],
-            'brand_name' => 'nullable|string|max:255',
-            'website_url' => ['nullable','regex:/^(?!(http|https)\.)\w+(\.\w+)+$/'],
-            'country_code' => 'nullable|numeric',
-            'country' => 'nullable|integer|exists:countries,id',
-            'phone_number' => 'nullable|regex:/^([0-9\s\-\+\(\)]*)$/|min:9',
+            'brand_name' => 'required|string|max:255',
+            'brand_email' => 'required|email|max:255|regex:/^([a-z0-9\+_\-]+)(\.[a-z0-9\+_\-]+)*@([a-z0-9\-]+\.)+[a-z]{2,6}$/ix',
+            'website_url' => ['required','regex:/^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$/'],
+            'country_code' => 'required|numeric',
+            'country' => 'required|integer|exists:countries,id',
+            'phone_number' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:9',
+            'step_count' => 'required|numeric',
+            'about_us' => 'required|string',
+            'language' => 'required|string',
+            'num_products_sell' => 'required|string',
+            'num_store' => 'required|string',
+            'prime_cat' => 'required|integer|exists:categories,id',
         ];
     }
 

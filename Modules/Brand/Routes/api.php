@@ -19,18 +19,19 @@ Route::prefix('brands')
     ->group(function () {
         Route::get('/', 'BrandController@index')->name('list');
         Route::post('/', 'BrandController@store')->name('store');
-        Route::post('/update', 'BrandController@update')->name('update');
         Route::get('/count', 'BrandController@count')->name('count');
         Route::get('/{brand}', 'BrandController@show')->name('show');
+        Route::put('/update', 'BrandController@update')->name('update');
         Route::get('/shop/{brand}', 'BrandController@showShop')->name('show_shop');
     });
 Route::middleware('auth:api')
     ->prefix('brands')
     ->name('brand.')
     ->group(function () {
-        Route::post('/update/shop', 'BrandController@updateShop')->name('update_shop');
-        Route::post('/update/account', 'BrandController@updateAccount')->name('update_account');
-        Route::post('/shop/live', 'BrandController@liveShop')->name('live_shop');
+        Route::put('/update/info', 'BrandController@updateInfo')->name('update_info');
+        Route::put('/update/shop', 'BrandController@updateShop')->name('update_shop');
+        Route::put('/update/account', 'BrandController@updateAccount')->name('update_account');
+        Route::put('/shop/live', 'BrandController@liveShop')->name('live_shop');
     });
 
 
