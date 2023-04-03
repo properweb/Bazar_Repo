@@ -53,11 +53,10 @@ class ShippingService
      */
     public function getShipping(): array
     {
-        $shipping = Shipping::where('user_id', auth()->user()->id)->get();
+        $shippings = Shipping::where('user_id', auth()->user()->id)->get();
         $data = [];
-        if (!empty($shipping)) {
-            foreach ($shipping as $shipping) {
-
+        if (!empty($shippings)) {
+            foreach ($shippings as $shipping) {
                 $country = Country::where('id', $shipping->country)->first();
                 $data[] = array(
                     'id' => $shipping->id,
