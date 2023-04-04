@@ -11,7 +11,7 @@ use Modules\Brand\Entities\Brand;
 use Modules\Retailer\Entities\Retailer;
 use Modules\Product\Entities\Product;
 use Modules\Product\Entities\ProductVariation;
-use Modules\Product\Entities\BrandStore;
+use Modules\Wordpress\Entities\Store;
 use Modules\Shipping\Entities\Shipping;
 use Modules\Wordpress\Http\Controllers\WordpressController;
 use Modules\Shopify\Http\Controllers\ShopifyController;
@@ -705,7 +705,7 @@ class OrderService
                         break;
                 }
                 if (!empty($prdCt->website)) {
-                    $syncs = BrandStore::where('brand_id', $brandId)->where('website', $prdCt->website)->get()->first();
+                    $syncs = Store::where('brand_id', $brandId)->where('website', $prdCt->website)->get()->first();
                     if ($syncs) {
                         $types = $syncs->types;
                         if ($types == 'wordpress') {
