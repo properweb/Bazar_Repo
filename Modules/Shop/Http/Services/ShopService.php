@@ -21,94 +21,6 @@ class ShopService
     }
 
     /**
-     * Get a listing of the product categories
-     *
-     * @return array
-     */
-    public function getCategories(): array
-    {
-
-        $mainCategories = Category::where('parent_id', 0)->where('status', '1')->get();
-        if ($mainCategories) {
-            foreach ($mainCategories as $mainCategory) {
-                $resultCategories = [];
-                $categories = Category::where('parent_id', $mainCategory->id)->where('status', '1')->get();
-                if ($categories) {
-                    foreach ($categories as $category) {
-                        $resultSubCategories = [];
-                        $subCategories = Category::where('parent_id', $category->id)->where('status', '1')->get();
-                        if ($subCategories) {
-                            foreach ($subCategories as $subCategory) {
-                                $resultSubCategories[] = array(
-                                    "id" => $subCategory->id,
-                                    "title" => $subCategory->title,
-                                );
-                            }
-                        }
-                        $resultCategories[] = array(
-                            "id" => $category->id,
-                            "title" => $category->title,
-                            "sub_categories" => $resultSubCategories,
-                            "image" => $category->image != '' ? asset('public') . '/' . $category->image : asset('public/img/nav-category-image.png'),
-                        );
-                    }
-                }
-                $data[] = array(
-                    "id" => $mainCategory->id,
-                    "title" => $mainCategory->title,
-                    "categories" => $resultCategories,
-                );
-            }
-        }
-
-        return ['res' => true, 'msg' => "", 'data' => $data];
-    }
-
-    /**
-     * Get a listing of the product categories featured in home
-     *
-     * @return array
-     */
-    public function getFeaturedCategories(): array
-    {
-
-        $featuredCategories = Category::where('home_featured', 1)->where('status', '1')->get();
-        if ($featuredCategories) {
-            foreach ($featuredCategories as $featuredCategory) {
-                $category = '';
-                if ($featuredCategory->parent_id != 0) {
-                    $parentCategory = Category::find($featuredCategory->parent_id);
-                    if ($parentCategory->parent_id != 0) {
-                        $parentParentCategory = Category::find($parentCategory->parent_id);
-                        $mainCategory = $parentParentCategory->title;
-                        $category = $parentCategory->title;
-                        $categoryType = 'sub-category';
-                    } else {
-                        $category = $featuredCategory->title;
-                        $mainCategory = $parentCategory->title;
-                        $categoryType = 'category';
-                    }
-                } else {
-                    $mainCategory = $featuredCategory->title;
-                    $categoryType = 'main-category';
-                }
-
-                $data[] = array(
-                    "id" => $featuredCategory->id,
-                    "title" => $featuredCategory->title,
-                    "main_category" => $mainCategory,
-                    "category" => $category,
-                    "cat_type" => $categoryType,
-                    "image" => $featuredCategory->image != '' ? asset('public') . '/' . $featuredCategory->image : asset('public/img/featured-brand-image.png'),
-                );
-
-            }
-        }
-
-        return ['res' => true, 'msg' => "", 'data' => $data];
-    }
-
-    /**
      * Get a listing of the products by brand
      *
      * @param $request
@@ -116,57 +28,54 @@ class ShopService
      */
     public function getBrandProducts($request): array
     {
-
-        $product_arr = [];
+        $productArray = [];
         $categories = [];
         $allProductsCount = 0;
         $newProductsCount = 0;
         $brandDetails = Brand::where('bazaar_direct_link', $request->brand_id)->where('go_live', '2')->first();
         if ($brandDetails) {
-            $brndUsrId = $brandDetails->user_id;
+            $userId = $brandDetails->user_id;
             //all products count
-            $allProductsCount = Product::where('user_id', $brndUsrId)->where('status', 'publish')->count();
+            $allProductsCount = Product::where('user_id', $userId)->where('status', 'publish')->count();
 
             //new products count
-            $newProductsCount = Product::where('user_id', $brndUsrId)->where('status', 'publish')->where('created_at', '>', now()->subDays(7)->endOfDay())->count();
+            $newProductsCount = Product::where('user_id', $userId)->where('status', 'publish')->where('created_at', '>', now()->subDays(7)->endOfDay())->count();
+
+            $productCategories = Product::select(DB::raw("count(*) as prdct_count"), "category")->where('status', 'publish')->where('user_id', $userId)->groupBy('category')->get();
 
 
-            $categories = [];
-            $categoryRes = Product::select(DB::raw("count(*) as prdct_count"), "category")->where('status', 'publish')->where('user_id', $brndUsrId)->groupBy('category')->get();
-
-
-            foreach ($categoryRes as $cat) {
-                if ($cat->category != 0) {
-                    $categoryDetails = Category::find($cat->category);
-                    $maincategoryDetails = Category::where('id', $categoryDetails->parent_id)->where('parent_id', 0)->first();
-                    $scatres = Product::select(DB::raw("count(*) as prdct_count"), "sub_category")->where('status', 'publish')->where('category', $cat->category)->where('user_id', $brndUsrId)->groupBy('sub_category')->get();
+            foreach ($productCategories as $productCategory) {
+                if ($productCategory->category != 0) {
+                    $categoryDetails = Category::find($productCategory->category);
+                    $mainCategoryDetails = Category::where('id', $categoryDetails->parent_id)->where('parent_id', 0)->first();
+                    $productSubCategories = Product::select(DB::raw("count(*) as prdct_count"), "sub_category")->where('status', 'publish')->where('category', $productCategory->category)->where('user_id', $userId)->groupBy('sub_category')->get();
                     $subCategories = [];
-                    foreach ($scatres as $scat) {
-                        $scategoryDetails = Category::where('id', $scat->sub_category)->first();
+                    foreach ($productSubCategories as $productSubCategory) {
+                        $subCategoryDetails = Category::find('id', $productSubCategory->sub_category);
                         $subCategories[] = array(
-                            "pcount" => $scat->prdct_count,
-                            "name" => $scategoryDetails->title,
-                            "slug" => $maincategoryDetails->slug . '|' . $categoryDetails->slug . '|' . $scategoryDetails->slug,
+                            "pcount" => $productSubCategory->prdct_count,
+                            "name" => $subCategoryDetails->title,
+                            "slug" => $mainCategoryDetails->slug . '|' . $categoryDetails->slug . '|' . $subCategoryDetails->slug,
                         );
                     }
-                    $cat_array = array(
-                        "pcount" => $cat->prdct_count,
+                    $categoryArray = array(
+                        "pcount" => $productCategory->prdct_count,
                         "name" => $categoryDetails->title,
-                        "slug" => $maincategoryDetails->slug . '|' . $categoryDetails->slug,
+                        "slug" => $mainCategoryDetails->slug . '|' . $categoryDetails->slug,
                         "subcategories" => $subCategories
                     );
                 } else {
-                    $cat_array = array(
-                        "pcount" => $cat->prdct_count,
+                    $categoryArray = array(
+                        "pcount" => $productCategory->prdct_count,
                         "name" => 'Uncategorized',
                         "slug" => 'uncategorized',
                         "subcategories" => []
                     );
                 }
 
-                $categories[] = $cat_array;
+                $categories[] = $categoryArray;
             }
-            $allProductQuery = Product::where('user_id', $brndUsrId)->where('status', 'publish');
+            $allProductQuery = Product::where('user_id', $userId)->where('status', 'publish');
             switch ($request->sort_key) {
                 case 2:
                     $allProductQuery->orderBy('updated_at', 'DESC');
@@ -192,19 +101,19 @@ class ShopService
                     break;
                 default:
                     if ($request->sort_cat != '') {
-                        if (strpos($request->sort_cat, '|') !== false) {
+                        if (str_contains($request->sort_cat, '|')) {
                             $cat_arr = explode('|', $request->sort_cat);
                             if (isset($cat_arr[0]) && $cat_arr[0] != '') {
-                                $maincategoryDetails = Category::where('slug', $cat_arr[0])->where('parent_id', 0)->first();
-                                $allProductQuery->where('main_category', $maincategoryDetails->id);
-                            }
-                            if (isset($cat_arr[1]) && $cat_arr[1] != '') {
-                                $categoryDetails = Category::where('slug', $cat_arr[1])->where('parent_id', $maincategoryDetails->id)->first();
-                                $allProductQuery->where('category', $categoryDetails->id);
-                            }
-                            if (isset($cat_arr[2]) && $cat_arr[2] != '') {
-                                $subcategoryDetails = Category::where('slug', $cat_arr[2])->where('parent_id', $categoryDetails->id)->first();
-                                $allProductQuery->where('sub_category', $subcategoryDetails->id);
+                                $mainCategoryDetails = Category::where('slug', $cat_arr[0])->where('parent_id', 0)->first();
+                                $allProductQuery->where('main_category', $mainCategoryDetails->id);
+                                if (isset($cat_arr[1]) && $cat_arr[1] != '') {
+                                    $categoryDetails = Category::where('slug', $cat_arr[1])->where('parent_id', $mainCategoryDetails->id)->first();
+                                    $allProductQuery->where('category', $categoryDetails->id);
+                                    if (isset($cat_arr[2]) && $cat_arr[2] != '') {
+                                        $subcategoryDetails = Category::where('slug', $cat_arr[2])->where('parent_id', $categoryDetails->id)->first();
+                                        $allProductQuery->where('sub_category', $subcategoryDetails->id);
+                                    }
+                                }
                             }
                         }
                     }
@@ -212,24 +121,21 @@ class ShopService
             }
 
             $products = $allProductQuery->get();
-            //dd($products);
             if ($products) {
                 foreach ($products as $v) {
                     $stock = $v->stock;
                     $usdWholesalePrice = $v->usd_wholesale_price ?? 0;
                     $usdRetailPrice = $v->usd_retail_price ?? 0;
-                    $prdctOptionsCount = ProductVariation::where('product_id', $v->id)->where('status', '1')->count();
-                    //return count of product options if any
-                    if ($prdctOptionsCount > 0) {
-                        $prdctOptionsCount = ProductVariation::where('product_id', $v->id)->where('status', '1')->sum('stock');
-                        $stock = $prdctOptionsCount;
+                    $productOptionsCount = ProductVariation::where('product_id', $v->id)->where('status', '1')->count();
+                    if ($productOptionsCount > 0) {
+                        $productOptionsCount = ProductVariation::where('product_id', $v->id)->where('status', '1')->sum('stock');
+                        $stock = $productOptionsCount;
                         $productFirstVariation = ProductVariation::where('product_id', $v->id)->where('status', '1')->first();
                         $usdWholesalePrice = $productFirstVariation->price ?? 0;
                         $usdRetailPrice = $productFirstVariation->retail_price ?? 0;
                     }
 
-
-                    $product_arr[] = array(
+                    $productArray[] = array(
                         'id' => $v->id,
                         'product_key' => $v->product_key,
                         'name' => $v->name,
@@ -275,7 +181,7 @@ class ShopService
             "categories" => $categories,
             "allprdcts_count" => $allProductsCount,
             "newprdcts_count" => $newProductsCount,
-            "products" => $product_arr,
+            "products" => $productArray,
         );
 
         return ['res' => true, 'msg' => "", 'data' => $data];
@@ -290,7 +196,7 @@ class ShopService
     public function getCategoryProducts($request): array
     {
 
-        $product_arr = [];
+        $productArray = [];
         $categories = [];
         $allProductsCount = 0;
         $newProductsCount = 0;
@@ -316,11 +222,11 @@ class ShopService
                 if ($category) {
                     $allProductQuery->where('category', $category->id);
                 }
-            }
-            if ($request->sub_category) {
-                $subCategory = Category::where('parent_id', $category->id)->where('status', '1')->where('title', $request->sub_category)->first();
-                if ($subCategory) {
-                    $allProductQuery->where('category', $subCategory->id);
+                if ($request->sub_category) {
+                    $subCategory = Category::where('parent_id', $category->id)->where('status', '1')->where('title', $request->sub_category)->first();
+                    if ($subCategory) {
+                        $allProductQuery->where('category', $subCategory->id);
+                    }
                 }
             }
         }
@@ -349,19 +255,19 @@ class ShopService
                 break;
             default:
                 if ($request->sort_cat != '') {
-                    if (strpos($request->sort_cat, '|') !== false) {
+                    if (str_contains($request->sort_cat, '|')) {
                         $cat_arr = explode('|', $request->sort_cat);
                         if (isset($cat_arr[0]) && $cat_arr[0] != '') {
-                            $maincategoryDetails = Category::where('slug', $cat_arr[0])->where('parent_id', 0)->first();
-                            $allProductQuery->where('main_category', $maincategoryDetails->id);
-                        }
-                        if (isset($cat_arr[1]) && $cat_arr[1] != '') {
-                            $categoryDetails = Category::where('slug', $cat_arr[1])->where('parent_id', $maincategoryDetails->id)->first();
-                            $allProductQuery->where('category', $categoryDetails->id);
-                        }
-                        if (isset($cat_arr[2]) && $cat_arr[2] != '') {
-                            $subcategoryDetails = Category::where('slug', $cat_arr[2])->where('parent_id', $categoryDetails->id)->first();
-                            $allProductQuery->where('sub_category', $subcategoryDetails->id);
+                            $mainCategoryDetails = Category::where('slug', $cat_arr[0])->where('parent_id', 0)->first();
+                            $allProductQuery->where('main_category', $mainCategoryDetails->id);
+                            if (isset($cat_arr[1]) && $cat_arr[1] != '') {
+                                $categoryDetails = Category::where('slug', $cat_arr[1])->where('parent_id', $mainCategoryDetails->id)->first();
+                                $allProductQuery->where('category', $categoryDetails->id);
+                                if (isset($cat_arr[2]) && $cat_arr[2] != '') {
+                                    $subcategoryDetails = Category::where('slug', $cat_arr[2])->where('parent_id', $categoryDetails->id)->first();
+                                    $allProductQuery->where('sub_category', $subcategoryDetails->id);
+                                }
+                            }
                         }
                     }
                 }
@@ -374,18 +280,17 @@ class ShopService
                 $stock = $v->stock;
                 $usdWholesalePrice = $v->usd_wholesale_price ?? 0;
                 $usdRetailPrice = $v->usd_retail_price ?? 0;
-                $prdctOptionsCount = ProductVariation::where('product_id', $v->id)->where('status', '1')->count();
-                //return count of product options if any
-                if ($prdctOptionsCount > 0) {
-                    $prdctOptionsCount = ProductVariation::where('product_id', $v->id)->where('status', '1')->sum('stock');
-                    $stock = $prdctOptionsCount;
+                $productOptionsCount = ProductVariation::where('product_id', $v->id)->where('status', '1')->count();
+                if ($productOptionsCount > 0) {
+                    $productOptionsCount = ProductVariation::where('product_id', $v->id)->where('status', '1')->sum('stock');
+                    $stock = $productOptionsCount;
                     $productFirstVariation = ProductVariation::where('product_id', $v->id)->where('status', '1')->first();
                     $usdWholesalePrice = $productFirstVariation->price ?? 0;
                     $usdRetailPrice = $productFirstVariation->retail_price ?? 0;
                 }
                 $brandDetails = Brand::where('user_id', $v->user_id)->first();
 
-                $product_arr[] = array(
+                $productArray[] = array(
                     'id' => $v->id,
                     'product_key' => $v->product_key,
                     'name' => $v->name,
@@ -406,7 +311,7 @@ class ShopService
             "categories" => $categories,
             "allprdcts_count" => $allProductsCount,
             "newprdcts_count" => $newProductsCount,
-            "products" => $product_arr,
+            "products" => $productArray,
         );
 
         return ['res' => true, 'msg' => "", 'data' => $data];
