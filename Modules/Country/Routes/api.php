@@ -13,15 +13,13 @@ use Illuminate\Http\Request;
 |
 */
 
-Route::prefix('country')->group(function () {
-    Route::get('/countries', 'CountryController@index');
-});
-Route::prefix('country')->group(function () {
-    Route::get('/state', 'CountryController@state');
-});
-Route::prefix('country')->group(function () {
-    Route::get('/city', 'CountryController@city');
-});
-Route::prefix('country')->group(function () {
-    Route::get('/promotion', 'CountryController@promotion');
-});
+Route::prefix('country')
+    ->name('country.')
+    ->group(function () {
+        Route::get('/countries', 'CountryController@index')->name('country');
+        Route::get('/state', 'CountryController@state')->name('state');
+        Route::get('/city', 'CountryController@city')->name('city');
+        Route::get('/promotion', 'CountryController@promotion')->name('promotion');
+    });
+
+

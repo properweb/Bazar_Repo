@@ -4,11 +4,9 @@ namespace Modules\Country\Entities;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Country extends Model
+class City extends Model
 {
 
     protected $fillable = [];
 
 }
-
-
