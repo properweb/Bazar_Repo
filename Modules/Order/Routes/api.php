@@ -29,8 +29,6 @@ Route::middleware('auth:api')
         Route::post('/split', 'OrderController@split')->name('split');
         Route::post('/cancel', 'OrderController@cancel')->name('cancel');
         Route::get('/csv', 'OrderController@csv')->name('csv');
-
-
     });
 
 

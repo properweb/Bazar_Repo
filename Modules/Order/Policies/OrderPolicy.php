@@ -21,23 +21,43 @@ class OrderPolicy
     }
 
     /**
-     * Determine whether the user is brand and can view any orders.
+     * Determine whether the user is auth user and can view any orders.
      *
      * @param User $user
      * @return bool
      */
-    public function viewAnyBrand(User $user): bool
+    public function viewAny(User $user): bool
     {
-        return $this->isBrand($user);
+        $response = '';
+        if($user->role==='brand')
+        {
+            $response = $this->isBrand($user);
+        }
+        if($user->role==='retailer')
+        {
+            $response = $this->isRetailer($user);
+        }
+        return $response;
     }
 
     /**
-     * Determine whether the user is retailer and can view any orders.
+     * Determine whether the user is retailer and can check out.
      *
      * @param User $user
      * @return bool
      */
-    public function viewAnyRetailer(User $user): bool
+    public function checkout(User $user): bool
+    {
+        return $this->isRetailer($user);
+    }
+
+    /**
+     * Determine whether the user is retailer and can update billing address.
+     *
+     * @param User $user
+     * @return bool
+     */
+    public function update(User $user): bool
     {
         return $this->isRetailer($user);
     }
@@ -61,6 +81,7 @@ class OrderPolicy
      */
     protected function isRetailer(User $user): bool
     {
+
         return $user->role === User::ROLE_RETAILER;
     }
 
@@ -77,28 +98,72 @@ class OrderPolicy
     }
 
     /**
-     * Determine whether the user is brand and can view his order.
+     * Check user can view his order details
+     *
+     * @param User $user
+     * @param Order $order
+     * @return bool|string
+     */
+    public function view(User $user, Order $order): bool|string
+    {
+        $response = '';
+        if($user->role==='brand')
+        {
+            return $this->isCreatorBrand($user, $order);
+        }
+        if($user->role==='retailer')
+        {
+            return $this->isCreatorRetailer($user, $order);
+        }
+        return $response;
+    }
+
+    /**
+     * Update Order
      *
      * @param User $user
      * @param Order $order
      * @return bool
      */
-    public function viewBrand(User $user, Order $order): bool
+    public function updateOrder(User $user, Order $order): bool
     {
         return $this->isCreatorBrand($user, $order);
     }
 
     /**
-     * Determine whether the user is retailer and can view his order.
+     * Cancel Order
      *
      * @param User $user
      * @param Order $order
      * @return bool
      */
-    public function viewRetailer(User $user, Order $order): bool
+    public function cancel(User $user, Order $order): bool
     {
+        return $this->isCreatorBrand($user, $order);
+    }
 
-        return $this->isCreatorRetailer($user, $order);
+    /**
+     * Brand accept his order
+     *
+     * @param User $user
+     * @param Order $order
+     * @return bool
+     */
+    public function accept(User $user, Order $order): bool
+    {
+        return $this->isCreatorBrand($user, $order);
+    }
+
+    /**
+     * Change shipping address
+     *
+     * @param User $user
+     * @param Order $order
+     * @return bool
+     */
+    public function changeAdders(User $user, Order $order): bool
+    {
+        return $this->isCreatorBrand($user, $order);
     }
 
     /**

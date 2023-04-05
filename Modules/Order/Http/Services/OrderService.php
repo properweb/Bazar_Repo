@@ -27,15 +27,15 @@ class OrderService
     /**
      * Show all orders by logged user
      *
-     * @param $request
+     * @param object $request
      * @return array
      */
-    public function index($request): array
+    public function index(object $request): array
     {
         $rOrders = [];
         $orders = '';
         $userId = auth()->user()->id;
-        $user = User::find($userId);
+        $user = auth()->user();
         $allOrdersCount = '';
         $newOrdersCount = '';
         $unfulfilledOrdersCount = '';
@@ -155,12 +155,11 @@ class OrderService
     /**
      * Checkout by logged user
      *
-     * @param $request
+     * @param object $request
      * @return array
      */
-    public function checkout($request): array
+    public function checkout(object $request): array
     {
-
         $userId = auth()->user()->id;
         if (empty(Cart::where('user_id', $userId)->where('order_id', null)->first())) {
 
@@ -229,24 +228,21 @@ class OrderService
         $order->save();
         if (!empty($order)) {
             Cart::where('user_id', $userId)->where('order_id', null)->update(['order_id' => $order->id]);
-
             $prdArr = Cart::where('user_id', $userId)->where('order_id', $order->id)->where('brand_id', $brand->user_id)->get();
 
             $this->syncExternal($prdArr, $brand->user_id);
-
             $response = ['res' => true, 'msg' => 'Your product successfully placed in order', 'data' => ''];
         }
         return $response;
-
     }
 
     /**
      * Order details by order number
      *
-     * @param $orderNumber
+     * @param string $orderNumber
      * @return array
      */
-    public function show($orderNumber): array
+    public function show(string $orderNumber): array
     {
 
         $data = [];
@@ -348,10 +344,10 @@ class OrderService
     /**
      * Create packing list by order
      *
-     * @param $request
+     * @param object $request
      * @return array
      */
-    public function packingSlip($request): array
+    public function packingSlip(object $request): array
     {
 
         $data = [];
@@ -359,7 +355,6 @@ class OrderService
             $orders = $request->items;
             foreach ($orders as $order) {
                 $order = Order::find($order);
-
                 if ($order) {
                     $cart = Cart::where('order_id', $order->id)->first();
                     $brand = Brand::where('user_id', $cart->brand_id)->first();
@@ -432,10 +427,10 @@ class OrderService
     /**
      * Accept order by brand
      *
-     * @param $request
+     * @param array $request
      * @return array
      */
-    public function accept($request): array
+    public function accept(array $request): array
     {
 
         $order = Order::where('order_number', $request['ord_no'])->first();
@@ -465,10 +460,10 @@ class OrderService
     /**
      * Change order address
      *
-     * @param $request
+     * @param object $request
      * @return array
      */
-    public function changeAddress($request): array
+    public function changeAddress(object $request): array
     {
 
         $order = Order::where('order_number', $request->ord_no)->first();
@@ -501,10 +496,10 @@ class OrderService
     /**
      * Change shipping date by order
      *
-     * @param $request
+     * @param object $request
      * @return array
      */
-    public function changeDate($request): array
+    public function changeDate(object $request): array
     {
 
         $data = [];
@@ -529,10 +524,10 @@ class OrderService
     /**
      * Update order details
      *
-     * @param $request
+     * @param object $request
      * @return array
      */
-    public function update($request): array
+    public function update(object $request): array
     {
         $order = Order::find($request->order_id);
         $newCart = $request->items;
@@ -564,10 +559,10 @@ class OrderService
     /**
      * Split order by order
      *
-     * @param $request
+     * @param object $request
      * @return array
      */
-    public function split($request): array
+    public function split(object $request): array
     {
         $order = Order::find($request->order_id);
         $newCart = $request->items;
@@ -611,10 +606,10 @@ class OrderService
     /**
      * Cancel order
      *
-     * @param $request
+     * @param object $request
      * @return array
      */
-    public function cancel($request): array
+    public function cancel(object $request): array
     {
         $order = Order::find($request->order_id);
         if ($order) {
@@ -634,10 +629,11 @@ class OrderService
 
     /**
      * Export order by csv format
-     * @param $request
+     *
+     * @param object $request
      * @return array
      */
-    public function csv($request): array
+    public function csv(object $request): array
     {
         $userId = auth()->user()->id;
         $brand = Brand::where('user_id', $userId)->first();
@@ -661,11 +657,13 @@ class OrderService
     }
 
     /**
-     * @param $prdArr
-     * @param $brandId
+     * Sync to imported website
+     *
+     * @param object $prdArr
+     * @param string $brandId
      * @return void
      */
-    private function syncExternal($prdArr, $brandId): void
+    private function syncExternal(object $prdArr, string $brandId): void
     {
         if (!empty($prdArr)) {
             foreach ($prdArr as $prdCt) {
@@ -726,8 +724,6 @@ class OrderService
                         }
                     }
                 }
-
-
             }
         }
     }

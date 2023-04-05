@@ -37,7 +37,7 @@ class AcceptRequest extends FormRequest
             'brand_state' => 'required|integer',
             'brand_town' => 'required|integer',
             'ship_date' => 'nullable',
-            ];
+        ];
     }
 
     /**

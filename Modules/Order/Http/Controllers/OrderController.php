@@ -30,28 +30,13 @@ class OrderController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = auth()->user();
-        $role = $user->role;
-        if($role==='brand')
-        {
-            if ($user->cannot('viewAnyBrand', Order::class)) {
-                return response()->json([
-                    'res' => false,
-                    'msg' => 'User is not authorized !',
-                    'data' => ""
-                ]);
-            }
+        if ($user->cannot('viewAny', Order::class)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
         }
-        if($role==='retailer')
-        {
-            if ($user->cannot('viewAnyRetailer', Order::class)) {
-                return response()->json([
-                    'res' => false,
-                    'msg' => 'User is not authorized !',
-                    'data' => ""
-                ]);
-            }
-        }
-
 
         $response = $this->orderService->index($request);
 
@@ -67,7 +52,7 @@ class OrderController extends Controller
     public function checkout(Request $request): JsonResponse
     {
         $user = auth()->user();
-        if ($user->cannot('viewAnyRetailer', Order::class)) {
+        if ($user->cannot('checkout', Order::class)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
@@ -89,7 +74,7 @@ class OrderController extends Controller
     public function updateBilling(OrderRequest $request): JsonResponse
     {
         $user = auth()->user();
-        if ($user->cannot('viewAnyRetailer', Order::class)) {
+        if ($user->cannot('update', Order::class)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
@@ -112,26 +97,12 @@ class OrderController extends Controller
     {
         $user = auth()->user();
         $order = Order::where('order_number', $orderNumber)->first();
-        $role = $user->role;
-        if($role==='brand')
-        {
-            if ($user->cannot('viewBrand', $order)) {
-                return response()->json([
-                    'res' => false,
-                    'msg' => 'User is not authorized !',
-                    'data' => ""
-                ]);
-            }
-        }
-        if($role==='retailer')
-        {
-            if ($user->cannot('viewRetailer', $order)) {
-                return response()->json([
-                    'res' => false,
-                    'msg' => 'User is not authorized !',
-                    'data' => ""
-                ]);
-            }
+        if ($user->cannot('view', $order)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
         }
 
         $response = $this->orderService->show($orderNumber);
@@ -148,7 +119,7 @@ class OrderController extends Controller
     public function packingSlip(Request $request): JsonResponse
     {
         $user = auth()->user();
-        if ($user->cannot('viewAnyBrand', Order::class)) {
+        if ($user->cannot('viewAny', Order::class)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
@@ -171,7 +142,7 @@ class OrderController extends Controller
     {
         $user = auth()->user();
         $order = Order::where('order_number', $request->ord_no)->first();
-        if ($user->cannot('viewBrand', $order)) {
+        if ($user->cannot('accept', $order)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
@@ -193,28 +164,12 @@ class OrderController extends Controller
     public function changeDate(Request $request): JsonResponse
     {
         $user = auth()->user();
-        $role = $user->role;
-        if($role==='brand')
-        {
-
-            if ($user->cannot('viewAnyBrand', Order::class)) {
-                return response()->json([
-                    'res' => false,
-                    'msg' => 'User is not authorized !',
-                    'data' => ""
-                ]);
-            }
-        }
-        if($role==='retailer')
-        {
-
-            if ($user->cannot('viewAnyRetailer', Order::class)) {
-                return response()->json([
-                    'res' => false,
-                    'msg' => 'User is not authorized !',
-                    'data' => ""
-                ]);
-            }
+        if ($user->cannot('update', Order::class)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
         }
 
         $response = $this->orderService->changeDate($request);
@@ -232,7 +187,7 @@ class OrderController extends Controller
     {
         $user = auth()->user();
         $order = Order::where('order_number', $request->ord_no)->first();
-        if ($user->cannot('viewBrand', $order)) {
+        if ($user->cannot('changeAdders', $order)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
@@ -255,7 +210,7 @@ class OrderController extends Controller
     {
         $user = auth()->user();
         $order = Order::where('id', $request->order_id)->first();
-        if ($user->cannot('viewBrand', $order)) {
+        if ($user->cannot('updateOrder', $order)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
@@ -278,7 +233,7 @@ class OrderController extends Controller
     {
         $user = auth()->user();
         $order = Order::where('id', $request->order_id)->first();
-        if ($user->cannot('viewBrand', $order)) {
+        if ($user->cannot('updateOrder', $order)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
@@ -301,7 +256,7 @@ class OrderController extends Controller
     {
         $user = auth()->user();
         $order = Order::where('order_id', $request->order_id)->first();
-        if ($user->cannot('viewBrand', $order)) {
+        if ($user->cannot('cancel', $order)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
@@ -315,7 +270,7 @@ class OrderController extends Controller
     }
 
     /**
-     * download order csv
+     * Download order csv
      *
      * @param Request $request
      * @return JsonResponse
@@ -323,7 +278,7 @@ class OrderController extends Controller
     public function csv(Request $request): JsonResponse
     {
         $user = auth()->user();
-        if ($user->cannot('viewAnyBrand', Order::class)) {
+        if ($user->cannot('viewAny', Order::class)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
@@ -331,7 +286,7 @@ class OrderController extends Controller
             ]);
         }
 
-        $response = $this->orderService->csv($request);
+        $this->orderService->csv($request);
 
         exit;
     }
