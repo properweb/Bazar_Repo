@@ -2,7 +2,6 @@
 
 namespace Modules\Country\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Country\Http\Requests\StateRequest;
 use Modules\Country\Http\Requests\CityRequest;

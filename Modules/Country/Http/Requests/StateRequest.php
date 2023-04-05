@@ -27,7 +27,7 @@ class StateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'country_id' => 'required|integer'
+            'country_id' => 'required|integer|exists:countries,id'
         ];
     }
 
