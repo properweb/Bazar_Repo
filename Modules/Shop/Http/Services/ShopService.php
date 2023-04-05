@@ -5,11 +5,14 @@ namespace Modules\Shop\Http\Services;
 use Illuminate\Support\Facades\DB;
 use Modules\Brand\Entities\Brand;
 use Modules\Category\Entities\Category;
+use Modules\Country\Entities\Country;
 use Modules\Product\Entities\Product;
 use Modules\Product\Entities\ProductImage;
 use Modules\Product\Entities\Video;
 use Modules\Product\Entities\ProductVariation;
 use Modules\Product\Entities\ProductPrepack;
+use Modules\User\Entities\User;
+use Modules\User\Entities\UserRecentView;
 use Modules\Wishlist\Entities\Wishlist;
 
 
@@ -43,7 +46,6 @@ class ShopService
 
             $productCategories = Product::select(DB::raw("count(*) as prdct_count"), "category")->where('status', 'publish')->where('user_id', $userId)->groupBy('category')->get();
 
-
             foreach ($productCategories as $productCategory) {
                 if ($productCategory->category != 0) {
                     $categoryDetails = Category::find($productCategory->category);
@@ -51,7 +53,7 @@ class ShopService
                     $productSubCategories = Product::select(DB::raw("count(*) as prdct_count"), "sub_category")->where('status', 'publish')->where('category', $productCategory->category)->where('user_id', $userId)->groupBy('sub_category')->get();
                     $subCategories = [];
                     foreach ($productSubCategories as $productSubCategory) {
-                        $subCategoryDetails = Category::find('id', $productSubCategory->sub_category);
+                        $subCategoryDetails = Category::find($productSubCategory->sub_category);
                         $subCategories[] = array(
                             "pcount" => $productSubCategory->prdct_count,
                             "name" => $subCategoryDetails->title,
@@ -355,7 +357,7 @@ class ShopService
                 $data['brand_direct_link'] = $brandDetails->bazaar_direct_link;
                 $data['brand_avg_lead_time'] = $brandDetails->avg_lead_time;
                 //shipped from
-                $productShipped = DB::table('countries')->where('id', $brandDetails->product_shipped)->first();
+                $productShipped = Country::find($brandDetails->product_shipped);
                 $data['shipped_from'] = $productShipped ? $productShipped->name : '';
             }
             $productImages = ProductImage::where('product_id', $productDetails->id)->get();

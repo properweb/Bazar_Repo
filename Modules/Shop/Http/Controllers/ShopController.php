@@ -5,8 +5,8 @@ namespace Modules\Shop\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\JsonResponse;
+use Modules\Product\Entities\Product;
 use Modules\Shop\Http\Services\ShopService;
-
 
 
 class ShopController extends Controller
