@@ -3,7 +3,6 @@
 namespace Modules\Shop\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Database\Eloquent\Factory;
 
 class ShopServiceProvider extends ServiceProvider
 {
