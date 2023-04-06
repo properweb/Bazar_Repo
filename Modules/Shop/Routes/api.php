@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -13,13 +14,12 @@ use Illuminate\Http\Request;
 |
 */
 
+Route::prefix('shop')
+    ->name('shop.')
+    ->group(function () {
+    Route::post('/brand-products', 'ShopController@fetchBrandProducts')->name('brand_products');
+    Route::post('/category-products', 'ShopController@fetchCategoryProducts')->name('category_products');
+    Route::get('/product', 'ShopController@fetchProductDetail')->name('product_detail');
+});
 
-Route::prefix('shop')->group(function () {
-    Route::get('/brand/{id}', 'ShopController@brand');
-});
-Route::prefix('shop')->group(function () {
-    Route::get('/products', 'ShopController@products');
-});
-Route::prefix('shop')->group(function () {
-    Route::get('/product', 'ShopController@product');
-});
+
