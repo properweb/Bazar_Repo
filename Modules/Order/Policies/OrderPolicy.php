@@ -28,16 +28,7 @@ class OrderPolicy
      */
     public function viewAny(User $user): bool
     {
-        $response = '';
-        if($user->role==='brand')
-        {
-            $response = $this->isBrand($user);
-        }
-        if($user->role==='retailer')
-        {
-            $response = $this->isRetailer($user);
-        }
-        return $response;
+        return $this->isBrand($user) || $this->isRetailer($user);
     }
 
     /**
@@ -106,16 +97,15 @@ class OrderPolicy
      */
     public function view(User $user, Order $order): bool|string
     {
-        $response = '';
-        if($user->role==='brand')
-        {
+        if($this->isBrand($user)) {
             return $this->isCreatorBrand($user, $order);
         }
-        if($user->role==='retailer')
-        {
+
+        if($this->isRetailer($user)) {
             return $this->isCreatorRetailer($user, $order);
         }
-        return $response;
+
+        return false;
     }
 
     /**
@@ -175,7 +165,6 @@ class OrderPolicy
      */
     protected function isCreatorRetailer(User $user, Order $order): bool
     {
-
         return $user->id === $order->user_id;
     }
 }
