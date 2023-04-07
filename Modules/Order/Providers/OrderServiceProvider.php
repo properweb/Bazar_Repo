@@ -3,7 +3,7 @@
 namespace Modules\Order\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Database\Eloquent\Factory;
+
 
 class OrderServiceProvider extends ServiceProvider
 {
