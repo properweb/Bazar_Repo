@@ -6,6 +6,21 @@ use Illuminate\Database\Eloquent\Model;
 
 class Customer extends Model {
 
-     protected $guarded = [];
+    //Declare statuses
+    const STATUS = 'manual';
+    const SOURCE = 'manual upload';
+    const REFERENCE = 'lead';
+
+    protected $fillable = [
+        'user_id',
+        'customer_key',
+        'name',
+        'store_name',
+        'email',
+        'status',
+        'source',
+        'type',
+        'reference'
+    ];
 
 }

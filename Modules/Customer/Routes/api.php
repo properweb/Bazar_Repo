@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -13,12 +14,15 @@ use Illuminate\Http\Request;
 |
 */
 
-Route::prefix('customers')->group(function () {
-    Route::get('/', 'CustomerController@index');
-    Route::post('/', 'CustomerController@store');
-    Route::get('/{customer}', 'CustomerController@show');
-    Route::post('/update', 'CustomerController@update');
-    Route::post('/import', 'CustomerController@import');
-    Route::post('/delete', 'CustomerController@destroy');
-    Route::post('/export', 'CustomerController@export');
-});
+Route::middleware('auth:api')
+    ->prefix('customers')
+    ->name('customer.')
+    ->group(function () {
+        Route::get('/', 'CustomerController@index')->name('list');
+        Route::post('/', 'CustomerController@store')->name('store');
+        Route::get('/{customer}', 'CustomerController@show')->name('show');
+        Route::post('/update', 'CustomerController@update')->name('update');
+        Route::post('/delete', 'CustomerController@destroy')->name('delete');
+        Route::post('/import', 'CustomerController@import')->name('import');
+        Route::post('/export', 'CustomerController@export')->name('export');
+    });

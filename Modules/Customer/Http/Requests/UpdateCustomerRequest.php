@@ -1,14 +1,13 @@
 <?php
 
-namespace Modules\User\Http\Requests;
+namespace Modules\Promotion\Http\Requests;
 
-use Illuminate\Validation\Rules\Password;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\JsonResponse;
 
-class StoreUserRequest extends FormRequest
+class UpdateCustomerRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -28,18 +27,10 @@ class StoreUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'first_name' => 'nullable|regex:/^[a-zA-Z]+$/u|max:255',
-            'last_name' => 'nullable|regex:/^[a-zA-Z]+$/u|max:255',
-            'email' => 'required|email|max:255|regex:/^([a-z0-9\+_\-]+)(\.[a-z0-9\+_\-]+)*@([a-z0-9\-]+\.)+[a-z]{2,6}$/ix|unique:users,email',
-            'password' => [
-                'required',
-                Password::min(8)
-                    ->letters()
-                    ->mixedCase()
-                    ->numbers()
-                    ->symbols()
-            ],
-
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|regex:/^([a-z0-9\+_\-]+)(\.[a-z0-9\+_\-]+)*@([a-z0-9\-]+\.)+[a-z]{2,6}$/ix',
+            'store_name' => 'string|max:255',
+            'type' => 'string|max:255',
         ];
     }
 
@@ -58,4 +49,5 @@ class StoreUserRequest extends FormRequest
         ]));
 
     }
+
 }
