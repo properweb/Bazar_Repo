@@ -287,7 +287,7 @@ class BrandService
                     $catalog->filename = $brandRelPath . $fileName;
                     $catalog->save();
                     $reader = new ReaderXlsx();
-                    $spreadsheet = $reader->load($path);
+                    $spreadsheet = $reader->load($brandAbsPath . $fileName);
                     $sheet = $spreadsheet->getActiveSheet()->toArray(null, true, true, true);
                     unset($sheet[2]);
                     if (!empty($sheet)) {
