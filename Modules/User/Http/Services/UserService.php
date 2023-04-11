@@ -2,11 +2,14 @@
 
 namespace Modules\User\Http\Services;
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Modules\User\Entities\User;
 use Modules\Brand\Entities\Brand;
+use Modules\Retailer\Entities\Retailer;
 
 class UserService
 {
@@ -20,7 +23,6 @@ class UserService
      */
     public function login(array $requestData): array
     {
-        //dd($requestData);
         if (Auth::attempt(["email" => $requestData['email'], "password" => $requestData['password']])) {
             $stepCount = 0;
             $brandData = [];
@@ -76,10 +78,10 @@ class UserService
         $user = User::where('email', $request->email)->first();
         if ($user) {
             $token = Str::random(64);
-            $appUrl = config('app.url');
+            $webUrl = config('app.web_url');
             $appName = config('app.name');
-            $url = 'https://staging1.bazarcenter.ca/reset-password/' . $token;
-            Mail::send('email.forgetPassword', ['url' => $url, 'site_url' => 'https://staging1.bazarcenter.ca', 'site_name' => $appName, 'name' => $user->first_name . ' ' . $user->last_name], function ($message) use ($user) {
+            $url = $webUrl . '/reset-password/' . $token;
+            Mail::send('email.forgetPassword', ['url' => $url, 'site_url' => $webUrl, 'site_name' => $appName, 'name' => $user->first_name . ' ' . $user->last_name], function ($message) use ($user) {
                 $message->to($user->email);
                 $message->from("sender@demoupdates.com");
                 $message->subject('Bazar:Reset Password');

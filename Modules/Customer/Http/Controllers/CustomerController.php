@@ -3,10 +3,12 @@
 namespace Modules\Customer\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Modules\Customer\Entities\Customer;
 use Modules\Customer\Http\Requests\StoreCustomerRequest;
 use Modules\Customer\Http\Requests\UpdateCustomerRequest;
+use Modules\Customer\Http\Requests\ImportCustomerRequest;
 use Modules\Customer\Http\Services\CustomerService;
 
 
@@ -161,7 +163,6 @@ class CustomerController extends Controller
                 'data' => ""
             ]);
         }
-        $request->request->add(['user_id' => $user->id]);
         $response = $this->customerService->importCustomers($request->validated());
 
         return response()->json($response);
@@ -185,7 +186,6 @@ class CustomerController extends Controller
                 'data' => ""
             ]);
         }
-        $request->request->add(['user_id' => $user->id]);
         $response = $this->customerService->exportCustomers($request);
 
         return response()->json($response);

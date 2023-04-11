@@ -10,7 +10,6 @@ use Modules\Cart\Entities\Cart;
 use Modules\Customer\Entities\Customer;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Reader\Xlsx as ReaderXlsx;
-use PhpOffice\PhpSpreadsheet\Writer\Xls;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Carbon\Carbon;
 
@@ -41,9 +40,9 @@ class CustomerService
         if (!empty($requestData['customers'])) {
             foreach ($requestData['customers'] as $customer) {
                 $customerData["user_id"] = $requestData['user_id'];
-                $customerData["status"] = Customer :: STATUS;
-                $customerData["source"] = Customer :: SOURCE;
-                $customerData["reference"] = Customer :: REFERENCE;
+                $customerData["status"] = Customer ::STATUS;
+                $customerData["source"] = Customer ::SOURCE;
+                $customerData["reference"] = Customer ::REFERENCE;
                 $this->createCustomer($customerData);
             }
         }
@@ -113,10 +112,10 @@ class CustomerService
     /**
      * Get all customers
      *
-     * @param $request
+     * @param Request $request
      * @return array
      */
-    public function getCustomers($request): array
+    public function getCustomers(Request $request): array
     {
         $user = User::find($request->user_id);
         if ($user) {
@@ -233,12 +232,12 @@ class CustomerService
      */
     public function importCustomers(Request $request): array
     {
-        $brand = Brand::where('user_id', $request->user_id)->first();
+        $user = auth()->user();
+        $brand = Brand::where('user_id', $user->id)->first();
         $brandId = $brand->id;
         $brandAbsPath = $this->brandAbsPath . "/" . $brandId . "/";
 
         $file = $request->file('upload_contact_list');
-        $xlsxName = $file->getClientOriginalName();
         $fileName = Str::random(10) . '_cstmrs.' . $file->extension();
         $file->move($brandAbsPath, $fileName);
         $reader = new ReaderXlsx();
@@ -250,9 +249,9 @@ class CustomerService
             $customerData["name"] = $data['C'];
             $customerData["email"] = $data['D'];
             $customerData["user_id"] = $request['user_id'];
-            $customerData["status"] = Customer :: STATUS;
-            $customerData["source"] = Customer :: SOURCE;
-            $customerData["reference"] = Customer :: REFERENCE;
+            $customerData["status"] = Customer ::STATUS;
+            $customerData["source"] = Customer ::SOURCE;
+            $customerData["reference"] = Customer ::REFERENCE;
             $this->createCustomer($customerData);
         }
 
@@ -265,10 +264,11 @@ class CustomerService
      * @param Request $request
      * @return array
      */
+
     public function exportCustomers(Request $request): array
     {
-
-        $brand = Brand::where('user_id', $request->user_id)->first();
+        $user = auth()->user();
+        $brand = Brand::where('user_id', $user->id)->first();
         $brandId = $brand->id;
         $brandAbsPath = $this->brandAbsPath . "/" . $brandId . "/";
         $brandRelPath = $this->brandRelPath . $brandId . "/";
