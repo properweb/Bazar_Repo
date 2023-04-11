@@ -40,9 +40,9 @@ class CustomerService
         if (!empty($requestData['customers'])) {
             foreach ($requestData['customers'] as $customer) {
                 $customerData["user_id"] = $requestData['user_id'];
-                $customerData["status"] = Customer ::STATUS;
-                $customerData["source"] = Customer ::SOURCE;
-                $customerData["reference"] = Customer ::REFERENCE;
+                $customerData["status"] = Customer::STATUS;
+                $customerData["source"] = Customer::SOURCE;
+                $customerData["reference"] = Customer::REFERENCE;
                 $this->createCustomer($customerData);
             }
         }
@@ -249,9 +249,9 @@ class CustomerService
             $customerData["name"] = $data['C'];
             $customerData["email"] = $data['D'];
             $customerData["user_id"] = $request['user_id'];
-            $customerData["status"] = Customer ::STATUS;
-            $customerData["source"] = Customer ::SOURCE;
-            $customerData["reference"] = Customer ::REFERENCE;
+            $customerData["status"] = Customer::STATUS;
+            $customerData["source"] = Customer::SOURCE;
+            $customerData["reference"] = Customer::REFERENCE;
             $this->createCustomer($customerData);
         }
 
@@ -261,10 +261,11 @@ class CustomerService
     /**
      * Export selected customers
      *
-     * @param Request $request
+     * @param  Request  $request
      * @return array
+     * @throws \PhpOffice\PhpSpreadsheet\Exception
+     * @throws \PhpOffice\PhpSpreadsheet\Writer\Exception
      */
-
     public function exportCustomers(Request $request): array
     {
         $user = auth()->user();
