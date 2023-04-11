@@ -9,9 +9,14 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
 use Modules\Country\Entities\Country;
+use Modules\Product\Entities\Product;
+use Modules\Product\Entities\ProductImage;
+use Modules\Product\Entities\ProductVariation;
 use Modules\User\Entities\User;
 use Modules\Brand\Entities\Brand;
 use Modules\Brand\Entities\Catalog;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Reader\Xlsx as ReaderXlsx;
 
 
 class BrandService
@@ -283,10 +288,178 @@ class BrandService
                     $catalog->brand_id = $brand->id;
                     $catalog->filename = $brandRelPath . $fileName;
                     $catalog->save();
+                    $reader = new ReaderXlsx();
+                    $spreadsheet = $reader->load($brandAbsPath . $fileName);
+                    $sheet = $spreadsheet->getActiveSheet()->toArray(null, true, true, true);
+                    unset($sheet[2]);
+                    if (!empty($sheet)) {
+                        foreach ($sheet as $data) {
+                            $name = $data['A'];
+                            $description = $data['D'];
+                            $country = $data['E'];
+                            $caseQuantity = $data['F'];
+                            $minOrderQty = $data['G'];
+                            $sku = $data['I'];
+                            $usdWholesale = (float)$data['P'];
+                            $usdRetail = (float)$data['Q'];
+                            $cadWholesale = (float)$data['R'];
+                            $cadRetail = (float)$data['S'];
+                            $gbrWholesale = (float)$data['T'];
+                            $gbrRetail = (float)$data['U'];
+                            $eurWholesale = (float)$data['V'];
+                            $eurRetail = (float)$data['W'];
+                            $usdTester = (float)$data['X'];
+                            $fabricContent = $data['AC'];
+                            $careInstruction = $data['AD'];
+                            $season = $data['AE'];
+                            $occasion = $data['AF'];
+                            $aesthetic = $data['AG'];
+                            $fit = $data['AH'];
+                            $preorder = $data['AL'];
+                            $productShip = $data['AM'];
+                            $productEndShip = $data['AN'];
+                            $productDeadline = $data['AO'];
+                            $image1 = $data['Y'];
+                            $image2 = $data['Z'];
+                            $image3 = $data['AA'];
+                            $image4 = $data['AB'];
+
+                            $qryCountry = Country::where("name", $country)->first();
+                            if (!empty($qryCountry)) {
+                                $countryId = $qryCountry->id;
+                            } else {
+                                $countryId = 0;
+                            }
+
+                            $productSlug = Str::slug($name, '-');
+                            $qryProduct = Product::where('slug', $productSlug)->first();
+                            if (empty($qryProduct)) {
+                                $productKey = 'p_' . Str::lower(Str::random(10));
+                                $productSlug = Str::slug($name, '-');
+                                $featuredImage = '';
+                                $productImages = [];
+                                if (!empty($image1)) {
+                                    $productImages[] = strpos($image1, 'http') !== false ? $image1 : asset('public') . '/uploads/products/' . $image1;
+                                    $featuredImage = strpos($image1, 'http') !== false ? $image1 : asset('public') . '/uploads/products/' . $image1;
+                                }
+                                if (!empty($image2)) {
+                                    $productImages[] = strpos($image2, 'http') !== false ? $image2 : asset('public') . '/uploads/products/' . $image2;
+                                }
+                                if (!empty($image3)) {
+                                    $productImages[] = strpos($image3, 'http') !== false ? $image3: asset('public') . '/uploads/products/' . $image3;
+                                }
+                                if (!empty($image4)) {
+                                    $productImages[] = strpos($image4, 'http') !== false ? $image4 : asset('public') . '/uploads/products/' . $image4;
+                                }
+
+
+                                $product = new Product();
+                                $product->product_key = $productKey;
+                                $product->slug = $productSlug;
+                                $product->name = $name;
+                                $product->user_id = $request->user_id;
+                                $product->status = "unpublish";
+                                $product->description = addslashes($description);
+                                $product->country = $countryId;
+                                $product->case_quantity = $caseQuantity ?? 0;
+                                $product->min_order_qty = $minOrderQty ?? 0;
+                                $product->sku = $sku;
+                                $product->usd_wholesale_price = $usdWholesale ?? 0;
+                                $product->usd_retail_price = $usdRetail ?? 0;
+                                $product->cad_wholesale_price = $cadWholesale ?? 0;
+                                $product->cad_retail_price = $cadRetail ?? 0;
+                                $product->eur_wholesale_price = $eurWholesale ?? 0;
+                                $product->eur_retail_price = $eurRetail ?? 0;
+                                $product->gbr_wholesale_price = $gbrWholesale ?? 0;
+                                $product->gbr_retail_price = $gbrRetail ?? 0;
+                                $product->usd_tester_price = $usdTester ?? 0;
+                                $product->care_instruction = $careInstruction;
+                                $product->season = $season;
+                                $product->Occasion = $occasion;
+                                $product->Aesthetic = $aesthetic;
+                                $product->Fit = $fit;
+                                $product->Preorder = $preorder;
+                                $product->featured_image = $featuredImage;
+                                $product->country = $countryId;
+                                $product->fabric_content = $fabricContent;
+                                $product->product_shipdate = date('Y-m-d', strtotime($productShip));
+                                $product->product_endshipdate = date('Y-m-d', strtotime($productEndShip));
+                                $product->product_deadline = date('Y-m-d', strtotime($productDeadline));
+                                $product->created_at = date('Y-m-d H:i:s');
+                                $product->updated_at = date('Y-m-d H:i:s');
+                                $product->save();
+                                $lastInsertId = $product->id;
+
+                                if (!empty($productImages)) {
+                                    foreach ($productImages as $imgK => $img) {
+                                        $featureKey = $imgK == 0 ? 1 : 0;
+                                        $productImage = new ProductImage();
+                                        $productImage->product_id = $lastInsertId;
+                                        $productImage->images = $img;
+                                        $productImage->feature_key = $featureKey;
+                                        $productImage->save();
+                                    }
+                                }
+
+                                $optName1 = str_replace("'", '"', $data['J']);
+                                $optValue1 = str_replace("'", '"', $data['K']);
+                                $optName2 = str_replace("'", '"', $data['L']);
+                                $optValue2 = str_replace("'", '"', $data['M']);
+                                $optName3 = str_replace("'", '"', $data['N']);
+                                $optValue3 = str_replace("'", '"', $data['O']);
+                                $optionTypes = 0;
+                                if ($optName1 != '' && strtolower($optName1) != 'optional') {
+                                    $optionTypes++;
+                                }
+                                if ($optName2 != '' && strtolower($optName2) != 'optional') {
+                                    $optionTypes++;
+                                }
+                                if ($optName3 != '' && strtolower($optName3) != 'optional') {
+                                    $optionTypes++;
+                                }
+                                $variations = [];
+
+
+                                if ($optionTypes > 0) {
+                                    $option1Values = explode(',', $optValue1);
+                                    $option2Values = explode(',', $optValue2);
+                                    $option3Values = explode(',', $optValue3);
+                                    if (!empty($option3Values)) {
+                                        foreach ($option3Values as $ok3 => $ov3) {
+                                            if (!empty($option2Values)) {
+                                                foreach ($option2Values as $ok2 => $ov2) {
+                                                    if (!empty($option1Values)) {
+                                                        foreach ($option1Values as $ok1 => $ov1) {
+                                                            $variations[] = array(
+                                                                'option1' => $optName1, 'option2' => $optName2, 'option3' => $optName3, 'value1' => $ov1, 'value2' => $ov2, 'value3' => $ov3, 'swatch_image' => '', 'sku' => '', 'wholesale_price' => $usdWholesale, 'retail_price' => $usdRetail, 'inventory' => 0, 'weight' => 0, 'length' => 0, 'length_unit' => '', 'width_unit' => '', 'height_unit' => '', 'width' => 0, 'height' => 0, 'dimension_unit' => '', 'weight_unit' => '', 'tariff_code' => 0
+                                                            );
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                if (is_countable($variations) && count($variations) > 0) {
+                                    foreach ($variations as $vars) {
+                                        $vars['product_id'] = $lastInsertId;
+                                        $vars['variant_key'] = 'v_' . Str::lower(Str::random(10));
+                                        $vars['price'] = $vars['wholesale_price'];
+                                        $vars['cad_wholesale_price'] = $cadWholesale;
+                                        $vars['cad_retail_price'] = $cadRetail;
+                                        $vars['eur_wholesale_price'] = $eurWholesale;
+                                        $vars['eur_retail_price'] = $eurRetail;
+                                        $productVariation = new ProductVariation();
+                                        $productVariation->fill($vars);
+                                        $productVariation->save();
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
             if ($request->file('upload_zip')) {
-
                 $fileName = Str::random(10) . '_photos.' . $request->file('upload_zip')->extension();
                 $request->file('upload_zip')->move($brandAbsPath, $fileName);
                 $brand->upload_zip = $brandRelPath . $fileName;
