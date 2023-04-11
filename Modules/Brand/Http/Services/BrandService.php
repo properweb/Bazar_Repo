@@ -15,6 +15,8 @@ use Modules\Product\Entities\ProductVariation;
 use Modules\User\Entities\User;
 use Modules\Brand\Entities\Brand;
 use Modules\Brand\Entities\Catalog;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Reader\Xlsx as ReaderXlsx;
 
 
 class BrandService
