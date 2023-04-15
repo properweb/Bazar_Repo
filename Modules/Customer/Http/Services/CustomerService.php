@@ -41,9 +41,9 @@ class CustomerService
             foreach ($requestData['customers'] as $customer) {
                 $customerData = $customer;
                 $customerData["user_id"] = $user->id;
-                $customerData["status"] = Customer ::STATUS;
-                $customerData["source"] = Customer ::SOURCE;
-                $customerData["reference"] = Customer ::REFERENCE;
+                $customerData["status"] = Customer::STATUS;
+                $customerData["source"] = Customer::SOURCE;
+                $customerData["reference"] = Customer::REFERENCE;
                 $this->createCustomer($customerData);
             }
         }
@@ -254,9 +254,9 @@ class CustomerService
                 $customerData["name"] = $data['C'];
                 $customerData["email"] = $data['D'];
                 $customerData["user_id"] = $user->id;
-                $customerData["status"] = Customer ::STATUS;
-                $customerData["source"] = Customer ::SOURCE;
-                $customerData["reference"] = Customer ::REFERENCE;
+                $customerData["status"] = Customer::STATUS;
+                $customerData["source"] = Customer::SOURCE;
+                $customerData["reference"] = Customer::REFERENCE;
                 $this->createCustomer($customerData);
             }
         }
