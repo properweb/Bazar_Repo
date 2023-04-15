@@ -19,6 +19,7 @@ Route::prefix('shop')
     ->group(function () {
     Route::post('/brand-products', 'ShopController@fetchBrandProducts')->name('brand_products');
     Route::post('/category-products', 'ShopController@fetchCategoryProducts')->name('category_products');
+    Route::post('/product-filters', 'ShopController@fetchProductFilters')->name('product_filters');
     Route::get('/product', 'ShopController@fetchProductDetail')->name('product_detail');
 });
 

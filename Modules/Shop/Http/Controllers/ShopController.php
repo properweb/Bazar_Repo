@@ -45,6 +45,19 @@ class ShopController extends Controller
     }
 
     /**
+     * Get list of filters for product listing
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function fetchProductFilters(Request $request): JsonResponse
+    {
+        $response = $this->shopService->getProductFilters($request);
+
+        return response()->json($response);
+    }
+
+    /**
      * Fetch Product details
      *
      * @param Request $request
