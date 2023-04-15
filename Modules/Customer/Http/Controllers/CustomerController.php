@@ -64,14 +64,13 @@ class CustomerController extends Controller
                 'data' => ""
             ]);
         }
-        $request->request->add(['user_id' => $user->id]);
         $response = $this->customerService->store($request->validated());
 
         return response()->json($response);
     }
 
     /**
-     * Fetch the specified campaign
+     * Fetch the specified customer
      *
      * @param string $customerKey
      * @return JsonResponse
@@ -105,9 +104,10 @@ class CustomerController extends Controller
     public function update(UpdateCustomerRequest $request): JsonResponse
     {
         $user = auth()->user();
+        $customer = Customer::where('customer_key', $request->customer_key)->first();
 
         // return error if user cannot update customer
-        if ($user->cannot('update', Customer::class)) {
+        if ($user->cannot('update', $customer)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
@@ -121,18 +121,17 @@ class CustomerController extends Controller
     }
 
     /**
-     * Remove the specified campaign from storage
+     * Remove the customers from storage
      *
-     * @param string $customerKey
+     * @param Request $request
      * @return JsonResponse
      */
-    public function destroy(string $customerKey): JsonResponse
+    public function destroy(Request $request): JsonResponse
     {
         $user = auth()->user();
-        $customer = Customer::where('customer_key', $customerKey)->first();
 
-        // return error if user not created the campaign
-        if ($user->cannot('delete', $customer)) {
+        // return error if user is not a brand
+        if ($user->cannot('viewAny', Customer::class)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
@@ -140,7 +139,7 @@ class CustomerController extends Controller
             ]);
         }
 
-        $response = $this->customerService->delete($customerKey);
+        $response = $this->customerService->delete($request->all());
 
         return response()->json($response);
     }

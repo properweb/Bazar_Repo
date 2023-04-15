@@ -35,11 +35,12 @@ class CustomerService
      */
     public function store(array $requestData): array
     {
-
+        $user = auth()->user();
         //set request data with authenticated user id.
         if (!empty($requestData['customers'])) {
             foreach ($requestData['customers'] as $customer) {
-                $customerData["user_id"] = $requestData['user_id'];
+                $customerData = $customer;
+                $customerData["user_id"] = $user->id;
                 $customerData["status"] = Customer ::STATUS;
                 $customerData["source"] = Customer ::SOURCE;
                 $customerData["reference"] = Customer ::REFERENCE;
@@ -99,8 +100,11 @@ class CustomerService
                 'data' => ""
             ];
         }
-
-        $customer->update($requestData);
+        $customer->name = $requestData['cust_name'];
+        $customer->email = $requestData['cust_email'];
+        $customer->store_name = $requestData['cust_storename'];
+        $customer->type = $requestData['cust_type'];
+        $customer->save();
 
         return [
             'res' => true,
@@ -117,18 +121,18 @@ class CustomerService
      */
     public function getCustomers(Request $request): array
     {
-        $user = User::find($request->user_id);
+        $user = auth()->user();
         if ($user) {
             $brand = Brand::where('user_id', $user->id)->first();
-            $allCustomersCount = Customer::where('brand_id', $brand->user_id)->count();
-            $orderedCustomersCount = Customer::where('brand_id', $brand->user_id)->where('status', 'ordered')->count();
-            $contactedCustomersCount = Customer::where('brand_id', $brand->user_id)->where('status', 'contacted')->count();
-            $unusedCreditCustomersCount = Customer::where('brand_id', $brand->user_id)->where('status', 'unused credit')->count();
-            $notOrderedCustomersCount = Customer::where('brand_id', $brand->user_id)->where('status', 'not yet ordered')->count();
-            $uncontactedCustomersCount = Customer::where('brand_id', $brand->user_id)->where('status', 'uncontacted')->count();
-            $notSignedCustomersCount = Customer::where('brand_id', $brand->user_id)->where('status', 'not signed up')->count();
-            $onBazarCustomersCount = Customer::where('brand_id', $brand->user_id)->where('status', 'on bazar')->count();
-            $customers = Customer::where('brand_id', $brand->user_id);
+            $allCustomersCount = Customer::where('user_id', $brand->user_id)->count();
+            $orderedCustomersCount = Customer::where('user_id', $brand->user_id)->where('status', 'ordered')->count();
+            $contactedCustomersCount = Customer::where('user_id', $brand->user_id)->where('status', 'contacted')->count();
+            $unusedCreditCustomersCount = Customer::where('user_id', $brand->user_id)->where('status', 'unused credit')->count();
+            $notOrderedCustomersCount = Customer::where('user_id', $brand->user_id)->where('status', 'not yet ordered')->count();
+            $uncontactedCustomersCount = Customer::where('user_id', $brand->user_id)->where('status', 'uncontacted')->count();
+            $notSignedCustomersCount = Customer::where('user_id', $brand->user_id)->where('status', 'not signed up')->count();
+            $onBazarCustomersCount = Customer::where('user_id', $brand->user_id)->where('status', 'on bazar')->count();
+            $customers = Customer::where('user_id', $brand->user_id);
             $status = strtolower($request->status);
             switch ($status) {
                 case 'all':
@@ -164,8 +168,8 @@ class CustomerService
                     $ordered_amount = 0;
                     $user = User::where('email', $customer->email)->first();
                     if ($user) {
-                        $cart_amount = Cart::where('brand_id', $brand->id)->where('user_id', $user->id)->where('order_id', '!=', null)->sum('amount');
-                        $ordered_amount = Cart::where('brand_id', $brand->id)->where('user_id', $user->id)->where('order_id', '!=', null)->sum('amount');
+                        $cart_amount = Cart::where('user_id', $brand->id)->where('user_id', $user->id)->where('order_id', '!=', null)->sum('amount');
+                        $ordered_amount = Cart::where('user_id', $brand->id)->where('user_id', $user->id)->where('order_id', '!=', null)->sum('amount');
                     }
                     $rcustomers[] = array(
                         'customer_key' => $customer->customer_key,
@@ -199,23 +203,22 @@ class CustomerService
     /**
      * Remove the specified customer from storage.
      *
-     * @param string $customerKey
+     * @param array $requestData
      * @return array
      */
-    public function delete(string $customerKey): array
+    public function delete(array $requestData): array
     {
-        $customer = Customer::where('customer_key', $customerKey)->first();
-
-        // return error if no customer found
-        if (!$customer) {
-            return [
-                'res' => false,
-                'msg' => 'Customer not found !',
-                'data' => ""
-            ];
+        $user = auth()->user();
+        if (!empty($requestData['customers'])) {
+            foreach ($requestData['customers'] as $customerKey) {
+                $customer = Customer::where('customer_key', $customerKey)->first();
+                if ($customer) {
+                    if ($user->can('delete', $customer)) {
+                        $customer->delete();
+                    }
+                }
+            }
         }
-
-        $customer->delete();
 
         return [
             'res' => true,
@@ -227,17 +230,18 @@ class CustomerService
     /**
      * Store imported customers
      *
-     * @param Request $request
+     * @param array $requestData
      * @return array
      */
-    public function importCustomers(Request $request): array
+    public function importCustomers(array $requestData): array
     {
+
         $user = auth()->user();
         $brand = Brand::where('user_id', $user->id)->first();
         $brandId = $brand->id;
         $brandAbsPath = $this->brandAbsPath . "/" . $brandId . "/";
 
-        $file = $request->file('upload_contact_list');
+        $file = $requestData['upload_contact_list'];
         $fileName = Str::random(10) . '_cstmrs.' . $file->extension();
         $file->move($brandAbsPath, $fileName);
         $reader = new ReaderXlsx();
@@ -245,14 +249,16 @@ class CustomerService
         $sheet = $spreadsheet->getActiveSheet()->toArray(null, true, true, true);
         unset($sheet[1]);
         foreach ($sheet as $data) {
-            $customerData["store_name"] = $data['B'];
-            $customerData["name"] = $data['C'];
-            $customerData["email"] = $data['D'];
-            $customerData["user_id"] = $request['user_id'];
-            $customerData["status"] = Customer ::STATUS;
-            $customerData["source"] = Customer ::SOURCE;
-            $customerData["reference"] = Customer ::REFERENCE;
-            $this->createCustomer($customerData);
+            if($data['D']!='') {
+                $customerData["store_name"] = $data['B'];
+                $customerData["name"] = $data['C'];
+                $customerData["email"] = $data['D'];
+                $customerData["user_id"] = $user->id;
+                $customerData["status"] = Customer ::STATUS;
+                $customerData["source"] = Customer ::SOURCE;
+                $customerData["reference"] = Customer ::REFERENCE;
+                $this->createCustomer($customerData);
+            }
         }
 
         return ['res' => true, 'msg' => "Import Successfully", 'data' => ""];
@@ -318,7 +324,7 @@ class CustomerService
             $folderPath = $brandAbsPath . $fileName;
             $objWriter = IOFactory::createWriter($spreadSheet, 'Xlsx');
             $objWriter->save($folderPath);
-            $fileDestination = $brandRelPath . $fileName;
+            $fileDestination = asset('public') . '/' .$brandRelPath . $fileName;
             return ['res' => true, 'msg' => "Customers exported successfully", 'data' => $fileDestination];
         } else {
             return ['res' => false, 'msg' => "No customers to export", 'data' => ""];
