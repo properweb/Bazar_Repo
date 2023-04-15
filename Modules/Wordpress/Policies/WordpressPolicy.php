@@ -3,6 +3,7 @@
 namespace Modules\Wordpress\Policies;
 
 use Modules\Product\Entities\Product;
+use Modules\Wordpress\Entities\Webhook;
 use Modules\User\Entities\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
@@ -77,4 +78,27 @@ class WordpressPolicy
         return $this->isCreator($user, $product);
     }
 
+    /**
+     * Determine whether the user can delete webhook.
+     *
+     * @param User $user
+     * @param Webhook $webhook
+     * @return bool
+     */
+    protected function isWebCreator(User $user, Webhook $webhook): bool
+    {
+        return $user->id === $webhook->user_id;
+    }
+
+    /**
+     * Determine whether the user can delete webhook.
+     *
+     * @param User $user
+     * @param Webhook $webhook
+     * @return bool
+     */
+    public function delete(User $user, Webhook $webhook): bool
+    {
+        return $this->isWebCreator($user, $webhook);
+    }
 }

@@ -110,16 +110,16 @@ class WordpressController extends Controller
     }
 
     /**
-     * Create product from outside website
+     * Delete notification by ID
      *
      * @param Request $request
      * @return JsonResponse
      */
-    public function createProduct(Request $request): JsonResponse
+    public function deleteNotification(Request $request): JsonResponse
     {
         $user = auth()->user();
 
-        if ($user->cannot('create', Product::class)) {
+        if ($user->cannot('viewAny', Product::class)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
@@ -127,8 +127,10 @@ class WordpressController extends Controller
             ]);
         }
 
-        $response = $this->wordpressService->createProduct($request);
+        $response = $this->wordpressService->deleteNotification($request);
 
         return response()->json($response);
     }
+
+
 }

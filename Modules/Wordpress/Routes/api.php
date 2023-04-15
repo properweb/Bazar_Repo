@@ -30,7 +30,7 @@ Route::middleware('auth:api')
     ->group(function () {
         Route::post('/', 'WordpressController@index')->name('create');
         Route::get('/action-info', 'WordpressController@actionInfo')->name('actionInfo');
-        Route::post('/create-product', 'WordpressController@createProduct')->name('createProduct');
+        Route::post('/delete-notification', 'WordpressController@deleteNotification')->name('deleteNotification');
     });
 
 
