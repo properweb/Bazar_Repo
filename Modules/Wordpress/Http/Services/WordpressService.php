@@ -65,8 +65,8 @@ class WordpressService
                 $ProductAdd->status = "unpublish";
                 $ProductAdd->description = $desc;
                 $ProductAdd->sku = $product->sku;
-                $ProductAdd->usd_retail_price = $product->price;
-                $ProductAdd->usd_wholesale_price = $product->price / 2;
+                $ProductAdd->usd_retail_price = (float)$product->price;
+                $ProductAdd->usd_wholesale_price = (float)$product->price / 2;
                 $ProductAdd->stock = $product->stock_quantity ?? 0;
                 $ProductAdd->product_id = $product->id;
                 $ProductAdd->website = $storeUrl;
@@ -197,8 +197,8 @@ class WordpressService
             $ProductAdd->status = "unpublish";
             $ProductAdd->description = $product->description ?? '';
             $ProductAdd->sku = $product->sku;
-            $ProductAdd->usd_retail_price = $product->price;
-            $ProductAdd->usd_wholesale_price = $product->price / 2;
+            $ProductAdd->usd_retail_price = (float)$product->price;
+            $ProductAdd->usd_wholesale_price = (float)$product->price / 2;
             $ProductAdd->stock = $product->stock_quantity;
             $ProductAdd->product_id = $product->id;
             $ProductAdd->website = $store->website;
@@ -392,8 +392,8 @@ class WordpressService
                     $productVariation->variant_key = $variantKey;
                     $productVariation->image = $vars->image->src ?? '';
                     $productVariation->product_id = $mainId;
-                    $productVariation->price = $vars->price / 2;
-                    $productVariation->retail_price = $vars->price;
+                    $productVariation->price = (float)$vars->price / 2;
+                    $productVariation->retail_price = (float)$vars->price;
                     $productVariation->options1 = $vars->attributes[0]->name ?? '';
                     $productVariation->options2 = $vars->attributes[1]->name ?? '';
                     $productVariation->options3 = $vars->attributes[2]->name ?? '';
