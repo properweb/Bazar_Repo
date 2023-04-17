@@ -73,20 +73,6 @@ class WordpressController extends Controller
     }
 
     /**
-     * Webhook for delete
-     *
-     * @param Request $request
-     * @return mixed
-     */
-    public function webHookDelete(Request $request): mixed
-    {
-
-        $response = $this->wordpressService->webHookDelete($request);
-
-        return response()->json($response);
-    }
-
-    /**
      * Get info from import products
      *
      * @param Request $request

@@ -21,7 +21,6 @@ Route::prefix('wordpress')
     ->group(function () {
         Route::post('/web-hook-update', 'WordpressController@webHookUpdate')->name('webhookUpdate');
         Route::post('/web-hook-create', 'WordpressController@webHookCreate')->name('webhookCreate');
-        Route::post('/web-hook-delete', 'WordpressController@webHookDelete')->name('webhookDelete');
     });
 
 Route::middleware('auth:api')

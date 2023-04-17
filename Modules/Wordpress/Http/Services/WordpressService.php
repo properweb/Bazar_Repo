@@ -3,9 +3,7 @@
 namespace Modules\Wordpress\Http\Services;
 
 use Automattic\WooCommerce\Client;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
-use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Modules\Product\Entities\Product;
 use Modules\Product\Entities\ProductVariation;
@@ -92,89 +90,8 @@ class WordpressService
                     }
                 }
                 if ($product->type == 'variable') {
-                    $variations = $woocommerce->get('products/' . $product->id . '/variations');
-                    if (!empty($variations)) {
-                        foreach ($variations as $vars) {
-                            $variantKey = 'v_' . Str::lower(Str::random(10));
-                            $productVariation = new ProductVariation();
-                            $productVariation->variant_key = $variantKey;
-                            $productVariation->image = $vars->image->src ?? '';
-                            $productVariation->swatch_image = $vars->image->src ?? '';
-                            $productVariation->product_id = $lastInsertId;
-                            $productVariation->price = $vars->price / 2;
-                            $productVariation->retail_price = $vars->price;
-                            $productVariation->options1 = $vars->attributes[0]->name ?? '';
-                            $productVariation->options2 = $vars->attributes[1]->name ?? '';
-                            $productVariation->options3 = $vars->attributes[2]->name ?? '';
-                            $productVariation->sku = $vars->sku ?? '';
-                            $productVariation->value1 = $vars->attributes[0]->option ?? '';
-                            $productVariation->value2 = $vars->attributes[1]->option ?? '';
-                            $productVariation->value3 = $vars->attributes[2]->option ?? '';
-                            $productVariation->website_product_id = $product->id;
-                            $productVariation->website = $storeUrl;
-                            $productVariation->stock = $vars->stock_quantity ?? 0;
-                            $productVariation->variation_id = $vars->id ?? 0;
-                            $productVariation->save();
-                        }
-                        $getVar = ProductVariation::where('product_id', $lastInsertId)->get();
-                        if (!empty($getVar)) {
-                            $optionItemArr = [];
-                            $values1Arr = [];
-                            $values2Arr = [];
-                            $values3Arr = [];
-                            foreach ($getVar as $v) {
-                                if (!empty($v->options1)) {
-                                    if (!in_array($v->value1, $values1Arr)) {
-                                        $values1Arr[] = $v->value1;
-                                    }
-                                }
-                                if (!empty($v->options2)) {
-                                    if (!in_array($v->value2, $values2Arr)) {
-                                        $values2Arr[] = $v->value2;
-                                    }
-                                }
-                                if (!empty($v->options3)) {
-                                    if (!in_array($v->value3, $values3Arr)) {
-                                        $values3Arr[] = $v->value3;
-                                    }
-                                }
-                            }
-                            if (!empty($values1Arr)) {
-                                foreach ($values1Arr as $value1) {
-                                    $optionItems1[] = array(
-                                        "display" => $value1,
-                                        "value" => $value1
-                                    );
-                                }
-                                $optionItemArr[] = $optionItems1;
-                            }
-                            if (!empty($values2Arr)) {
-                                foreach ($values2Arr as $value2) {
-                                    $optionItems2[] = array(
-                                        "display" => $value2,
-                                        "value" => $value2
-                                    );
-                                }
-                                $optionItemArr[] = $optionItems2;
-                            }
-                            if (!empty($values3Arr)) {
-                                foreach ($values3Arr as $value3) {
-                                    $optionItems3[] = array(
-                                        "display" => $value3,
-                                        "value" => $value3
-                                    );
-                                }
-                                $optionItemArr[] = $optionItems3;
-                            }
 
-
-                            $optionItems = json_encode($optionItemArr);
-                            Product::where('id', $lastInsertId)->update([
-                                'option_items' => $optionItems
-                            ]);
-                        }
-                    }
-
+                    $this->variables($product->id,$lastInsertId,$storeUrl,$woocommerce);
                 }
             }
             $remove = array("http://", "https://", "www.", "/");
@@ -204,10 +121,12 @@ class WordpressService
 
         $website = explode('/product', $request->permalink);
         $store = Store::where('website', $website[0])->first();
-
         $exitHook = Webhook::where('user_id', $store->brand_id)->where('product_id', $request->id)->where('website', $store->website)->count();
+
         if ($exitHook == 0) {
+
             $exits = Product::where('user_id', $store->brand_id)->where('product_id', $request->id)->where('website', $store->website)->first();
+
             $woocommerce = new Client(
                 $store->website,
                 $store->api_key,
@@ -231,152 +150,16 @@ class WordpressService
 
                 if ($product->type == 'variable') {
 
-                    $variations = $woocommerce->get('products/' . $product->id . '/variations');
-                    if (!empty($variations)) {
-                        foreach ($variations as $vars) {
-
-                            $exitsVar = ProductVariation::where('website', $website[0])->where('variation_id', $vars->id)->first();
-                            if (!empty($exitsVar)) {
-                                ProductVariation::where('id', $exitsVar->id)
-                                    ->update([
-                                        'image' => $vars->image->src ?? '',
-                                        'stock' => $vars->stock_quantity ?? 0,
-                                        'options1' => $vars->attributes[0]->name ?? '',
-                                        'options2' => $vars->attributes[1]->name ?? '',
-                                        'options3' => $vars->attributes[2]->name ?? '',
-                                        'value1' => $vars->attributes[0]->option ?? '',
-                                        'value2' => $vars->attributes[1]->option ?? '',
-                                        'value3' => $vars->attributes[2]->option ?? '',
-                                        'sku' => $vars->sku ?? '',
-                                        'image' => $vars->image->src ?? '',
-                                    ]);
-                            } else {
-                                $variantKey = 'v_' . Str::lower(Str::random(10));
-                                $productVariation = new ProductVariation();
-                                $productVariation->variant_key = $variantKey;
-                                $productVariation->image = $vars->image->src ?? '';
-                                $productVariation->product_id = $exits->id;
-                                $productVariation->price = $vars->price / 2;
-                                $productVariation->retail_price = $vars->price;
-                                $productVariation->options1 = $vars->attributes[0]->name ?? '';
-                                $productVariation->options2 = $vars->attributes[1]->name ?? '';
-                                $productVariation->options3 = $vars->attributes[2]->name ?? '';
-                                $productVariation->sku = $vars->sku ?? '';
-                                $productVariation->value1 = $vars->attributes[0]->option ?? '';
-                                $productVariation->value2 = $vars->attributes[1]->option ?? '';
-                                $productVariation->value3 = $vars->attributes[2]->option ?? '';
-                                $productVariation->website_product_id = $product->id;
-                                $productVariation->website = $store->website;
-                                $productVariation->stock = $vars->stock_quantity ?? 0;
-                                $productVariation->variation_id = $vars->id ?? 0;
-                                $productVariation->save();
-                            }
-
-                        }
-
-                        $getVar = ProductVariation::where('product_id', $exits->id)->where('website', $website[0])->get();
-                        if (!empty($getVar)) {
-                            $optionItemArr = [];
-                            $values1Arr = [];
-                            $values2Arr = [];
-                            $values3Arr = [];
-                            foreach ($getVar as $v) {
-                                if (!empty($v->options1)) {
-                                    if (!in_array($v->value1, $values1Arr)) {
-                                        $values1Arr[] = $v->value1;
-                                    }
-                                }
-                                if (!empty($v->options2)) {
-                                    if (!in_array($v->value2, $values2Arr)) {
-                                        $values2Arr[] = $v->value2;
-                                    }
-                                }
-                                if (!empty($v->options3)) {
-                                    if (!in_array($v->value3, $values3Arr)) {
-                                        $values3Arr[] = $v->value3;
-                                    }
-                                }
-                            }
-                            if (!empty($values1Arr)) {
-                                foreach ($values1Arr as $value1) {
-                                    $optionItems1[] = array(
-                                        "display" => $value1,
-                                        "value" => $value1
-                                    );
-                                }
-                                $optionItemArr[] = $optionItems1;
-                            }
-                            if (!empty($values2Arr)) {
-                                foreach ($values2Arr as $value2) {
-                                    $optionItems2[] = array(
-                                        "display" => $value2,
-                                        "value" => $value2
-                                    );
-                                }
-                                $optionItemArr[] = $optionItems2;
-                            }
-                            if (!empty($values3Arr)) {
-                                foreach ($values3Arr as $value3) {
-                                    $optionItems3[] = array(
-                                        "display" => $value3,
-                                        "value" => $value3
-                                    );
-                                }
-                                $optionItemArr[] = $optionItems3;
-                            }
-
-
-                            $optionItems = json_encode($optionItemArr);
-                            Product::where('id', $exits->id)->update([
-                                'option_items' => $optionItems
-                            ]);
-                        }
-                    }
+                    $this->variables($request->id,$exits->id,$website[0],$woocommerce);
 
                 }
 
             }
 
-            $webHook = new Webhook;
-            $webHook->user_id = $store->brand_id;
-            $webHook->product_id = $request->id;
-            $webHook->website = $website[0];
-            $webHook->api_key = $store->api_key;
-            $webHook->api_password = $store->api_password;
-            $webHook->types = 'wordpress';
-            $webHook->actions = 'updated';
-            $webHook->save();
+            $this->storeNotification($store->brand_id,$request->id,$website[0],$store->api_key,$store->api_password,'wordpress','updated');
         }
 
         return ['res' => true, 'msg' => "", 'data' => ""];
-    }
-
-    /**
-     * Insert Product log which is update from import website
-     *
-     * @param object $request
-     * @return array
-     */
-    public function webHookDelete(object $request): array
-    {
-
-        $product = Product::where('product_id', $request->id)->where('import_type', 'wordpress')->first();
-        if (!empty($product)) {
-
-            $store = Store::where('website', $product->website)->first();
-            Product::where('id', $product->id)->where('website', $product->website)->delete();
-            $webHook = new Webhook;
-            $webHook->user_id = $store->brand_id;
-            $webHook->product_id = $request->id;
-            $webHook->website = $product->website;
-            $webHook->api_key = $store->api_key;
-            $webHook->api_password = $store->api_password;
-            $webHook->types = 'wordpress';
-            $webHook->actions = 'deleted';
-            $webHook->save();
-        }
-
-        return ['res' => true, 'msg' => "Deleted Successfully", 'data' => ""];
     }
 
     /**
@@ -441,106 +224,12 @@ class WordpressService
             }
             if ($product->type == 'variable') {
 
-                $variations = $woocommerce->get('products/' . $product->id . '/variations');
-                if (!empty($variations)) {
-                    foreach ($variations as $vars) {
-                        if (!empty($vars->stock_quantity)) {
-                            $stock = $vars->stock_quantity;
-                        } else {
-                            $stock = 0;
-                        }
-                        $variantKey = 'v_' . Str::lower(Str::random(10));
-                        $productVariation = new ProductVariation();
-                        $productVariation->variant_key = $variantKey;
-                        $productVariation->image = $vars->image->src ?? '';
-                        $productVariation->product_id = $lastInsertId;
-                        $productVariation->price = $vars->price / 2;
-                        $productVariation->retail_price = $vars->price;
-                        $productVariation->options1 = $vars->attributes[0]->name ?? '';
-                        $productVariation->options2 = $vars->attributes[1]->name ?? '';
-                        $productVariation->options3 = $vars->attributes[2]->name ?? '';
-                        $productVariation->sku = $vars->sku ?? '';
-                        $productVariation->value1 = $vars->attributes[0]->option ?? '';
-                        $productVariation->value2 = $vars->attributes[1]->option ?? '';
-                        $productVariation->value3 = $vars->attributes[2]->option ?? '';
-                        $productVariation->website_product_id = $product->id;
-                        $productVariation->website = $store->website;
-                        $productVariation->stock = $stock;
-                        $productVariation->variation_id = $vars->id ?? 0;
-                        $productVariation->save();
-                    }
-                    $getVar = ProductVariation::where('product_id', $lastInsertId)->get();
-                    if (!empty($getVar)) {
-                        $optionItemArr = [];
-                        $values1Arr = [];
-                        $values2Arr = [];
-                        $values3Arr = [];
-                        foreach ($getVar as $v) {
-                            if (!empty($v->options1)) {
-                                if (!in_array($v->value1, $values1Arr)) {
-                                    $values1Arr[] = $v->value1;
-                                }
-                            }
-                            if (!empty($v->options2)) {
-                                if (!in_array($v->value2, $values2Arr)) {
-                                    $values2Arr[] = $v->value2;
-                                }
-                            }
-                            if (!empty($v->options3)) {
-                                if (!in_array($v->value3, $values3Arr)) {
-                                    $values3Arr[] = $v->value3;
-                                }
-                            }
-                        }
-                        if (!empty($values1Arr)) {
-                            foreach ($values1Arr as $value1) {
-                                $optionItems1[] = array(
-                                    "display" => $value1,
-                                    "value" => $value1
-                                );
-                            }
-                            $optionItemArr[] = $optionItems1;
-                        }
-                        if (!empty($values2Arr)) {
-                            foreach ($values2Arr as $value2) {
-                                $optionItems2[] = array(
-                                    "display" => $value2,
-                                    "value" => $value2
-                                );
-                            }
-                            $optionItemArr[] = $optionItems2;
-                        }
-                        if (!empty($values3Arr)) {
-                            foreach ($values3Arr as $value3) {
-                                $optionItems3[] = array(
-                                    "display" => $value3,
-                                    "value" => $value3
-                                );
-                            }
-                            $optionItemArr[] = $optionItems3;
-                        }
-
-
-                        $optionItems = json_encode($optionItemArr);
-                        Product::where('id', $lastInsertId)->update([
-                            'option_items' => $optionItems
-                        ]);
-                    }
-                }
+                $this->variables($product->id,$lastInsertId,$store->website,$woocommerce);
 
             }
 
         }
-
-        $webHook = new Webhook;
-        $webHook->user_id = $store->brand_id;
-        $webHook->product_id = $request->id;
-        $webHook->website = $website[0];
-        $webHook->api_key = $store->api_key;
-        $webHook->api_password = $store->api_password;
-        $webHook->types = 'wordpress';
-        $webHook->actions = 'created';
-        $webHook->save();
+        $this->storeNotification($store->brand_id,$request->id,$website[0],$store->api_key,$store->api_password,'wordpress','created');
 
         return ['res' => true, 'msg' => "", 'data' => ""];
     }
@@ -564,8 +253,6 @@ class WordpressService
                     $message = 'A product called ' . $product->name . ' has been updated from ' . $info->website;
                 } else if ($info->actions == 'created') {
                     $message = 'A product called ' . $product->name . ' has been created from ' . $info->website;
-                } else if ($info->actions == 'deleted') {
-                    $message = 'A product called ' . $product->name . ' has been deleted from ' . $info->website;
                 }
                 $data[] = array(
                     'id' => $info->id,
@@ -639,4 +326,148 @@ class WordpressService
 
         return ['res' => true, 'msg' => "Deleted Successfully", 'data' => ""];
     }
+
+    /**
+     * Save database of notifications
+     *
+     * @param $brandId
+     * @param $id
+     * @param $website
+     * @param $apiKey
+     * @param $apiPwd
+     * @param $type
+     * @param $actions
+     * @return void
+     */
+
+    private function storeNotification($brandId,$id,$website,$apiKey,$apiPwd,$type,$actions): void
+    {
+        $webHook = new Webhook;
+        $webHook->user_id = $brandId;
+        $webHook->product_id = $id;
+        $webHook->website = $website;
+        $webHook->api_key = $apiKey;
+        $webHook->api_password = $apiPwd;
+        $webHook->types = $type;
+        $webHook->actions = $actions;
+        $webHook->save();
+    }
+
+    /**
+     * Set variables insert from outside website
+     *
+     * @param $product_id
+     * @param $lastInsertId
+     * @param $storeUrl
+     * @param $woocommerce
+     * @return void
+     */
+    private function variables($product_id,$mainId,$storeUrl,$woocommerce): void
+    {
+
+        $variations = $woocommerce->get('products/' . $product_id . '/variations');
+        if (!empty($variations)) {
+
+            foreach ($variations as $vars) {
+
+                $exitsVar = ProductVariation::where('website', $storeUrl)->where('variation_id', $vars->id)->first();
+                if (!empty($exitsVar)) {
+
+                    ProductVariation::where('id', $exitsVar->id)
+                        ->update([
+                            'image' => $vars->image->src ?? '',
+                            'stock' => $vars->stock_quantity ?? 0,
+                            'options1' => $vars->attributes[0]->name ?? '',
+                            'options2' => $vars->attributes[1]->name ?? '',
+                            'options3' => $vars->attributes[2]->name ?? '',
+                            'value1' => $vars->attributes[0]->option ?? '',
+                            'value2' => $vars->attributes[1]->option ?? '',
+                            'value3' => $vars->attributes[2]->option ?? '',
+                            'sku' => $vars->sku ?? '',
+                            'image' => $vars->image->src ?? '',
+                        ]);
+                } else {
+                    $variantKey = 'v_' . Str::lower(Str::random(10));
+                    $productVariation = new ProductVariation();
+                    $productVariation->variant_key = $variantKey;
+                    $productVariation->image = $vars->image->src ?? '';
+                    $productVariation->product_id = $mainId;
+                    $productVariation->price = $vars->price / 2;
+                    $productVariation->retail_price = $vars->price;
+                    $productVariation->options1 = $vars->attributes[0]->name ?? '';
+                    $productVariation->options2 = $vars->attributes[1]->name ?? '';
+                    $productVariation->options3 = $vars->attributes[2]->name ?? '';
+                    $productVariation->sku = $vars->sku ?? '';
+                    $productVariation->value1 = $vars->attributes[0]->option ?? '';
+                    $productVariation->value2 = $vars->attributes[1]->option ?? '';
+                    $productVariation->value3 = $vars->attributes[2]->option ?? '';
+                    $productVariation->website_product_id = $product_id;
+                    $productVariation->website = $storeUrl;
+                    $productVariation->stock = $vars->stock_quantity ?? 0;
+                    $productVariation->variation_id = $vars->id ?? 0;
+                    $productVariation->save();
+                }
+
+            }
+
+            $getVar = ProductVariation::where('product_id', $mainId)->where('website', $storeUrl)->get();
+            if (!empty($getVar)) {
+                $optionItemArr = [];
+                $values1Arr = [];
+                $values2Arr = [];
+                $values3Arr = [];
+                foreach ($getVar as $v) {
+                    if (!empty($v->options1)) {
+                        if (!in_array($v->value1, $values1Arr)) {
+                            $values1Arr[] = $v->value1;
+                        }
+                    }
+                    if (!empty($v->options2)) {
+                        if (!in_array($v->value2, $values2Arr)) {
+                            $values2Arr[] = $v->value2;
+                        }
+                    }
+                    if (!empty($v->options3)) {
+                        if (!in_array($v->value3, $values3Arr)) {
+                            $values3Arr[] = $v->value3;
+                        }
+                    }
+                }
+                if (!empty($values1Arr)) {
+                    foreach ($values1Arr as $value1) {
+                        $optionItems1[] = array(
+                            "display" => $value1,
+                            "value" => $value1
+                        );
+                    }
+                    $optionItemArr[] = $optionItems1;
+                }
+                if (!empty($values2Arr)) {
+                    foreach ($values2Arr as $value2) {
+                        $optionItems2[] = array(
+                            "display" => $value2,
+                            "value" => $value2
+                        );
+                    }
+                    $optionItemArr[] = $optionItems2;
+                }
+                if (!empty($values3Arr)) {
+                    foreach ($values3Arr as $value3) {
+                        $optionItems3[] = array(
+                            "display" => $value3,
+                            "value" => $value3
+                        );
+                    }
+                    $optionItemArr[] = $optionItems3;
+                }
+
+
+                $optionItems = json_encode($optionItemArr);
+                Product::where('id', $mainId)->update([
+                    'option_items' => $optionItems
+                ]);
+            }
+        }
+    }
+
 }
