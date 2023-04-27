@@ -5,6 +5,11 @@ namespace Modules\Order\Http\Services;
 
 use Illuminate\Support\Str;
 use Modules\Order\Entities\Order;
+use Modules\Order\Entities\OrderReview;
+use Modules\Order\Entities\OrderReturn;
+use Modules\Order\Entities\ReturnPolicy;
+use Modules\Order\Entities\ReturnReason;
+use Modules\Order\Entities\ReturnItem;
 use Modules\Cart\Entities\Cart;
 use Modules\User\Entities\User;
 use Modules\Brand\Entities\Brand;
@@ -176,6 +181,7 @@ class OrderService
         $orderData['user_email'] = $user->email;
         $orderData['brand_id'] = $brand->user_id;
         $orderData['shipping_date'] = date('Y-m-d', strtotime("+" . $brand->avg_lead_time . " days"));
+        $orderData['actualShipDate'] = date('Y-m-d', strtotime("+" . $brand->avg_lead_time . " days"));
         $orderData['sub_total'] = Cart::where('user_id', $userId)->where('order_id', null)->sum('amount');
         $orderData['quantity'] = Cart::where('user_id', $userId)->where('order_id', null)->sum('quantity');
         $orderData['total_amount'] = Cart::where('user_id', $userId)->where('order_id', null)->sum('amount');
@@ -324,6 +330,8 @@ class OrderService
                 $orderTotal= $totalPrice;
             }
 
+            $orderReview = OrderReview::where('order_id', $order->id)->get();
+
             $data = array(
                 'retailer_name' => $user->first_name . ' ' . $user->last_name,
                 'retailer_phone' => $retailer->country_code . ' ' . $retailer->phone_number,
@@ -333,7 +341,8 @@ class OrderService
                 'total_qty' => $totalQty,
                 'total_price' => $totalPrice,
                 'orderTotal' => $orderTotal,
-                'related_orders' => $relatedOrders
+                'related_orders' => $relatedOrders,
+                'review' => $orderReview
             );
         }
 
@@ -617,6 +626,7 @@ class OrderService
             $order->status = 'cancelled';
             $order->cancel_reason_title = $request->cancel_reason_title;
             $order->cancel_reason_desc = $request->cancel_reason_desc;
+            $order->cancel_date = date('Y-m-d');
             $order->save();
             $brand = Brand::where('user_id', $order->brand_id)->first();
             $prdArr = Cart::where('order_id', $order->id)->get();
@@ -760,5 +770,130 @@ class OrderService
             'msg' => 'Updated Successfully',
             'data' => ''
         ];
+    }
+
+    /**
+     * Create new order review
+     *
+     * @param array $reviewData
+     * @return array
+     */
+    public function storeReview(array $reviewData): array
+    {
+        $userId = auth()->user()->id;
+        $order = Order::where('order_number', $reviewData['order_number'])->first();
+
+        $orderReview = OrderReview::where('order_id', $order->id)->first();
+        // return error if already reviewed
+        if ($orderReview) {
+            return [
+                'res' => false,
+                'msg' => 'You have already reviewed !',
+                'data' => ""
+            ];
+        }
+        $reviewData['order_id'] = $order->id;
+        $reviewData['status'] = OrderReview :: STATUS_ACTIVE;
+        $reviewData['user_id'] = $userId;
+
+        //create review
+        $review = new OrderReview();
+        $review->fill($reviewData);
+        $review->save();
+
+        return [
+            'res' => true,
+            'msg' => 'Review posted Successfully',
+            'data' => $review
+        ];
+    }
+
+    /**
+     * Fetch list of return's policies.
+     *
+     * @return array
+     */
+    public function fetchReturnPolicies(): array
+    {
+        $returnPolicies = ReturnPolicy::where('status', 1)->get();
+
+        $response = ['res' => true, 'msg' => '', 'data' => $returnPolicies];
+
+        return ($response);
+    }
+
+    /**
+     * Fetch list of return's reasons.
+     *
+     * @return array
+     */
+    public function fetchReturnReasons(): array
+    {
+        $returnReasons = ReturnReason::where('status', 1)->get();
+
+        $response = ['res' => true, 'msg' => '', 'data' => $returnReasons];
+
+        return ($response);
+    }
+
+    /**
+ * Create new order return
+ *
+ * @param array $returnData
+ * @return array
+ */
+    public function createReturnOrder(array $returnData): array
+    {
+        $userId = auth()->user()->id;
+        $order = Order::where('order_number', $returnData['order_number'])->first();
+
+        $returnData['order_id'] = $order->id;
+        $policiesStr = '';
+        if (!empty($returnData['policy_values'])) {
+            $policiesStr = implode(',', $returnData["policy_values"]);
+        }
+        $returnData['policies'] = $policiesStr;
+        $returnData['shipping_date'] = date('Y-m-d',strtotime($returnData['shipping_time']));
+        //create order return
+        $orderReturn = new OrderReturn();
+        $orderReturn->fill($returnData);
+        $orderReturn->save();
+
+        if (!empty($returnData['products'])) {
+            foreach ($returnData['products'] as $product) {
+                //create review
+                $returnItemData = [];
+                $returnItem = new ReturnItem();
+                $returnItemData['return_id'] = $orderReturn->id;
+                $returnItemData['item_id'] = $product['id'];
+                $returnItemData['quantity'] = $product['returned_qty'];
+                $returnItemData['reason_id'] = $product['returned_reason'];
+                $returnItem->fill($returnItemData);
+                $returnItem->save();
+            }
+        }
+
+        return [
+            'res' => true,
+            'msg' => 'Return initiated successfully',
+            'data' => $orderReturn
+        ];
+    }
+
+    /**
+     * Cancel order request by retailer
+     *
+     * @param object $request
+     * @return array
+     */
+    public function cancelRequest(object $request): array
+    {
+        $order = Order::find($request->order_id);
+        if ($order) {
+            $order->status = 'cancel requested';
+            $order->save();
+        }
+
+        return ['res' => true, 'msg' => "Cancel order requested successfully", 'data' => $order];
     }
 }

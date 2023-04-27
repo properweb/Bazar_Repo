@@ -28,7 +28,16 @@ Route::middleware('auth:api')
         Route::post('/update', 'OrderController@update')->name('update');
         Route::post('/split', 'OrderController@split')->name('split');
         Route::post('/cancel', 'OrderController@cancel')->name('cancel');
+        Route::post('/cancel-request', 'OrderController@cancelRequest')->name('cancel_request');
         Route::get('/csv', 'OrderController@csv')->name('csv');
+        Route::post('/review', 'OrderController@review')->name('review');
+        Route::delete('/review/delete/{id}','OrderController@reviewDelete')->name('review_delete');
+        Route::get('/review/edit/{id}','OrderController@reviewEdit')->name('review_edit');
+        Route::patch('/review/update/{id}','OrderController@reviewUpdate')->name('review_update');
+        Route::get('/return-reasons', 'OrderController@returnReasons')->name('return_reasons');
+        Route::get('/return-policies', 'OrderController@returnPolicies')->name('return_policies');
+        Route::post('/return-order', 'OrderController@returnOrder')->name('return_order');
+
     });
 
 
