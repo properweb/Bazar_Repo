@@ -249,4 +249,29 @@ class BrandController extends Controller
         return response()->json($response);
     }
 
+    /**
+     * Fetch order's reviews.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function orderReviews(Request $request): JsonResponse
+    {
+        $user = auth()->user();
+        $brand = Brand::where('user_id', $user->id)->first();
+
+        // return error if no Brand found
+        if (!$brand) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'Brand not found !',
+                'data' => ""
+            ]);
+        }
+
+        $response = $this->brandService->getOrderReviews($request);
+
+        return response()->json($response);
+    }
+
 }

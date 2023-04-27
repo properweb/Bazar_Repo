@@ -3,6 +3,7 @@
 namespace Modules\Brand\Http\Services;
 
 use Exception;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Hash;
@@ -12,9 +13,12 @@ use Modules\Country\Entities\Country;
 use Modules\Product\Entities\Product;
 use Modules\Product\Entities\ProductImage;
 use Modules\Product\Entities\ProductVariation;
+use Modules\Retailer\Entities\Retailer;
 use Modules\User\Entities\User;
 use Modules\Brand\Entities\Brand;
 use Modules\Brand\Entities\Catalog;
+use Modules\Order\Entities\Order;
+use Modules\Order\Entities\OrderReview;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Reader\Xlsx as ReaderXlsx;
 
@@ -346,7 +350,7 @@ class BrandService
                                     $productImages[] = strpos($image2, 'http') !== false ? $image2 : asset('public') . '/uploads/products/' . $image2;
                                 }
                                 if (!empty($image3)) {
-                                    $productImages[] = strpos($image3, 'http') !== false ? $image3: asset('public') . '/uploads/products/' . $image3;
+                                    $productImages[] = strpos($image3, 'http') !== false ? $image3 : asset('public') . '/uploads/products/' . $image3;
                                 }
                                 if (!empty($image4)) {
                                     $productImages[] = strpos($image4, 'http') !== false ? $image4 : asset('public') . '/uploads/products/' . $image4;
@@ -659,5 +663,67 @@ class BrandService
             'msg' => 'Brand successfully deleted',
             'data' => ""
         ];
+    }
+
+    /**
+     * Update info details of the specified Brand.
+     *
+     * @param Request $request
+     * @return array
+     */
+    public function getOrderReviews(Request $request): array
+    {
+        $totalRating = 0;
+        $overallRating = 0;
+        $totalReviews = 0;
+        $fiveStarReviews = 0;
+        $reviews = [];
+        $user = auth()->user();
+        $orderReviewQuery = DB::raw("(SELECT * FROM order_reviews WHERE status='1') as r");// Raw query is needed as nested query using for this function with alias.
+        $orderQuery = DB::table('orders as o')
+            ->select('r.*')
+            ->join($orderReviewQuery, 'r.order_id', '=', 'o.id')
+            ->where('o.brand_id', $user->id);
+        switch ($request->sort_key) {
+            case 'old':
+                $orderQuery->orderBy('r.created_at', 'ASC');
+                break;
+            case 'high':
+                $orderQuery->orderBy('r.rate', 'DESC');
+                break;
+            case 'low':
+                $orderQuery->orderBy('r.rate', 'ASC');
+                break;
+            default:
+                $orderQuery->orderBy('r.created_at', 'DESC');
+                break;
+        }
+        $totalReviews = $orderQuery->count();
+        $orderReviews = $orderQuery->get();
+        if (!empty($orderReviews)) {
+            foreach ($orderReviews as $orderReview) {
+                $retailer = Retailer::where('user_id', $orderReview->user_id)->first();
+                $reviews[] = array(
+                    'store_name' => $retailer->store_name,
+                    'rate' => $orderReview->rate,
+                    'review' => $orderReview->review,
+                    'created_at' => date("d.m.Y", strtotime($orderReview->created_at)),
+                );
+                $totalRating += $orderReview->rate;
+                if ($orderReview->rate == 5) {
+                    $fiveStarReviews += 1;
+                }
+            }
+        }
+        $overallRating = $totalRating / $totalReviews;
+
+        $data = array(
+            "reviews" => $reviews,
+            "overallRating" => $overallRating,
+            "totalReviews" => $totalReviews,
+            "fiveStarReviews" => $fiveStarReviews
+        );
+
+        return ['res' => true, 'msg' => "", 'data' => $data];
     }
 }
