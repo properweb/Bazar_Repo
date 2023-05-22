@@ -14,13 +14,31 @@ class Customer extends Model {
     protected $fillable = [
         'user_id',
         'customer_key',
-        'name',
+        'first_name',
+        'last_name',
         'store_name',
         'email',
+        'shipping_name',
+        'shipping_country',
+        'shipping_street',
+        'shipping_suite',
+        'shipping_state',
+        'shipping_town',
+        'shipping_zip',
+        'shipping_phone_code',
+        'shipping_phone',
         'status',
         'source',
         'type',
         'reference'
     ];
+
+    /**
+     * Scope a query to only include popular users.
+     */
+    public function scopeAuth(Builder $query, string $user_id): void
+    {
+        $query->where('user_id', $user_id);
+    }
 
 }

@@ -7,8 +7,12 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Modules\Customer\Entities\Customer;
 use Modules\Customer\Http\Requests\StoreCustomerRequest;
+use Modules\Customer\Http\Requests\CreateCustomerRequest;
 use Modules\Customer\Http\Requests\UpdateCustomerRequest;
+use Modules\Customer\Http\Requests\UpdateCustomerInfoRequest;
+use Modules\Customer\Http\Requests\UpdateCustomerShippingRequest;
 use Modules\Customer\Http\Requests\ImportCustomerRequest;
+use Modules\Customer\Http\Requests\DeleteCustomerRequest;
 use Modules\Customer\Http\Services\CustomerService;
 
 
@@ -23,12 +27,34 @@ class CustomerController extends Controller
     }
 
     /**
-     * Get list of customers
+     * Get list of all customers
+     *
+     * @return JsonResponse
+     */
+    public function allList(): JsonResponse
+    {
+        $user = auth()->user();
+
+        // return error if user is not a brand
+        if ($user->cannot('viewAny', Customer::class)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
+        $response = $this->customerService->getAllCustomers();
+
+        return response()->json($response);
+    }
+
+    /**
+     * Get list of sorted customers
      *
      * @param Request $request
      * @return JsonResponse
      */
-    public function index(Request $request): JsonResponse
+    public function sortedList(Request $request): JsonResponse
     {
         $user = auth()->user();
 
@@ -41,7 +67,7 @@ class CustomerController extends Controller
             ]);
         }
         $request->request->add(['user_id' => $user->id]);
-        $response = $this->customerService->getCustomers($request);
+        $response = $this->customerService->getSortedCustomers($request);
 
         return response()->json($response);
     }
@@ -65,6 +91,29 @@ class CustomerController extends Controller
             ]);
         }
         $response = $this->customerService->store($request->validated());
+
+        return response()->json($response);
+    }
+
+    /**
+     * Store a newly created customer with shipping details in storage
+     *
+     * @param CreateCustomerRequest $request
+     * @return JsonResponse
+     */
+    public function create(CreateCustomerRequest $request): JsonResponse
+    {
+        $user = auth()->user();
+
+        // return error if user cannot create customer
+        if ($user->cannot('create', Customer::class)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
+        $response = $this->customerService->create($request->validated());
 
         return response()->json($response);
     }
@@ -121,12 +170,62 @@ class CustomerController extends Controller
     }
 
     /**
-     * Remove the customers from storage
+     * Update the specified customer in storage
      *
-     * @param Request $request
+     * @param UpdateCustomerInfoRequest $request
      * @return JsonResponse
      */
-    public function destroy(Request $request): JsonResponse
+    public function updateContactInfo(UpdateCustomerInfoRequest $request): JsonResponse
+    {
+        $user = auth()->user();
+        $customer = Customer::where('customer_key', $request->customer_key)->first();
+
+        // return error if user cannot update customer
+        if ($user->cannot('update', $customer)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
+
+        $response = $this->customerService->save($request->validated());
+
+        return response()->json($response);
+    }
+
+    /**
+     * Update the specified customer in storage
+     *
+     * @param UpdateCustomerShippingRequest $request
+     * @return JsonResponse
+     */
+    public function updateShippingDetails(UpdateCustomerShippingRequest $request): JsonResponse
+    {
+        $user = auth()->user();
+        $customer = Customer::where('customer_key', $request->customer_key)->first();
+
+        // return error if user cannot update customer
+        if ($user->cannot('update', $customer)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
+
+        $response = $this->customerService->save($request->validated());
+
+        return response()->json($response);
+    }
+
+    /**
+     * Remove the customers from storage
+     *
+     * @param DeleteCustomerRequest $request
+     * @return JsonResponse
+     */
+    public function destroy(DeleteCustomerRequest $request): JsonResponse
     {
         $user = auth()->user();
 
@@ -139,7 +238,7 @@ class CustomerController extends Controller
             ]);
         }
 
-        $response = $this->customerService->delete($request->all());
+        $response = $this->customerService->delete($request->validated());
 
         return response()->json($response);
     }
@@ -168,7 +267,7 @@ class CustomerController extends Controller
     }
 
     /**
-     * Get list of customers
+     * Delete list of customers
      *
      * @param Request $request
      * @return JsonResponse
