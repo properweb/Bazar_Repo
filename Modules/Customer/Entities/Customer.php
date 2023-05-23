@@ -2,6 +2,7 @@
 
 namespace Modules\Customer\Entities;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class Customer extends Model {
@@ -13,6 +14,7 @@ class Customer extends Model {
 
     protected $fillable = [
         'user_id',
+        'retailer_id',
         'customer_key',
         'first_name',
         'last_name',
@@ -36,9 +38,9 @@ class Customer extends Model {
     /**
      * Scope a query to only include popular users.
      */
-    public function scopeAuth(Builder $query, string $user_id): void
+    public function scopeAuth(Builder $query): void
     {
-        $query->where('user_id', $user_id);
+        $query->where('user_id', auth()->user()->id);
     }
 
 }

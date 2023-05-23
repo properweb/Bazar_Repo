@@ -201,7 +201,7 @@ class CustomerService
         $user = auth()->user();
         if ($user) {
             $brand = Brand::where('user_id', $user->id)->first();
-            $allCustomersCount = Customer::auth($brand->user_id)->count();
+            $allCustomersCount = Customer::auth()->count();
             $orderedCustomers = Customer::join(DB::raw('(SELECT user_id FROM orders GROUP BY user_id)orders'),
                 function ($join) {
                     $join->on('orders.user_id', '=', 'customers.retailer_id');
@@ -216,12 +216,12 @@ class CustomerService
                 ->where('customers.user_id', $brand->user_id)
                 ->get();
             $contactedCustomersCount = $contactedCustomers->count();
-            $unusedCreditCustomersCount = Customer::auth($brand->user_id)->where('status', 'unused credit')->count();
-            $notOrderedCustomersCount = Customer::auth($brand->user_id)->where('retailer_id', 'NULL')->count();
-            $uncontactedCustomersCount = Customer::auth($brand->user_id)->where('status', 'uncontacted')->count();
-            $notSignedCustomersCount = Customer::auth($brand->user_id)->where('status', 'not signed up')->count();
-            $onBazarCustomersCount = Customer::auth($brand->user_id)->whereNotNull('retailer_id')->count();
-            $customers = Customer::auth($brand->user_id)->get();
+            $unusedCreditCustomersCount = Customer::auth()->where('status', 'unused credit')->count();
+            $notOrderedCustomersCount = Customer::auth()->where('retailer_id', 'NULL')->count();
+            $uncontactedCustomersCount = Customer::auth()->where('status', 'uncontacted')->count();
+            $notSignedCustomersCount = Customer::auth()->where('status', 'not signed up')->count();
+            $onBazarCustomersCount = Customer::auth()->whereNotNull('retailer_id')->count();
+            $customers = Customer::auth()->get();
             $rcustomers = [];
             if ($customers) {
                 foreach ($customers as $customer) {
@@ -287,7 +287,7 @@ class CustomerService
         $user = auth()->user();
         if ($user) {
             $brand = Brand::where('user_id', $user->id)->first();
-            $allCustomersCount = Customer::auth($brand->user_id)->count();
+            $allCustomersCount = Customer::auth()->count();
             $orderedCustomers = Customer::join(DB::raw('(SELECT user_id FROM orders GROUP BY user_id)orders'),
                 function ($join) {
                     $join->on('orders.user_id', '=', 'customers.retailer_id');
@@ -302,12 +302,12 @@ class CustomerService
                 ->where('customers.user_id', $brand->user_id)
                 ->get();
             $contactedCustomersCount = $contactedCustomers->count();
-            $unusedCreditCustomersCount = Customer::auth($brand->user_id)->where('status', 'unused credit')->count();
-            $notOrderedCustomersCount = Customer::auth($brand->user_id)->whereNull('retailer_id')->count();
-            $uncontactedCustomersCount = Customer::auth($brand->user_id)->where('status', 'uncontacted')->count();
-            $notSignedCustomersCount = Customer::auth($brand->user_id)->where('status', 'not signed up')->count();
-            $onBazarCustomersCount = Customer::auth($brand->user_id)->whereNotNull('retailer_id')->count();
-            $customers = Customer::auth($brand->user_id);
+            $unusedCreditCustomersCount = Customer::auth()->where('status', 'unused credit')->count();
+            $notOrderedCustomersCount = Customer::auth()->whereNull('retailer_id')->count();
+            $uncontactedCustomersCount = Customer::auth()->where('status', 'uncontacted')->count();
+            $notSignedCustomersCount = Customer::auth()->where('status', 'not signed up')->count();
+            $onBazarCustomersCount = Customer::auth()->whereNotNull('retailer_id')->count();
+            $customers = Customer::auth();
             $status = strtolower($request->status);
             switch ($status) {
                 case 'all':
