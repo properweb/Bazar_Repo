@@ -1,6 +1,10 @@
 <?php
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+
+use Modules\Shipping\Http\Controllers\ShippingController;
+use Modules\User\Http\Controllers\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -13,12 +17,23 @@ use Illuminate\Http\Request;
 |
 */
 
-Route::prefix('shopify')->group(function () {
-    Route::get('/importshopify', 'ShopifyController@index');
-});
-Route::prefix('shopify')->group(function () {
-    Route::get('/synctoshopify', 'ShopifyController@syncToShopify');
-});
-Route::prefix('shopify')->group(function () {
-    Route::get('/syncall', 'ShopifyController@syncAll');
-});
+Route::prefix('shopify')
+    ->name('shopify.')
+    ->group(function () {
+        Route::post('/web-hook-create', 'ShopifyController@webHookCreate')->name('webhookCreate');
+        Route::post('/web-hook-update', 'ShopifyController@webHookUpdate')->name('webHookUpdate');
+        Route::post('/web-hook-order', 'ShopifyController@webHookOrder')->name('webHookOrder');
+    });
+
+Route::middleware('auth:api')
+    ->prefix('shopify')
+    ->name('shopify.')
+    ->group(function () {
+        Route::post('/import-shopify', 'ShopifyController@importShopify')->name('importShopify');
+        Route::post('/sync-shopify', 'ShopifyController@syncShopify')->name('syncShopify');
+    });
+
+
+
+
+
