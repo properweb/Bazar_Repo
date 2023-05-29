@@ -17,6 +17,16 @@ use Modules\User\Http\Controllers\UserController;
 |
 */
 
+/*
+|--------------------------------------------------------------------------
+| Webhook API Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register API routes for your application.
+| For webhook API its getting from outside webhook API. So no need to check authentication here
+|
+*/
+
 Route::prefix('shopify')
     ->name('shopify.')
     ->group(function () {
