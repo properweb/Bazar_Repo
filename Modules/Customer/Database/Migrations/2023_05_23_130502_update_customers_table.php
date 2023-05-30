@@ -39,6 +39,21 @@ return new class extends Migration
      */
     public function down()
     {
-
+        Schema::table('customers', function (Blueprint $table) {
+            $table->dropForeign(['retailer_id']);
+            $table->dropColumn('retailer_id');
+            $table->string('name');
+            $table->dropColumn('first_name');
+            $table->dropColumn('last_name');
+            $table->dropColumn('shipping_name');
+            $table->dropColumn('shipping_country');
+            $table->dropColumn('shipping_street');
+            $table->dropColumn('shipping_suite');
+            $table->dropColumn('shipping_state');
+            $table->dropColumn('shipping_town');
+            $table->dropColumn('shipping_zip');
+            $table->dropColumn('shipping_phone_code');
+            $table->dropColumn('shipping_phone');
+        });
     }
 };
