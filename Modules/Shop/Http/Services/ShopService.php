@@ -819,7 +819,7 @@ class ShopService
             ->orWhere('main.title', 'like', '%'.$request->search.'%' )
             ->orWhere('sub.title', 'like', '%'.$request->search.'%' )
             ->orWhere('child.title', 'like', '%'.$request->search.'%' )
-            ->get();;
+            ->get(['products.name']);
         if ($results) {
             foreach ($results as $result) {
                 $product[] = array(
