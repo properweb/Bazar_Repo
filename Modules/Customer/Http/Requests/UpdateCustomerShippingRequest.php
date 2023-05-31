@@ -7,7 +7,7 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\JsonResponse;
 
-class ImportCustomerRequest extends FormRequest
+class UpdateCustomerShippingRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -27,7 +27,16 @@ class ImportCustomerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'upload_contact_list' => 'file|mimetypes:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'customer_key' => 'required|exists:customers,customer_key',
+            'shipping_name' => 'required|string|max:255',
+            'shipping_country' => 'required|integer|exists:countries,id',
+            'shipping_street' => 'required|string|max:255',
+            'shipping_suite' => 'string|max:255',
+            'shipping_state'=> 'required|integer|exists:states,id',
+            'shipping_town' => 'required|integer|exists:cities,id',
+            'shipping_zip' => 'required|string|max:255',
+            'shipping_phone_code' => 'required|numeric',
+            'shipping_phone' => 'required|numeric|digits:10',
         ];
     }
 
