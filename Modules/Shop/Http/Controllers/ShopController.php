@@ -129,4 +129,30 @@ class ShopController extends Controller
 
         return response()->json($response);
     }
+
+    /**
+     * Search products or brand
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $response = $this->shopService->search($request);
+
+        return response()->json($response);
+    }
+
+    /**
+     * Show search results
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function searchResult(Request $request): JsonResponse
+    {
+        $response = $this->shopService->searchResult($request);
+
+        return response()->json($response);
+    }
 }

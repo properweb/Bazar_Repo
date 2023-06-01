@@ -18,6 +18,8 @@ use Modules\User\Entities\UserRecentView;
 use Modules\Wishlist\Entities\Wishlist;
 use Modules\Cart\Entities\Cart;
 use Modules\Shop\Entities\Testimonial;
+use Modules\Promotion\Entities\Promotion;
+use Modules\Promotion\Entities\PromotionProduct;
 
 
 class ShopService
@@ -211,7 +213,6 @@ class ShopService
         $filterPromotion = $request->valuesSort ?? [];
         $sortType = $request->sortKey;
         $fetchProducts = Product::where('status', 'publish');
-
 
 
         if ($request->main_category) {
@@ -413,6 +414,7 @@ class ShopService
         $data = array();
         $user = auth()->user();
         $productDetails = Product::find($productId);
+
         if ($productDetails) {
             if ($user) {
                 $wishList = Wishlist::where('product_id', $productDetails->id)->where('user_id', $user->id)->where('cart_id', null)->first();
@@ -443,6 +445,57 @@ class ShopService
                 $productShipped = Country::find($brandDetails->product_shipped);
                 $data['shipped_from'] = $productShipped ? $productShipped->name : '';
             }
+
+            $promotionDiscountAmount = 0;
+            $promotion = Promotion::where('user_id', $productDetails->user_id)
+                ->where('promotion_type', 'product')
+                ->where('status', 'active')
+                ->where('from_date', '<=', date('Y-m-d'))
+                ->where('to_date', '>=', date('Y-m-d'))
+                ->first();
+            if ($promotion) {
+                $productPromotion = PromotionProduct::where('promotion_id', $promotion->id)
+                    ->where('product_id', $productDetails->id)
+                    ->first();
+                if ($productPromotion) {
+                    $discountedPrice = $productDetails->usd_wholesale_price * ($promotion->discount_amount / 100);
+                    $promotionDiscountAmount = $productDetails->usd_wholesale_price - round($discountedPrice, 2);
+                }
+            }
+
+            $data['discounted_price'] = $promotionDiscountAmount;
+            //shop-wide promotion banner
+            $promotions = Promotion::where('user_id', $productDetails->user_id)
+                ->where('promotion_type', 'order')
+                ->where('status', 'active')
+                ->where('from_date', '<=', date('Y-m-d'))
+                ->where('to_date', '>=', date('Y-m-d'))
+                ->orderBy('discount_amount', 'ASC')
+                ->get();
+            $shopPromotion = '';
+            if (!empty($promotions)) {
+                $promotionDetails = Promotion::where('user_id', $productDetails->user_id)
+                    ->where('promotion_type', 'order')
+                    ->where('status', 'active')
+                    ->where('from_date', '<=', date('Y-m-d'))
+                    ->where('to_date', '>=', date('Y-m-d'))
+                    ->orderBy('discount_amount', 'DESC')
+                    ->first();
+                if ($promotionDetails) {
+                    if ($promotionDetails->discount_type === 1) {
+                        $maxDiscountAmount = $promotionDetails->discount_amount . '%';
+                    } else {
+                        $maxDiscountAmount = '$' . $promotionDetails->discount_amount;
+                    }
+                    if (count($promotions) > 1) {
+                        $shopPromotion = 'Up to ' . $maxDiscountAmount . ' off';
+                    } else {
+                        $shopPromotion = $maxDiscountAmount . ' off orders $' . $promotionDetails->ordered_amount . '+';
+                    }
+                }
+            }
+            $data['shop_wide_promotion'] = $shopPromotion;
+
             $productImages = ProductImage::where('product_id', $productDetails->id)->get();
             $productVideos = Video::where('product_id', $productDetails->id)->get()->toArray();
             $images = array();
@@ -520,6 +573,11 @@ class ShopService
                     } else {
                         $variationWishId = '';
                     }
+                    $promotionDiscountAmount = 0;
+                    if ($productPromotion) {
+                        $discountedPrice = $var->price * ($promotion->discount_amount / 100);
+                        $promotionDiscountAmount = $var->price - round($discountedPrice, 2);
+                    }
 
                     $variations[$values_str] = array(
                         'variant_id' => $var->id,
@@ -536,7 +594,8 @@ class ShopService
                         'preview_images' => $var->image,
                         'swatch_image' => $var->swatch_image,
                         'values' => $values,
-                        'variationWishId' => $variationWishId
+                        'variationWishId' => $variationWishId,
+                        'discounted_price' => $promotionDiscountAmount
                     );
                     if ($var->options1 != null && $var->value1 != null) {
                         $option = ucfirst(strtolower($var->options1));
@@ -742,6 +801,101 @@ class ShopService
     }
 
     /**
+     * Search brands or products
+     *
+     * @param Object $request
+     * @return array
+     */
+    public function search(object $request): array
+    {
+        $product = [];
+        $getBrand = [];
+
+        $results = Product::leftJoin('categories as main', 'products.main_category', '=', 'main.id')
+            ->leftJoin('categories as sub', 'products.category', '=', 'sub.id')
+            ->leftJoin('categories as child', 'products.sub_category', '=', 'child.id')
+            ->where('products.status', 'publish')
+            ->where('products.name', 'like', '%'.$request->search.'%')
+            ->orWhere('main.title', 'like', '%'.$request->search.'%' )
+            ->orWhere('sub.title', 'like', '%'.$request->search.'%' )
+            ->orWhere('child.title', 'like', '%'.$request->search.'%' )
+            ->get(['products.name']);
+        if ($results) {
+            foreach ($results as $result) {
+                $product[] = array(
+                    'name' => $result->name,
+                );
+            }
+        }
+        $brands = Brand::where('brand_name', 'like', '%'.$request->search.'%')
+            ->get();
+        if ($brands) {
+            foreach ($brands as $brand) {
+                $getBrand[] = array(
+                    'name' => $brand->brand_name,
+                    'bazaar_direct_link'=> $brand->bazaar_direct_link,
+                    'brand_logo' => $brand->logo_image != '' ? asset('public') . '/' . $brand->logo_image : asset('public/img/logo-image.png'),
+                );
+            }
+        }
+
+        return ['res' => true, 'msg' => "", 'product' => $product, 'brand' => $getBrand];
+    }
+
+    /**
+     * Search brands or products
+     *
+     * @param Object $request
+     * @return array
+     */
+    public function searchResult(object $request): array
+    {
+        $products = [];
+        $results = Product::leftJoin('categories as main', 'products.main_category', '=', 'main.id')
+            ->leftJoin('categories as sub', 'products.category', '=', 'sub.id')
+            ->leftJoin('categories as child', 'products.sub_category', '=', 'child.id')
+            ->where('products.status', 'publish')
+            ->where('products.name', 'like', '%'.$request->search.'%')
+            ->orWhere('main.title', 'like', '%'.$request->search.'%' )
+            ->orWhere('sub.title', 'like', '%'.$request->search.'%' )
+            ->orWhere('child.title', 'like', '%'.$request->search.'%' )
+            ->get();;
+        if (!empty($results)) {
+            foreach ($results as $resultedProduct) {
+                $brandDetails = Brand::where('user_id', $resultedProduct->user_id)->first();
+                $stock = $resultedProduct->stock;
+                $usdWholesalePrice = $resultedProduct->usd_wholesale_price ?? 0;
+                $usdRetailPrice = $resultedProduct->usd_retail_price ?? 0;
+                $productOptionsCount = ProductVariation::where('product_id', $resultedProduct->id)->where('status', '1')->count();
+                if ($productOptionsCount > 0) {
+                    $productOptionsCount = ProductVariation::where('product_id', $resultedProduct->id)->where('status', '1')->sum('stock');
+                    $stock = $productOptionsCount;
+                    $productFirstVariation = ProductVariation::where('product_id', $resultedProduct->id)->where('status', '1')->first();
+                    $usdWholesalePrice = $productFirstVariation->price ?? 0;
+                    $usdRetailPrice = $productFirstVariation->retail_price ?? 0;
+                }
+
+                $products[] = array(
+                    'id' => $resultedProduct->id,
+                    'product_key' => $resultedProduct->product_key,
+                    'name' => $resultedProduct->name,
+                    'slug' => $resultedProduct->slug,
+                    'brand_name' => $brandDetails->brand_name,
+                    'sku' => $resultedProduct->sku,
+                    'usd_wholesale_price' => $usdWholesalePrice,
+                    'usd_retail_price' => $usdRetailPrice,
+                    'featured_image' => $resultedProduct->featured_image,
+                    'stock' => $stock,
+                    'default_currency' => $resultedProduct->default_currency
+                );
+
+            }
+        }
+
+        return ['res' => true, 'msg' => "", 'product' => $products];
+    }
+
+    /**
      * Get a listing of the product categories featured in home
      *
      * @return array
@@ -750,11 +904,11 @@ class ShopService
     {
         $recentCategories = [];
         $recentOrderedProducts = Cart::where('created_at', '>', now()->subDays(45)->endOfDay())->get();
-        if($recentOrderedProducts){
-            foreach ($recentOrderedProducts as $cartProduct){
+        if ($recentOrderedProducts) {
+            foreach ($recentOrderedProducts as $cartProduct) {
                 $productDetails = Product::find($cartProduct->product_id);
                 if ($productDetails) {
-                    if(!in_array($productDetails->category,$recentCategories)){
+                    if (!in_array($productDetails->category, $recentCategories)) {
                         $recentCategories[] = $productDetails->category;
                     }
                 }
@@ -804,8 +958,8 @@ class ShopService
     public function getTestimonials(): array
     {
         $testimonials = Testimonial::get();
-        if($testimonials){
-            foreach ($testimonials as $testimonial){
+        if ($testimonials) {
+            foreach ($testimonials as $testimonial) {
                 $testimonial->image = $testimonial->image != '' ? asset('public') . '/' . $testimonial->image : asset('public/img/testimonial.png');
             }
         }
@@ -823,7 +977,7 @@ class ShopService
     {
         $reviews = [];
         $totalReviewsCount = 0;
-        $product = Product::where('product_key',$request->product_key)->first();
+        $product = Product::where('product_key', $request->product_key)->first();
         $brand = Brand::where('user_id', $product->user_id)->first();
         $orderReviewQuery = DB::raw("(SELECT * FROM order_reviews WHERE status='1') as r");// Raw query is needed as nested query using for this function with alias.
         $orderQuery = DB::table('orders as o')
