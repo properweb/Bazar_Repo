@@ -138,4 +138,16 @@ class PromotionController extends Controller
         return response()->json($response);
     }
 
+    /**
+     * Get list of promotion featured ads
+     *
+     * @return JsonResponse
+     */
+    public function featuresList(): JsonResponse
+    {
+        $response = $this->promotionService->getFeatures();
+
+        return response()->json($response);
+    }
+
 }

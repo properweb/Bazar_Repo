@@ -15,23 +15,24 @@ return new class extends Migration
     {
         Schema::create('promotions', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('user_id')->nullable();
             $table->string('promotion_key')->unique();
             $table->text('title');
             $table->date('from_date');
             $table->date('to_date');
-            $table->enum('type',['all', 'new', 'return'])->default('all');
+            $table->tinyInteger('type')->default(1);
             $table->string('country');
             $table->integer('tier');
-            $table->enum('discount_type',['percent', 'amount', 'free'])->default('percent');
+            $table->tinyInteger('discount_type')->default(1);
             $table->float('ordered_amount');
             $table->float('discount_amount');
             $table->integer('free_shipping');
-            $table->enum('status',['active', 'inactive'])->default('active');
+            $table->enum('status',['active','deactivated','completed'])->default('active');
+            $table->enum('promotion_type',['order', 'product'])->default('order');
             $table->string('products');
             $table->timestamps();
 
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('CASCADE');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('SET NULL');
         });
     }
 
