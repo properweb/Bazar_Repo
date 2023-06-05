@@ -28,29 +28,14 @@ class OrderPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $this->isBrand($user) || $this->isRetailer($user);
-    }
-
-    /**
-     * Determine whether the user is retailer and can check out.
-     *
-     * @param User $user
-     * @return bool
-     */
-    public function checkout(User $user): bool
-    {
-        return $this->isRetailer($user);
-    }
-
-    /**
-     * Determine whether the user is retailer and can update billing address.
-     *
-     * @param User $user
-     * @return bool
-     */
-    public function update(User $user): bool
-    {
-        return $this->isRetailer($user);
+        $response = '';
+        if ($user->role === 'brand') {
+            $response = $this->isBrand($user);
+        }
+        if ($user->role === 'retailer') {
+            $response = $this->isRetailer($user);
+        }
+        return $response;
     }
 
     /**
@@ -77,6 +62,47 @@ class OrderPolicy
     }
 
     /**
+     * Determine whether the user is retailer and can check out.
+     *
+     * @param User $user
+     * @return bool
+     */
+    public function checkout(User $user): bool
+    {
+        return $this->isRetailer($user);
+    }
+
+    /**
+     * Determine whether the user is retailer and can update billing address.
+     *
+     * @param User $user
+     * @return bool
+     */
+    public function update(User $user): bool
+    {
+        return $this->isRetailer($user);
+    }
+
+    /**
+     * Check user can view his order details
+     *
+     * @param User $user
+     * @param Order $order
+     * @return bool|string
+     */
+    public function view(User $user, Order $order): bool|string
+    {
+        $response = '';
+        if ($user->role === 'brand') {
+            return $this->isCreatorBrand($user, $order);
+        }
+        if ($user->role === 'retailer') {
+            return $this->isCreatorRetailer($user, $order);
+        }
+        return $response;
+    }
+
+    /**
      * Determine whether the user is brand and can view his order.
      *
      * @param User $user
@@ -89,23 +115,16 @@ class OrderPolicy
     }
 
     /**
-     * Check user can view his order details
+     * Determine whether the user is retailer and can view his order.
      *
      * @param User $user
      * @param Order $order
-     * @return bool|string
+     * @return bool
      */
-    public function view(User $user, Order $order): bool|string
+    protected function isCreatorRetailer(User $user, Order $order): bool
     {
-        if($this->isBrand($user)) {
-            return $this->isCreatorBrand($user, $order);
-        }
 
-        if($this->isRetailer($user)) {
-            return $this->isCreatorRetailer($user, $order);
-        }
-
-        return false;
+        return $user->id === $order->user_id;
     }
 
     /**
@@ -157,14 +176,53 @@ class OrderPolicy
     }
 
     /**
-     * Determine whether the user is retailer and can view his order.
+     * Determine whether the user is retailer and can review order.
      *
      * @param User $user
      * @param Order $order
      * @return bool
      */
-    protected function isCreatorRetailer(User $user, Order $order): bool
+    public function review(User $user, Order $order): bool
     {
-        return $user->id === $order->user_id;
+        return $this->isRetailer($user);
+    }
+
+    /**
+     * Cancel order request
+     *
+     * @param User $user
+     * @param Order $order
+     * @return bool
+     */
+    public function cancelRequest(User $user, Order $order): bool
+    {
+
+        return $user->role === User::ROLE_RETAILER || $user->user_id === $order->user_id;
+    }
+
+    /**
+     * Cancel order request
+     *
+     * @param User $user
+     * @param Order $order
+     * @return bool
+     */
+    public function fulFilled(User $user, Order $order): bool
+    {
+
+        return $user->role === User::ROLE_RETAILER || $user->user_id === $order->user_id;
+    }
+
+    /**
+     * Determine whether the user is retailer.
+     *
+     * @param User $user
+     * @param OrderReview $orderReview
+     * @return bool
+     */
+    protected function isReviewer(User $user, OrderReview $orderReview): bool
+    {
+
+        return $user->user_id === $orderReview->user_id;
     }
 }
