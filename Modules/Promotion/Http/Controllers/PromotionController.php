@@ -99,9 +99,10 @@ class PromotionController extends Controller
     public function update(UpdatePromotionRequest $request): JsonResponse
     {
         $user = auth()->user();
+        $promotion = Promotion::where('promotion_key', $request->promotion_key)->first();
 
         // return error if user cannot update promotion
-        if ($user->cannot('update', Promotion::class)) {
+        if ($user->cannot('update', $promotion)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',

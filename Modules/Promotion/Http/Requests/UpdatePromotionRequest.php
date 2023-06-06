@@ -27,6 +27,7 @@ class UpdatePromotionRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'promotion_key' => 'required|string',
             'title' => 'required|string',
             'user_id' => 'nullable|integer|exists:users,id',
             'from_date' => 'required|date_format:Y-m-d',
