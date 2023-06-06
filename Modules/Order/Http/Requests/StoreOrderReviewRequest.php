@@ -7,7 +7,7 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\JsonResponse;
 
-class AcceptRequest extends FormRequest
+class StoreOrderReviewRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -27,17 +27,10 @@ class AcceptRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'brand_address1' => 'required|regex:/(^[-0-9A-Za-z.,\/ ]+$)/',
-            'brand_address2' => 'nullable|regex:/(^[-0-9A-Za-z.,\/ ]+$)/',
-            'brand_phone' => ['required', 'digits:10'],
-            'brand_post_code' => 'nullable|regex:/(^[-0-9A-Za-z.,\/ ]+$)/',
-            'ord_no' => 'required',
-            'brand_country' => 'required|integer',
-            'brand_name' => ['required', 'regex:/^[\p{L}\s-]+$/u','max:255'],
-            'brand_state' => 'required|integer',
-            'brand_town' => 'required|integer',
-            'ship_date' => 'nullable',
-            ];
+            'rate' => 'required|numeric|min:1',
+            'review' => 'required|string',
+            'order_number' => 'required|string',
+        ];
     }
 
     /**
@@ -55,4 +48,5 @@ class AcceptRequest extends FormRequest
         ]));
 
     }
+
 }
