@@ -33,16 +33,11 @@ Route::middleware('auth:api')
         Route::post('/cancel-request', 'OrderController@cancelRequest')->name('retailer.cancel_request');
         Route::get('/csv', 'OrderController@csv')->name('csv');
         Route::post('/review', 'OrderController@review')->name('retailer.review');
-        Route::delete('/review/delete/{id}','OrderController@reviewDelete')->name('retailer.review_delete');
-        Route::get('/review/edit/{id}','OrderController@reviewEdit')->name('retailer.review_edit');
-        Route::patch('/review/update/{id}','OrderController@reviewUpdate')->name('retailer.review_update');
         Route::get('/return-reasons', 'OrderController@returnReasons')->name('return_reasons');
         Route::get('/return-policies', 'OrderController@returnPolicies')->name('return_policies');
         Route::post('/return-order', 'OrderController@returnOrder')->name('retailer.return_order');
         Route::post('/process-return', 'OrderController@processReturn')->name('brand.process_return');
         Route::post('/add-payment', 'OrderController@addPayment')->name('retailer.add_payment');
-        Route::post('/decline-order', 'OrderController@declineOrder')->name('decline_order');
-
     });
 
 

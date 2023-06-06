@@ -13,6 +13,7 @@ use Modules\Order\Http\Requests\AcceptRequest;
 use Modules\Order\Http\Requests\ChangeRequest;
 use Modules\Order\Http\Services\OrderService;
 use Modules\Order\Http\Requests\StoreReturnRequest;
+use Modules\Cart\Entities\Cart;
 
 class OrderController extends Controller
 {
@@ -478,6 +479,19 @@ class OrderController extends Controller
                 'msg' => 'User is not authorized !',
                 'data' => ""
             ]);
+        }
+
+        if ($request->products) {
+            foreach ($request->products as $product) {
+                $cartItem = Cart::where('order_id', $order->id)->where('product_id', $product)->first();
+                if (!$cartItem) {
+                    return response()->json([
+                        'res' => false,
+                        'msg' => 'Order can not be returned!',
+                        'data' => ""
+                    ]);
+                }
+            }
         }
 
         $response = $this->orderService->createReturnOrder($request->validated());
