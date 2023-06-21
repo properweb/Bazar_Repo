@@ -78,7 +78,7 @@ class OrderController extends Controller
     public function updateBilling(OrderRequest $request): JsonResponse
     {
         $user = auth()->user();
-        if ($user->cannot('update', Order::class)) {
+        if ($user->cannot('viewAny', Order::class)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
