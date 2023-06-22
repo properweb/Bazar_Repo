@@ -27,10 +27,11 @@ class UpdateCustomerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|regex:/^([a-z0-9\+_\-]+)(\.[a-z0-9\+_\-]+)*@([a-z0-9\-]+\.)+[a-z]{2,6}$/ix',
-            'store_name' => 'string|max:255',
-            'type' => 'string|max:255',
+            'cust_name' => 'required|string|max:255',
+            'cust_email' => 'required|email|max:255|regex:/^([a-z0-9\+_\-]+)(\.[a-z0-9\+_\-]+)*@([a-z0-9\-]+\.)+[a-z]{2,6}$/ix',
+            'cust_storename' => 'string|max:255',
+            'cust_type' => 'string|max:255',
+            'customer_key' => 'required|exists:customers,customer_key',
         ];
     }
 

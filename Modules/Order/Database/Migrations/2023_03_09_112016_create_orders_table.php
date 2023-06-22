@@ -26,13 +26,15 @@ return new class extends Migration
             $table->unsignedBigInteger('shipping_id')->default('0');
             $table->foreign('shipping_id')->references('id')->on('shippings')->onDelete('CASCADE');
             $table->date('shipping_date')->nullable();
+            $table->date('cancel_date')->nullable();
+            $table->date('actualShipDate')->nullable();
             $table->float('shipping_charge')->nullable();
             $table->integer('shipping_free')->default('0');
             $table->float('total_amount')->nullable();
             $table->integer('quantity')->nullable();
             $table->string('discount_type')->nullable();
             $table->float('discount')->nullable();
-            $table->float('has_discount')->default('0');
+            $table->integer('has_discount')->default('0');
             $table->string('payment_method')->default('cod');
             $table->string('payment_status')->default('paid');
             $table->string('status')->default('new');

@@ -21,6 +21,7 @@ Route::middleware('auth:api')
     ->prefix('promotions')
     ->name('promotion.')
     ->group(function () {
+        Route::get('/features', 'PromotionController@featuresList')->name('features');
         Route::get('/', 'PromotionController@index')->name('list');
         Route::post('/', 'PromotionController@store')->name('store');
         Route::get('/{promotion}', 'PromotionController@show')->name('show');

@@ -27,7 +27,7 @@ class ImportCustomerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file_input' => 'file|mimetypes:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'upload_contact_list' => 'file|mimetypes:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ];
     }
 
