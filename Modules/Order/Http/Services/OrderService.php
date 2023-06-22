@@ -368,6 +368,7 @@ class OrderService
             $cart = Cart::where('order_id', $order->id)->first();
             $brand = Brand::where('user_id', $cart->brand_id)->first();
             $order->display_shipping_date = date('F j,Y', strtotime($order->shipping_date));
+            $order->display_created_date = date('F j,Y', strtotime($order->created_at));
             $order->created_date = date('F j,Y', strtotime($order->created_at)) . ' at ' . date('g:i A', strtotime($order->created_at));
             $order->updated_date = date('F j,Y', strtotime($order->updated_at)) . ' at ' . date('g:i A', strtotime($order->updated_at));
             $orderId = $order->id;
@@ -556,21 +557,45 @@ class OrderService
                         $town = DB::table('cities')->where('id', $order->town)->first();
                         $order->town = $town->name;
                     }
-                    $cart = Cart::where('brand_id', $brand->user_id)->where('order_id', $orderId)->get();
+                    $cart = Cart::join('products', 'products.id', '=', 'carts.product_id')
+                        ->join('categories', 'categories.id', '=', 'products.sub_category')
+                        ->select('products.id', 'products.name', 'products.featured_image','carts.price','carts.quantity','categories.title')
+                        ->where('carts.brand_id', $brand->user_id)->where('carts.order_id', $orderId);
+                    if($brand->PackingOrder==0)
+                    {
+                        $cart = $cart->orderBy('products.name', 'asc');
+                    }
+                    if($brand->PackingOrder==1)
+                    {
+                        $cart = $cart->orderBy('products.sku', 'asc');
+                    }
+                    if($brand->PackingOrder==2)
+                    {
+                        $cart = $cart->orderBy('categories.title', 'asc');
+                        $cart = $cart->orderBy('products.sku', 'asc');
+                    }
+                    if($brand->PackingOrder==3)
+                    {
+                        $cart = $cart->orderBy('categories.title', 'asc');
+                        $cart = $cart->orderBy('products.name', 'asc');
+                    }
+                    $cart = $cart->get();
+
+                   // $cart = Cart::where('brand_id', $brand->user_id)->where('order_id', $orderId)->get();
                     $totalPrice = 0;
                     if ($cart) {
                         $totalQty = 0;
                         foreach ($cart as $cartItem) {
-                            $product = Product::where('id', $cartItem->product_id)->first();
+                           // $product = Product::where('id', $cartItem->product_id)->first();
                             $subTotal = (float)$cartItem->price * (int)$cartItem->quantity;
                             $totalQty += (int)$cartItem->quantity;
                             $totalPrice += $subTotal;
-                            $cartItem->product_id = $product->id;
-                            $cartItem->product_name = $product->name;
+                            $cartItem->product_id = $cartItem->id;
+                            $cartItem->product_name = $cartItem->name;
                             $cartItem->product_price = (float)$cartItem->price;
                             $cartItem->product_qty = (int)$cartItem->quantity;
                             $cartItem->totalPrice = $subTotal;
-                            $cartItem->product_image = $product->featured_image != '' ? $product->featured_image : asset('public/admin/dist/img/logo-image.png');
+                            $cartItem->product_image = $cartItem->featured_image != '' ? $cartItem->featured_image : asset('public/admin/dist/img/logo-image.png');
                         }
                     }
 
@@ -587,6 +612,7 @@ class OrderService
                         'retailer_name' => $user->first_name . ' ' . $user->last_name,
                         'retailer_phone' => $retailer->country_code . ' ' . $retailer->phone_number,
                         'brand' => $brand->brand_name,
+                        'showImage' => $brand->packingImage,
                         'order' => $order,
                         'cart' => $cart,
                         'totalPrice' => $totalPrice,
@@ -611,16 +637,19 @@ class OrderService
         $order = Order::where('order_number', $request['ord_no'])->first();
         if (!empty($order)) {
 
-            $order->brand_name = $request['brand_name'];
-            $order->brand_phone = $request['brand_phone'];
-            $order->brand_country = $request['brand_country'];
-            $order->brand_state = $request['brand_state'];
-            $order->brand_town = $request['brand_town'];
-            $order->brand_post_code = $request['brand_post_code'];
-            $order->brand_address1 = $request['brand_address1'];
-            $order->brand_address2 = $request['brand_address2'] ?? '';
-            $order->shipping_date = $request['ship_date'] ?? '';
 
+            Order::where("order_number", $request['ord_no'])
+                ->update([
+                    'brand_name' => $request['brand_name'],
+                    'brand_phone' => $request['brand_phone'],
+                    'brand_country' => $request['brand_country'],
+                    'brand_state' => $request['brand_state'],
+                    'brand_town' => $request['brand_town'],
+                    'brand_post_code' => $request['brand_post_code'],
+                    'brand_address1' => $request['brand_address1'],
+                    'brand_address2' => $request['brand_address2'],
+
+                ]);
             $response = ['res' => true, 'msg' => '', 'data' => ''];
         } else {
 
@@ -738,7 +767,7 @@ class OrderService
             }
         }
 
-        return ['res' => true, 'msg' => "", 'data' => $data];
+        return ['res' => true, 'msg' => "Successfully Updated", 'data' => $data];
     }
 
     /**
@@ -1032,9 +1061,6 @@ class OrderService
             $order->payment_status = 'paid';
             $order->status = 'new';
             $order->save();
-            $invoice = Invoice::find($order->invoice_id);
-            $invoice->status = Invoice::STATUS_CONFIRMED;
-            $invoice->save();
         }
 
         return ['res' => true, 'msg' => "Successfully Saved", 'data' => $order];
