@@ -3,10 +3,11 @@
 namespace Modules\Product\Entities;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
+    use SoftDeletes;
     protected $fillable = [
         'name',
         'product_key',
@@ -21,6 +22,7 @@ class Product extends Model
         'min_order_qty',
         'sku',
         'option_items',
+        'colorOptionItems',
         'usd_wholesale_price',
         'usd_retail_price',
         'cad_wholesale_price',
@@ -29,6 +31,8 @@ class Product extends Model
         'gbp_retail_price',
         'eur_wholesale_price',
         'eur_retail_price',
+        'aud_wholesale_price',
+        'aud_retail_price',
         'usd_tester_price',
         'dimension_unit',
         'is_bestseller',
@@ -54,6 +58,28 @@ class Product extends Model
         'slug'
 
     ];
+
+    public function productImages()
+    {
+        return $this->hasMany(ProductImage::class);
+    }
+    public function productVideos()
+    {
+        return $this->hasMany(Video::class);
+    }
+
+    public function productVariation()
+    {
+        return $this->hasMany(ProductVariation::class);
+    }
+
+    public function productPrepack()
+    {
+        return $this->hasMany(ProductPrepack::class);
+    }
+
+    public function productFeatureImage()
+    {
+        return $this->hasOne(ProductImage::class);
+    }
 }
-
-

@@ -9,6 +9,7 @@ use Modules\Product\Entities\ProductVariation;
 use Modules\Product\Entities\ProductImage;
 use Modules\Product\Entities\ProductPrepack;
 use Modules\Product\Entities\Category;
+use Modules\Wordpress\Entities\Store;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
 
@@ -38,9 +39,15 @@ class ProductService
     {
         $userId = auth()->user()->id;
         $resultArray = [];
-        $productsCount = Product::where('user_id', $userId)->count();
-        $publishCount = Product::where('user_id', $userId)->where('status', 'publish')->count();
-        $unpublishedCount = Product::where('user_id', $userId)->where('status', 'unpublish')->count();
+        $productsCounts = Product::selectRaw('status, count(*) as count')
+            ->where('user_id', $userId)
+            ->groupBy('status')
+            ->get()
+            ->pluck('count', 'status');
+        $allProductsCount = $productsCounts->sum();
+        $publishedProductsCount = $productsCounts->get('publish', 0);
+        $unpublishedProductsCount = $productsCounts->get('unpublish', 0);
+
         $query = Product::where('user_id', $userId);
         switch ($request->status) {
             case 'publish':
@@ -69,12 +76,12 @@ class ProductService
         }
         $products = $query->paginate(10);
         foreach ($products as $v) {
-            $productVariations = ProductVariation::where('product_id', $v->id)->where('status', '1')->get();
+            $productVariations = Product::find($v->id)->productVariation()->where('status', '1')->get();
             $productVariationsCount = $productVariations->count();
             if ($productVariationsCount > 0) {
-                $variantMinPrice = ProductVariation::where('product_id', $v->id)->min('price');
+                $variantMinPrice = Product::find($v->id)->productVariation()->min('price');
                 $price = $variantMinPrice . '+';
-                $variantStock = ProductVariation::where('product_id', $v->id)->sum('price');
+                $variantStock = Product::find($v->id)->productVariation()->sum('price');
                 $availability = $variantStock > 0 ? 'in stock' : 'out of stock';
             } else {
                 $price = $v->usd_wholesale_price;
@@ -103,11 +110,113 @@ class ProductService
 
         $data = array(
             "products" => $resultArray,
-            "pblshprdcts_count" => $publishCount,
-            "unpblshprdcts_count" => $unpublishedCount,
-            "allprdcts_count" => $productsCount
+            "pblshprdcts_count" => $publishedProductsCount,
+            "unpblshprdcts_count" => $unpublishedProductsCount,
+            "allprdcts_count" => $allProductsCount
         );
 
+
+        return ['res' => true, 'msg' => "", 'data' => $data];
+    }
+
+    /**
+     * Fetch All products By logged brand
+     *
+     * @return array
+     */
+
+    public function getProducts(): array
+    {
+        $userId = auth()->user()->id;
+        $data = [];
+        $products = Product::where('user_id', $userId)->where('status', 'publish')->get();
+        foreach ($products as $v) {
+            $productStock = $v->stock;
+            $productVariations = Product::find($v->id)->productVariation()->where('status', '1')->where('stock','>', '0')->get();
+            $productVariationsCount = $productVariations->count();
+            if ($productVariationsCount > 0) {
+                $variantMinPrice = Product::find($v->id)->productVariation()->min('price');
+                $price = $variantMinPrice . '+';
+                $variantStock = Product::find($v->id)->productVariation()->sum('stock');
+                $availability = $variantStock > 0 ? 'in stock' : 'out of stock';
+                $productStock += $variantStock;
+            } else {
+                $price = $v->usd_wholesale_price;
+                $availability = $v->stock > 0 ? 'in stock' : 'out of stock';
+            }
+            $variations=[];
+            if(!empty($productVariations)) {
+                foreach ($productVariations as $pv) {
+                    $image = !empty($pv->image) ? $pv->image : $v->featured_image;
+                    $sku = !empty($pv->sku) ? $pv->sku : $v->sku;
+                    $stock = !empty($pv->stock) ? $pv->stock : $v->stock;
+                    $variableArr = [];
+                    if (!empty($pv->value1)) {
+                        $variableArr[] = $pv->value1;
+                    }
+                    if (!empty($pv->value2)) {
+                        $variableArr[] = $pv->value2;
+                    }
+                    if (!empty($pv->value3)) {
+                        $variableArr[] = $pv->value3;
+                    }
+                    $variations[] = array(
+                        'id' => $v->id,
+                        'usd_wholesale_price' => $pv->price,
+                        'usd_retail_price' => $pv->retail_price,
+                        'variant_id' => $pv->id,
+                        'variant' => implode('/', $variableArr),
+                        'name' => $pv->name,
+                        'sku' => $sku,
+                        'featured_image' => $image,
+                        'stock' => $stock
+                    );
+                }
+            }
+            $prepacks  = [];
+            $productPrepackages = Product::find($v->id)->productPrepack()->where('active', '1')->get();
+            if (!empty($productPrepackages)) {
+                foreach ($productPrepackages as $key => $var) {
+                    $prepacks[] = array(
+                        'id' => $var->id,
+                        'style' => $var->style,
+                        'pack_name' => $var->pack_name,
+                        'size_ratio' => $var->size_ratio,
+                        'size_range' => $var->size_range,
+                        'packs_price' => $var->packs_price,
+                        'active' => $var->active,
+                        'created_at' => $var->created_at,
+                        'updated_at' => $var->updated_at,
+                        'variationWishId' => ''
+                    );
+
+                }
+            }
+
+            if($productStock>0) {
+                $data[] = array(
+                    'id' => $v->id,
+                    'product_key' => $v->product_key,
+                    'name' => $v->name,
+                    'category' => $v->category,
+                    'status' => $v->status,
+                    'sku' => $v->sku,
+                    'usd_wholesale_price' => $v->usd_wholesale_price,
+                    'usd_retail_price' => $v->usd_retail_price,
+                    'slug' => $v->slug,
+                    'featured_image' => $v->featured_image,
+                    'stock' => $v->stock,
+                    'default_currency' => $v->default_currency,
+                    'options_count' => $productVariationsCount > 0 ? $productVariationsCount : 1,
+                    'variations' => $variations,
+                    'prepacks' => $prepacks,
+                    'price' => $price,
+                    'availability' => $availability,
+                    'website' => $v->website,
+                    'import_type' => $v->import_type,
+                );
+            }
+        }
 
         return ['res' => true, 'msg' => "", 'data' => $data];
     }
@@ -127,12 +236,12 @@ class ProductService
             ->get();
 
         foreach ($products as $v) {
-            $productVariations = ProductVariation::where('product_id', $v->id)->where('status', '1')->get();
+            $productVariations = Product::find($v->id)->productVariation()->where('status', '1')->get();
             $productVariationsCount = $productVariations->count();
             if ($productVariationsCount > 0) {
-                $variantMinPrice = ProductVariation::where('product_id', $v->id)->min('price');
+                $variantMinPrice = Product::find($v->id)->productVariation()->min('price');
                 $price = $variantMinPrice . '+';
-                $variantStock = ProductVariation::where('product_id', $v->id)->sum('price');
+                $variantStock = Product::find($v->id)->productVariation()->sum('price');
                 $availability = $variantStock > 0 ? 'in stock' : 'out of stock';
             } else {
                 $price = $v->usd_wholesale_price;
@@ -263,7 +372,7 @@ class ProductService
                 'name' => $v->name,
                 'sku' => $sku,
                 'featured_image' => $image,
-                'stock' => $stock
+                'stock' => $stock,
             );
         }
 
@@ -329,7 +438,7 @@ class ProductService
             ->update([
                 'feature_key' => 1
             ]);
-        $productImage = ProductImage::where('product_id', $lastInsertId)->where('image_sort', $featuredKey)->first();
+        $productImage = Product::find($lastInsertId)->productImages()->where('image_sort', $featuredKey)->first();
         $featuredImage = $productImage->images;
         Product::where('id', $lastInsertId)
             ->update([
@@ -452,8 +561,10 @@ class ProductService
         $nextProductId = $nextProduct ? $nextProduct->id : 0;
         $brandDetails = Product::where('user_id', $products->user_id)->first();
         $bazaarDirectLink = $brandDetails->bazaar_direct_link;
-        $productImages = ProductImage::where('product_id', $request->id)->get();
-        $productVideos = Video::where('product_id', $request->id)->get()->toArray();
+
+        $productImages = Product::find($request->id)->productImages;
+
+        $productVideos = Product::find($request->id)->productVideos;
         $allImage = [];
         if (!empty($productImages)) {
             foreach ($productImages as $img) {
@@ -464,8 +575,11 @@ class ProductService
                 );
             }
         }
-        $productVariations = ProductVariation::where('product_id', $request->id)->where('status', '1')->get();
-        $productPrepacks = ProductPrepack::where('product_id', $request->id)->get();
+
+        $productVariations = Product::find($request->id)->productVariation()->where('status', '1')->get();
+
+        $productPrepacks = Product::find($request->id)->productPrepack;
+
         $prePacks = [];
         $prepackSizeRanges = [];
         if (!empty($productPrepacks)) {
@@ -632,9 +746,8 @@ class ProductService
                 $values[2][] = (object)["display" => $value3, "value" => $value3];
             }
         }
+        $featuredImage = Product::find($request->id)->productFeatureImage()->where('feature_key', '1')->first();
 
-
-        $featuredImage = ProductImage::where('product_id', $request->id)->where('feature_key', '1')->get()->first();
         $featuredImageKey = ($featuredImage) ? $featuredImage->image_sort : 0;
 
         if ($products) {
@@ -660,6 +773,8 @@ class ProductService
                 'gbp_wholesale_price' => $products->gbp_wholesale_price,
                 'gbp_retail_price' => $products->gbp_retail_price,
                 'usd_tester_price' => $products->usd_tester_price,
+                'aud_wholesale_price' => $products->aud_wholesale_price,
+                'aud_retail_price' => $products->aud_retail_price,
                 'fabric_content' => $products->fabric_content,
                 'care_instruction' => $products->care_instruction,
                 'season' => $products->season,
@@ -704,6 +819,7 @@ class ProductService
                 'pre_packs' => $prePacks,
                 'prev_product_id' => $prevProductId,
                 'next_product_id' => $nextProductId,
+                'colorOptionItems' => json_decode($products->colorOptionItems, true)
             );
         }
 
@@ -735,8 +851,6 @@ class ProductService
         $variables['id'] = $productId;
         $product->update($variables);
 
-
-
         if (!empty($request->file('video_url'))) {
             foreach ($request->file('video_url') as  $file) {
                 $fileName = rand() . time() . '.' . $file->extension();
@@ -749,7 +863,7 @@ class ProductService
         }
 
         $variationImages = [];
-        $prev_product_images = ProductImage::where('product_id', $productId)->get();
+        $prev_product_images = Product::find($productId)->productImages;
         if (!empty($prev_product_images)) {
             foreach ($prev_product_images as $previmg) {
                 $variationImages[] = $previmg->images;
@@ -758,7 +872,7 @@ class ProductService
 
         $featuredKey = isset($request->featured_image) && !empty($request->featured_image) ? (int)$request->featured_image : 0;
 
-        $checkImage = ProductImage::where('product_id', $productId)->orderBy('image_sort', 'desc')->first();
+        $checkImage = Product::find($productId)->productImages()->orderBy('image_sort', 'desc')->first();
         if (!empty($checkImage)) {
             $imageKey = $checkImage->image_sort + 1;
         } else {
@@ -788,20 +902,19 @@ class ProductService
             ->update([
                 'feature_key' => 1
             ]);
-        $productImage = ProductImage::where('product_id', $productId)->where('image_sort', $featuredKey)->first();
+        $productImage = Product::find($productId)->productImages()->where('image_sort', $featuredKey)->first();
         $featuredImage = $productImage->images;
         Product::where('id', $productId)
             ->update([
                 'featured_image' => $featuredImage
             ]);
-        $productFeatureImage = ProductImage::where('product_id', $productId)->where('feature_key', '1')->first();
+        $productFeatureImage = Product::find($productId)->productImages()->where('feature_key', '1')->first();
         Product::where('id', $productId)->update(array('featured_image' => $productFeatureImage->images));
         $optionTypes = explode(',', $request->option_type);
         $colorKey = in_array('Color', $optionTypes) ? (int)(array_search("Color", $optionTypes)) + 1 : 0;
         $colors = [];
         $swatches = [];
         $colorOptions = json_decode($request->colorOptionItems, true);
-
 
         if (is_countable($colorOptions) && count($colorOptions) > 0) {
             foreach ($colorOptions as $color) {
@@ -877,16 +990,49 @@ class ProductService
                     $productVariation = new ProductVariation();
                     $productVariation->fill($variationData);
                     $productVariation->save();
+
+
                 }
             }
         }
+        $productDetails = Product::where('id', $productId)->get()->first();
+
         if (is_countable($variations) && count($variations) == 1) {
             Product::where('id', $productId)->update(array("stock" => $variations[0]['inventory']));
+            if($productDetails->website != ""){
+                $syncs = Store::where('website', $productDetails->website)->get()->first();
+                $request['api_key'] = $syncs->api_key;
+                $request['api_password'] = $syncs->api_password;
+                $request['store_url'] = $syncs->website;
+                $product = Product::find($productDetails->product_id);
+                $extendUrl = '&action=update_stock&product_id='.$product->product_id.'&stock='.$variations[0]['inventory'];
+                $this->curlCall('GET',$syncs->api_key, $syncs->api_password, $syncs->website, $extendUrl);
+            }
         }
         if (is_countable($variations) && count($variations) == 0) {
 
             ProductVariation::where('product_id', $productId)->update(array('status' => 2));
         }
+
+        /*$syncs = Store::where('brand_id', $brandId)->where('website', $proDetails->website)->get()->first();
+        $request['api_key'] = $syncs->api_key;
+        $request['api_password'] = $syncs->api_password;
+        $request['store_url'] = $syncs->website;
+        if(isset($prdCt->variant_id)){
+            $res = ProductVariation::where('website', $syncs->website)->where('product_id', $prdCt->product_id)->where('id', $prdCt->variant_id)->get();
+            $totalCount = count($res);
+            //dd($res);
+            if ($totalCount > 0) {
+                foreach ($res as $var) {
+                    $extendUrl = '&action=update_stock&product_id='.$var->website_product_id.'&stock='.$stock.'&variation_data_id='.$var->variation_id;
+                    $this->curlCall('GET',$syncs->api_key, $syncs->api_password, $syncs->website, $extendUrl);
+                }
+            }
+        }else{
+            $product = Product::find($prdCt->product_id);
+            $extendUrl = '&action=update_stock&product_id='.$product->product_id.'&stock='.$stock;
+            $this->curlCall('GET',$syncs->api_key, $syncs->api_password, $syncs->website, $extendUrl);
+        }*/
 
         if($variables['options_available']==0)
         {
@@ -952,10 +1098,10 @@ class ProductService
         if ($request->status == 'publish') {
             $errorMsg = 0;
             $productDetails = Product::where('id', $request->id)->first();
-            $resImages = ProductImage::where('product_id', $productDetails->id)->get();
+            $resImages = Product::find($productDetails->id)->productImages;
             $usdWholesalePrice = (float)$productDetails->usd_wholesale_price;
             $usdRetailPrice = (float)$productDetails->usd_retail_price;
-            $productVariations = ProductVariation::where('product_id', $request->id)->where('status', '1')->get();
+            $productVariations = Product::find($request->id)->productVariation()->where('status', '1')->get();
             $productVariationsCount = $productVariations->count();
             if ($productVariationsCount > 0) {
                 $productVariations->toArray();
@@ -1077,10 +1223,18 @@ class ProductService
         if ($request->variant_id)
         {
             ProductVariation::where('id', $request->variant_id)->update(array('stock' => $request->stock));
+            $pVariantDetails = ProductVariation::where('id', $request->variant_id)->get()->first();
+            $syncs = Store::where('website', $pVariantDetails->website)->get()->first();
+            $extendUrl = '&action=update_stock&product_id='.$pVariantDetails->website_product_id.'&stock='.$request->stock.'&variation_data_id='.$pVariantDetails->variation_id;
+            $this->curlCall('GET',$syncs->api_key, $syncs->api_password, $syncs->website, $extendUrl);
         }
         else
         {
             Product::where('id', $request->id)->update(array('stock' => $request->stock));
+            $product = Product::where('id', $request->id)->get()->first();
+            $syncs = Store::where('website', $product->website)->get()->first();
+            $extendUrl = '&action=update_stock&product_id='.$product->product_id.'&stock='.$request->stock;
+            $this->curlCall('GET',$syncs->api_key, $syncs->api_password, $syncs->website, $extendUrl);
         }
 
         return ['res' => true, 'msg' => "", 'data' => ""];
@@ -1145,6 +1299,7 @@ class ProductService
             'stock' => $request->shipping_inventory ?? 0,
             'option_type' => $request->option_type ?? '',
             'option_items' => $request->option_items ?? '',
+            'colorOptionItems' => $request->colorOptionItems,
             'dimension_unit' => $request->dimension_unit ?? 0,
             'is_bestseller' => $request->is_bestseller ?? 0,
             'shipping_height' => $request->shipping_height ?? 0,
@@ -1178,6 +1333,39 @@ class ProductService
         );
     }
 
+    private function curlCall($method, $api_key, $api_password, $store_url, $extendUrl=""): array
+    {
+        $apiURL = $store_url."?api_key=".$api_key."&password=".$api_password.$extendUrl;
+        //echo $apiURL;die();
+        if ($method == 'GET') {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $apiURL);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            //curl_setopt($ch, CURLOPT_USERPWD, "$consumer_key:$consumer_secret");
+            //curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+        }
+        else {
+            $headers = array(
+                'Authorization' => 'Basic ' . base64_encode($consumer_key . ':' . $consumer_secret)
+            );
 
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $apiURL);
+            curl_setopt($ch, CURLOPT_POST, true);
+
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($param));
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_USERPWD, "$consumer_key:$consumer_secret");
+        }
+        $result = curl_exec($ch);
+        $http_status = curl_getinfo($ch);
+        $statusCode = $http_status;
+        $responseBody = json_decode($result, true);
+        return array("statusCode" => $statusCode, "responseBody" => $responseBody);
+    }
 
 }
