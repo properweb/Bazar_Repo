@@ -5,7 +5,7 @@ namespace Modules\Shipping\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Modules\Shipping\Entities\Shipping;
-use Modules\Shipping\Http\Requests\ShippingRequest;
+use Modules\Shipping\Http\Requests\StoreShippingRequest;
 use Modules\Shipping\Http\Services\ShippingService;
 use Illuminate\Http\Request;
 
@@ -21,50 +21,110 @@ class ShippingController extends Controller
     }
 
     /**
-     * @param Request $request
+     * Fetch all shipping address respected user
+     *
      * @return JsonResponse
      */
-    public function fetch(Request $request): JsonResponse
+    public function fetch(): JsonResponse
     {
-        $response = $this->shippingService->getShippings($request);
+        $user = auth()->user();
+        if ($user->cannot('viewAny', Shipping::class)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
+        $response = $this->shippingService->getShipping();
+
         return response()->json($response);
     }
 
     /**
+     * Fetch shipping details respected shipping ID
+     *
      * @param Request $request
      * @return JsonResponse
      */
     public function details(Request $request): JsonResponse
     {
+        $user = auth()->user();
+        $shipping = Shipping::where('id', $request->id)->first();
+        if ($user->cannot('view', $shipping)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
         $response = $this->shippingService->details($request);
+
         return response()->json($response);
     }
 
     /**
-     * Store a newly created shipping in storage
+     * Retailer create shipping details
      *
-     * @param ShippingRequest $request
+     * @param StoreShippingRequest $request
      * @return JsonResponse
      */
-    public function create(ShippingRequest $request): JsonResponse
+    public function create(StoreShippingRequest $request): JsonResponse
     {
-        $user = auth('sanctum')->user();
-        $request->request->add(['user_id' => $request->user_id]);
+        $user = auth()->user();
+        if ($user->cannot('create', Shipping::class)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
+
         $response = $this->shippingService->create($request->validated());
 
         return response()->json($response);
     }
 
-    public function update(ShippingRequest $request): JsonResponse
+    /**
+     * Update shipping details by ID
+     *
+     * @param StoreShippingRequest $request
+     * @return JsonResponse
+     */
+    public function update(StoreShippingRequest $request): JsonResponse
     {
-        $response = $this->shippingService->update($request->all());
+        $user = auth()->user();
+        $shipping = Shipping::where('id', $request->id)->first();
+        if ($user->cannot('update', $shipping)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
+        $response = $this->shippingService->update($request->validated(),$request->id);
+
         return response()->json($response);
     }
+
+    /**
+     * Delete shipping by ID
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function delete(Request $request): JsonResponse
     {
-        $response = $this->shippingService->delete($request->id,$request->user_id);
+        $user = auth()->user();
+        $shipping = Shipping::where('id', $request->id)->first();
+        if ($user->cannot('delete', $shipping)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
+        $response = $this->shippingService->delete($request->id);
+
         return response()->json($response);
     }
-
-
 }

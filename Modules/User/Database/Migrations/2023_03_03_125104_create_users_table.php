@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string('role')->default('retailer');
             $table->tinyInteger('active')->default(0);
             $table->tinyInteger('verified')->default(1);
+            $table->string('token');
             $table->rememberToken()->nullable();
 
             $table->timestamps();

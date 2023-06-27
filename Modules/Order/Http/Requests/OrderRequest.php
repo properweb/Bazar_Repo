@@ -27,15 +27,12 @@ class OrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-
             'country' => 'required|integer',
-            'user_id' => 'required|integer',
             'state' => 'required|integer',
             'town' => 'required|integer',
             'zip' => ['required','max:10'],
             'phone' => ['required', 'digits:10'],
             'address1' => 'required|regex:/(^[-0-9A-Za-z.,\/ ]+$)/'
-
         ];
     }
 

@@ -24,7 +24,11 @@ class StoreCustomerRequest extends FormRequest
     public function rules()
     {
         return [
-            'title' => 'string|required|unique:campaigns',
+            'customers' => 'required|array',
+            'customers.*' => 'required|array',
+            'customers.*.name' => 'nullable|string|max:255',
+            'customers.*.store_name' => 'nullable|string|max:255',
+            'customers.*.email' => 'required|email|max:255|regex:/^([a-z0-9\+_\-]+)(\.[a-z0-9\+_\-]+)*@([a-z0-9\-]+\.)+[a-z]{2,6}$/ix',
         ];
     }
 }
