@@ -2,11 +2,13 @@
 
 namespace Modules\Brand\Http\Requests;
 
+use Illuminate\Http\Request;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Http\JsonResponse;
+
 
 class UpdateBrandShopRequest extends FormRequest
 {
@@ -28,19 +30,22 @@ class UpdateBrandShopRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => 'string|email|unique:users,email,' . $this->user->id . ',id',
-            'brand_slug' => 'string|unique:brands,brand_slug,' . $this->brand->id . ',id',
-            'brand_name' => 'string|max:255',
-            'website_url' => ['regex:/^(?!(http|https)\.)\w+(\.\w+)+$/'],
-            'insta_handle' => ['regex:/^(?!.*\.\.)(?!.*\.$)[^\W][\w.]{0,29}$/'],
-            'established_year' => 'digits:4|integer|min:1900|max:' . date('Y'),
-            'first_order_min' => 'numeric|min:1|max:99999',
-            're_order_min' => 'numeric|min:1|max:99999',
-            'avg_lead_time' => 'numeric|min:1|max:180',
-            'product_made' => 'integer|exists:countries,id',
-            'headquatered' => 'integer|exists:countries,id',
-            'shared_brd_story' => 'string|max:1500',
-            'tag_shop_page' => 'string|max:1500',
+            'user_id' => 'required|integer|exists:users,id',
+            'city' => 'required|integer|exists:cities,id',
+            'state' => 'required|integer|exists:states,id',
+            'cover_image' => 'required|string',
+            'established_year' => 'required|digits:4|integer|min:1900|max:'.date('Y'),
+            'featured_image' => 'required|string',
+            'headquatered' => 'required|integer|exists:countries,id',
+            'insta_handle' => ['required','regex:/^(?!.*\.\.)(?!.*\.$)[^\W][\w.]{0,29}$/'],
+            'logo_image' => 'required|string',
+            'product_made' => 'required|integer|exists:countries,id',
+            'profile_photo' => 'required|string',
+            'publications' => 'nullable|string|max:255',
+            'shared_brd_story' => 'required|string|max:1500',
+            'tag_shop_page' => 'required|string|max:255',
+            'tag_shop_page_about' => 'nullable|string|max:1000',
+            'video_url' => 'nullable|url',
         ];
     }
 
@@ -52,6 +57,7 @@ class UpdateBrandShopRequest extends FormRequest
      */
     public function failedValidation(Validator $validator): JsonResponse
     {
+        //dd($validator->errors());
         throw new HttpResponseException(response()->json([
             'res' => false,
             'msg' => $validator->errors()->first(),

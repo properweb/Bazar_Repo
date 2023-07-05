@@ -2,87 +2,66 @@
 
 namespace Modules\Country\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Modules\Country\Entities\Country;
-use DB;
+use Modules\Country\Http\Requests\StateRequest;
+use Modules\Country\Http\Requests\CityRequest;
+use Modules\Country\Http\Services\CountryService;
 
 class CountryController extends Controller
 {
+    private CountryService $countryService;
 
-
-    public function index(Request $request)
+    public function __construct(CountryService $countryService)
     {
+        $this->countryService = $countryService;
+    }
+    /**
+     * Get All country
+     *
+     * @return mixed
+     */
+    public function index(): mixed
+    {
+        $response = $this->countryService->fetch();
 
-        $result_array = array();
-        $countries = Country::orderBy('name', 'ASC')->get();;
-        foreach ($countries as $v) {
-            $result_array[] = array(
-                'id' => $v->id,
-                'country_code' => $v->shortname,
-                'country_name' => $v->name,
-                'phone_code' => $v->phonecode
-            );
-        }
-
-
-        $response = ['res' => true, 'msg' => "", 'data' => $result_array];
         return response()->json($response);
     }
 
-    public function state(Request $request)
+    /**
+     * Get All state By country
+     *
+     * @param StateRequest $request
+     * @return mixed
+     */
+    public function state(StateRequest $request): mixed
     {
-        $result_array = [];
-        $states = DB::table('states')
-            ->where('country_id', $request->country_id)
-            ->orderBy('name', 'ASC')
-            ->get();
-        foreach ($states as $v) {
-            $result_array[] = array(
-                'id' => $v->id,
-                'state_name' => $v->name
-            );
-        }
-        $response = ['res' => true, 'msg' => "", 'data' => $result_array];
+        $response = $this->countryService->state($request);
+
         return response()->json($response);
     }
 
-    public function city(Request $request)
+    /**
+     * Get all city by state
+     *
+     * @param CityRequest $request
+     * @return mixed
+     */
+    public function city(CityRequest $request): mixed
     {
-        $result_array = [];
+        $response = $this->countryService->city($request);
 
-        $states = DB::table('cities')
-            ->where('state_id', $request->state_id)
-            ->orderBy('name', 'ASC')
-            ->get();
-
-        foreach ($states as $v) {
-            $result_array[] = array(
-                'id' => $v->id,
-                'city_name' => $v->name
-            );
-        }
-
-        $response = ['res' => true, 'msg' => "", 'data' => $result_array];
         return response()->json($response);
     }
-    
-    public function promotion(Request $request)
+
+    /**
+     * Get all promotion country
+     *
+     * @return mixed
+     */
+    public function promotion(): mixed
     {
+        $response = $this->countryService->promotion();
 
-        $result_array = array();
-        $countries = Country::orderBy('name', 'ASC')->where('in_promotion','1')->get();
-        foreach ($countries as $v) {
-            $result_array[] = array(
-                'id' => $v->id,
-                'country_code' => $v->shortname,
-                'country_name' => $v->name,
-                'phone_code' => $v->phonecode
-            );
-        }
-
-
-        $response = ['res' => true, 'msg' => "", 'data' => $result_array];
         return response()->json($response);
     }
 }

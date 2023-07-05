@@ -27,13 +27,10 @@ class ChangeRequest extends FormRequest
     public function rules(): array
     {
         return [
-
-            'name' => ['required', 'regex:/^[\p{L}\s-]+$/u','max:255'],
-            'address1' => 'required|regex:/(^[-0-9A-Za-z.,\/ ]+$)/',
-            'address2' => 'nullable|regex:/(^[-0-9A-Za-z.,\/ ]+$)/',
-            'phone' => ['required', 'digits:10'],
-            'post_code' => 'string|nullable',
-
+            'shipping_name' => ['required', 'regex:/^[\p{L}\s-]+$/u','max:255'],
+            'shipping_street' => 'required|regex:/(^[-0-9A-Za-z.,\/ ]+$)/',
+            'shipping_phone' => ['required', 'digits:10'],
+            'shipping_zip' => 'string|nullable',
         ];
     }
 
@@ -50,6 +47,5 @@ class ChangeRequest extends FormRequest
             'msg' => $validator->errors()->first(),
             'data' => ""
         ]));
-
     }
 }
