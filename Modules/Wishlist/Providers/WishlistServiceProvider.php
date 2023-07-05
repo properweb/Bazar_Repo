@@ -3,7 +3,7 @@
 namespace Modules\Wishlist\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Database\Eloquent\Factory;
+
 
 class WishlistServiceProvider extends ServiceProvider
 {
@@ -37,6 +37,7 @@ class WishlistServiceProvider extends ServiceProvider
      */
     public function register()
     {
+        $this->app->register(AuthServiceProvider::class);
         $this->app->register(RouteServiceProvider::class);
     }
 

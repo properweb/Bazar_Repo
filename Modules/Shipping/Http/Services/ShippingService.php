@@ -2,10 +2,9 @@
 
 namespace Modules\Shipping\Http\Services;
 
-use Modules\Program\Entities\Program;
 use Modules\User\Entities\User;
 use Modules\Shipping\Entities\Shipping;
-use DB;
+use Modules\Country\Entities\Country;
 
 
 class ShippingService
@@ -23,16 +22,12 @@ class ShippingService
     public function create(array $requestData): array
     {
 
-
-
         $shipping = $this->createShipping($requestData);
-        $response = [
+        return [
             'res' => true,
             'msg' => 'Shipping address created successfully',
             'data' => $shipping
         ];
-
-        return $response;
     }
 
     /**
@@ -43,7 +38,7 @@ class ShippingService
      */
     public function createShipping(array $shippingData): Shipping
     {
-
+        $shippingData['user_id'] = auth()->user()->id;
         $shipping = new Shipping();
         $shipping->fill($shippingData);
         $shipping->save();
@@ -52,19 +47,17 @@ class ShippingService
     }
 
     /**
-     * @param $requestData
+     * Get all shipping address by User
+     *
      * @return array
      */
-
-    public function getShippings($requestData): array
+    public function getShipping(): array
     {
-
-
-        $shippings = Shipping::where('user_id', $requestData->user_id)->get();
+        $shippings = Shipping::where('user_id', auth()->user()->id)->get();
         $data = [];
         if (!empty($shippings)) {
             foreach ($shippings as $shipping) {
-                $country = DB::table('countries')->where('id', $shipping->country)->first();
+                $country = Country::where('id', $shipping->country)->first();
                 $data[] = array(
                     'id' => $shipping->id,
                     'name' => $shipping->name,
@@ -83,45 +76,45 @@ class ShippingService
     }
 
     /**
+     * Get shipping address by ID
+     *
      * @param $requestData
      * @return array
      */
     public function details($requestData): array
     {
 
-
-        $shippings = Shipping::where('id', $requestData->id)->first();
-
-        if (!empty($shippings)) {
-
-
-                $data = array(
-                    'id' => $shippings->id,
-                    'name' => $shippings->name,
-                    'country' => $shippings->country,
-                    'street' => $shippings->street,
-                    'suite' => $shippings->suite,
-                    'state' => $shippings->state,
-                    'town' => $shippings->town,
-                    'phoneCode' => $shippings->phoneCode,
-                    'phone' => $shippings->phone,
-                    'zip' => $shippings->zip,
-                );
-            }
+        $shipping = Shipping::where('id', $requestData->id)->first();
+        $data = '';
+        if (!empty($shipping)) {
+            $data = array(
+                'id' => $shipping->id,
+                'name' => $shipping->name,
+                'country' => $shipping->country,
+                'street' => $shipping->street,
+                'suite' => $shipping->suite,
+                'state' => $shipping->state,
+                'town' => $shipping->town,
+                'phoneCode' => $shipping->phoneCode,
+                'phone' => $shipping->phone,
+                'zip' => $shipping->zip,
+            );
+        }
 
 
         return ['res' => true, 'msg' => "", 'data' => $data];
     }
 
     /**
+     * Update shipping address BY ID
+     *
      * @param array $shippingData
+     * @param int $id
      * @return array
      */
-
-    public function update(array $shippingData): array
+    public function update(array $shippingData,int $id): array
     {
-        //update Program
-        $id = $shippingData['id'];
+
         $name = $shippingData['name'];
         $country = $shippingData['country'];
         $street = $shippingData['street'];
@@ -142,23 +135,25 @@ class ShippingService
         );
         Shipping::where('id', $id)->update($data);
 
-        $response = [
+
+        return [
             'res' => true,
             'msg' => 'Updated Successfully',
             'data' => ''
         ];
-
-        return $response;
     }
 
     /**
-     * @param $requestData
+     * Delete Shipping by ID
+     *
+     * @param $id
      * @return array
      */
-    public function delete($id,$user_id): array
+    public function delete($id): array
     {
-        $shipping = Shipping::where('id', $id)->where('user_id', $user_id)->first();
+        $shipping = Shipping::where('id', $id)->first();
         if (empty($shipping)) {
+
             return [
                 'res' => false,
                 'msg' => 'Shipping not found !',
@@ -166,6 +161,7 @@ class ShippingService
             ];
         }
         $shipping->delete();
+
         return [
             'res' => true,
             'msg' => 'Shipping Address successfully deleted',

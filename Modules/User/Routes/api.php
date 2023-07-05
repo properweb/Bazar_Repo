@@ -13,23 +13,13 @@ use Illuminate\Support\Facades\Route;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
-Route::prefix('user')->group(function () {
-    Route::post('/login', 'UserController@login')->name('user.login');
-});
-Route::prefix('user')->group(function () {
-    Route::post('/forget-password', 'UserController@forgetPassword')->name('user.forgot_password');
-});
-Route::prefix('user')->group(function () {
-    Route::post('/reset-password', 'UserController@resetPassword')->name('user.reset_password');
-});
 
-
-Route::middleware('auth:sanctum')
-    ->prefix('user')
+Route::prefix('user')
     ->name('user.')
     ->group(function () {
-        Route::post('/details', 'UserController@details')->name('user.details');
-        Route::get('/fetch-cart/{id}', 'UserController@fetchCart')->name('user.fetch_cart');
-        Route::get('/fetch-brands/{id}', 'UserController@fetchBrands')->name('user.fetch_brands');
+        Route::post('/login', 'UserController@login')->name('login');
+        Route::post('/forget-password', 'UserController@forgetPassword')->name('forgot_password');
+        Route::post('/reset-password', 'UserController@resetPassword')->name('reset_password');
+        Route::post('/check-email', 'UserController@checkEmail')->name('check_email');
     });
 

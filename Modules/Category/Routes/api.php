@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -12,10 +13,11 @@ use Illuminate\Http\Request;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
-
-Route::prefix('category')->group(function () {
-    Route::get('/allcategory', 'CategoryController@index');
-});
-Route::prefix('category')->group(function () {
-    Route::get('/parentcategory', 'CategoryController@parentCategory');
-});
+Route::prefix('category')
+    ->name('category.')
+    ->group(function () {
+        Route::get('/categories', 'CategoryController@fetchCategories')->name('all');
+        Route::get('/featured-categories', 'CategoryController@fetchFeaturedCategories')->name('featured');
+        Route::get('/product-categories', 'CategoryController@fetchProductCategories')->name('product');
+        Route::get('/parent-categories', 'CategoryController@fetchParentCategories')->name('parent');
+    });
