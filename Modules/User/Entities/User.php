@@ -2,11 +2,13 @@
 
 namespace Modules\User\Entities;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
+use Modules\Shipping\Entities\Shipping;
+use Modules\Product\Entities\Product;
+use Modules\Brand\Entities\Brand;
 
 class User extends Authenticatable
 {
@@ -30,7 +32,7 @@ class User extends Authenticatable
      * @var array
      */
     protected $hidden = [
-        'password', 'remember_token',
+        'password', 'remember_token', 'token'
     ];
 
     /**
@@ -42,4 +44,16 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
     ];
 
+    public function getAllShippings()
+    {
+        return $this->hasMany(Shipping::class);
+    }
+    public function getAllProducts()
+    {
+        return $this->hasMany(Product::class);
+    }
+    public function brand()
+    {
+        return $this->hasOne(Brand::class);
+    }
 }
