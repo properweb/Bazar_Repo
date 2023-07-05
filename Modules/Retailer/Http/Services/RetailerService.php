@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Modules\User\Entities\User;
 use Modules\Retailer\Entities\Retailer;
+use Modules\Country\Entities\Country;
+use Modules\Country\Entities\State;
+use Modules\Country\Entities\City;
 
 
 class RetailerService
@@ -93,9 +96,9 @@ class RetailerService
         $retailer = Retailer::find($retailerId);
         $user = User::find($retailer->user_id);
 
-        $country = DB::table('countries')->where('id', $retailer->country)->first();
-        $state = DB::table('states')->where('id', $retailer->state)->first();
-        $town = DB::table('cities')->where('id', $retailer->town)->first();
+        $country = Country::where('id', $retailer->country)->first('name');
+        $state = State::where('id', $retailer->state)->first('name');
+        $town = City::where('id', $retailer->town)->first('name');
         $retailer->first_name = $user->first_name;
         $retailer->last_name = $user->last_name;
         $retailer->email = $user->email;
@@ -123,16 +126,9 @@ class RetailerService
         $user = auth()->user();
         $user->first_name = $requestData['first_name'];
         $user->last_name = $requestData['last_name'];
-        if (!empty($requestData['new_password'])) {
-            if (Hash::check($requestData['old_password'], $user->password)) {
-                $user->password = Hash::make($requestData['new_password']);
-            } else {
-                return ['res' => false, 'msg' => 'old password does not match our record.', 'data' => ""];
-            }
-        }
         $user->save();
 
-        $retailer = Retailer::where('user_id', $user->id)->first();
+        $retailer = $user->retailer;
         $retailer->country = $requestData['country'];
         $retailer->country_code = $requestData['country_code'];
         $retailer->phone_number = $requestData['phone_number'];
@@ -142,6 +138,28 @@ class RetailerService
         $retailer->save();
 
         return ['res' => true, 'msg' => "Successfully updated your account", 'data' => ''];
+    }
+
+    /**
+     * Update account details of the specified Retailer.
+     *
+     * @param array $requestData
+     * @return array
+     */
+    public function changePassword(array $requestData): array
+    {
+
+        $user = auth()->user();
+
+        if (!empty($requestData['new_password'])) {
+            if (Hash::check($requestData['old_password'], $user->password)) {
+                $user->password = Hash::make($requestData['new_password']);
+            } else {
+                return ['res' => false, 'msg' => 'old password does not match our record.', 'data' => ""];
+            }
+        }
+        $user->save();
+        return ['res' => true, 'msg' => "Successfully updated your password", 'data' => ''];
     }
 
 }
