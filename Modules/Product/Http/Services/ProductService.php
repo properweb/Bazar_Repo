@@ -220,12 +220,12 @@ class ProductService
             ->get();
 
         foreach ($products as $product) {
-            $productVariations = Product::find($product->id)->productVariations()->where('status', '1')->get();
+            $productVariations = Product::find($product->id)->with('productVariations')->where('status', '1')->get();
             $productVariationsCount = $productVariations->count();
             if ($productVariationsCount > 0) {
-                $variantMinPrice = Product::find($product->id)->productVariations()->min('price');
+                $variantMinPrice = $productVariations->productVariations()->min('price');
                 $price = $variantMinPrice . '+';
-                $variantStock = Product::find($product->id)->productVariations()->sum('price');
+                $variantStock = $productVariations->productVariations()->sum('price');
                 $availability = $variantStock > 0 ? 'in stock' : 'out of stock';
             } else {
                 $price = $product->usd_wholesale_price;
@@ -768,8 +768,8 @@ class ProductService
 
                         $productVriation->update($variationData);
 
-                        $pVariantDetails = ProductVariation::where('id', $vars['variant_id'])->get()->first();
-                        $syncs = Store::where('website', $pVariantDetails->website)->get()->first();
+                        $pVariantDetails = ProductVariation::where('id', $vars['variant_id'])->first();
+                        $syncs = Store::where('website', $pVariantDetails->website)->first();
                         $extendUrl = '&action=update_stock&product_id=' . $pVariantDetails->website_product_id . '&stock=' . $vars['inventory'] . '&variation_data_id=' . $pVariantDetails->variation_id;
                         $this->customService->curlCall('GET', $syncs->api_key, $syncs->api_password, $syncs->website, $extendUrl);
 
@@ -960,8 +960,6 @@ class ProductService
         }
 
         $getProducts = Product::with('productPrepacks', 'productVariations', 'productFeatureImage')->where('id', $request->id)->first();
-        //$productVariations = Product::find($request->id)->productVariations;
-        //$productPrepacks = Product::find($request->id)->productPrepacks;
         $productVariations = $getProducts->productVariations;
         $productPrepacks = $getProducts->productPrepacks;
 
