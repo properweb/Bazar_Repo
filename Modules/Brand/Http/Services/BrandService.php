@@ -13,14 +13,18 @@ use Modules\Country\Entities\Country;
 use Modules\Product\Entities\Product;
 use Modules\Product\Entities\ProductImage;
 use Modules\Product\Entities\ProductVariation;
+use Modules\Promotion\Entities\Promotion;
 use Modules\Retailer\Entities\Retailer;
 use Modules\User\Entities\User;
 use Modules\Brand\Entities\Brand;
 use Modules\Brand\Entities\Catalog;
+use Modules\Brand\Entities\Widget;
+use Modules\Brand\Entities\BrandWidget;
 use Modules\Order\Entities\Order;
 use Modules\Order\Entities\OrderReview;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Reader\Xlsx as ReaderXlsx;
+use Carbon\Carbon;
 
 
 class BrandService
@@ -91,7 +95,7 @@ class BrandService
         $slug = Str::slug($brandData["brand_name"], '-');
         $count = Brand::where(DB::raw('lower(brand_name)'), strtolower($brandData["brand_name"]))->count();
         if ($count > 0) {
-            $slug = $slug . '-' . $count;
+            $slug = $slug . '-' . ($count + 1);
         }
         $brandData["brand_slug"] = $slug;
         $brandData["bazaar_direct_link"] = $slug;
@@ -102,41 +106,25 @@ class BrandService
         $brand->fill($brandData);
         $brand->save();
 
-        return $brand;
-    }
-
-    /**
-     * Get a listing of the Brands
-     *
-     * @param $requestData
-     * @return array
-     */
-    public function getBrands($requestData): array
-    {
-
-        $user = User::find($requestData->user_id);
-        if ($user) {
-            $brandUsers = User::where('country_id', $user->country_id)->where('role', 'brand')->get();
-        } else {
-            $brandUsers = User::where('role', 'brand')->get();
-        }
-
-        if ($brandUsers) {
-            foreach ($brandUsers as $brandUser) {
-                $brand = Brand::where('user_id', $brandUser['id'])->where('go_live', '2')->first();
-                if ($brand) {
-                    $data[] = array(
-                        'brand_key' => $brand->bazaar_direct_link,
-                        'brand_id' => $brand->id,
-                        'brand_name' => $brand->brand_name,
-                        'brand_logo' => $brand->logo_image != '' ? asset('public') . '/' . $brand->logo_image : asset('public/img/logo-image.png'),
-                    );
-                }
-
+        $widgets = Widget::get();
+        $brandImage = $brand->logo_image != '' ? asset('public') . '/' . $brand->logo_image : asset('public/img/logo-image.png');
+        $brandLink = config('app.web_url') . '/brand/' . $brand->bazaar_direct_link;
+        if ($widgets) {
+            foreach ($widgets as $widget) {
+                $bodyText = $widget->body;
+                $bodyText = str_replace("@brand_name@", $brand->brand_name, $bodyText);
+                $bodyText = str_replace("@brand_image@", $brandImage, $bodyText);
+                $bodyText = str_replace("@brand_link@", $brandLink, $bodyText);
+                $brandWidget = new BrandWidget();
+                $brandWidget->embed_key = 'bw_' . Str::lower(Str::random(10));
+                $brandWidget->brand_id = $brand->user_id;
+                $brandWidget->widget_id = $widget->id;
+                $brandWidget->body = $bodyText;
+                $brandWidget->save();
             }
         }
 
-        return ['res' => true, 'msg' => "", 'data' => $data];
+        return $brand;
     }
 
     /**
@@ -179,6 +167,42 @@ class BrandService
     }
 
     /**
+     * Get a listing of the Brands
+     *
+     * @param $requestData
+     * @return array
+     */
+    public function getBrands($requestData): array
+    {
+
+        $user = User::find($requestData->user_id);
+        $brandUsers = User::where('role', 'brand');
+
+        if ($user) {
+            $brandUsers->where('country_id', $user->country_id);
+        }
+
+        $brandUsers = $brandUsers->get();
+        $brandUserIds = $brandUsers->pluck('id');
+        $brands = Brand::whereIn('user_id', $brandUserIds)
+            ->where('go_live', '2')
+            ->get(['id', 'brand_name', 'logo_image', 'bazaar_direct_link']);
+
+        $data = [];
+        foreach ($brands as $brand) {
+            $brandLogo = $brand->logo_image ? asset('public/' . $brand->logo_image) : asset('public/img/logo-image.png');
+            $data[] = [
+                'brand_key' => $brand->bazaar_direct_link,
+                'brand_id' => $brand->id,
+                'brand_name' => $brand->brand_name,
+                'brand_logo' => $brandLogo,
+            ];
+        }
+
+        return ['res' => true, 'msg' => "", 'data' => $data];
+    }
+
+    /**
      * Get the specified Brand's shop details
      *
      * @param string $brandKey
@@ -205,15 +229,52 @@ class BrandService
         $brand->tools_used = $brand->tools_used != '' ? explode(',', $brand->tools_used) : array();
         $brand->tag_shop_page = $brand->tag_shop_page != '' ? explode(',', $brand->tag_shop_page) : array();
 
-        //country
-        $country = Country::where('id', $brand->country)->first();
-        $brand->country = $country->name;
-        //headquarter
-        $headquarteredCountry = Country::where('id', $brand->headquatered)->first();
-        $brand->headquatered = $headquarteredCountry->name;
-        //shipped from
-        $productShippedCountry = Country::where('id', $brand->product_shipped)->first();
-        $brand->product_shipped = $productShippedCountry->name;
+        $countryIds = [$brand->country, $brand->headquatered, $brand->product_shipped];
+        $requiredCountries = Country::whereIn('id', $countryIds)->pluck('name', 'id');
+        $brand->country = $requiredCountries[$brand->country];
+        $brand->headquatered = $requiredCountries[$brand->headquatered];
+        $brand->product_shipped = $requiredCountries[$brand->product_shipped];
+
+        //shop-wide promotion banner
+        $promotions = Promotion::where('user_id', $brand->user_id)
+            ->where('promotion_type', 'order')
+            ->where('status', 'active')
+            ->where('from_date', '<=', date('Y-m-d'))
+            ->where('to_date', '>=', date('Y-m-d'))
+            ->orderBy('discount_amount', 'ASC')
+            ->get(['discount_amount', 'discount_type', 'ordered_amount']);
+        $shopPromotions = [];
+        $remaining_days = 0;
+
+        if ($promotions->isNotEmpty()) {
+            $promotionDetails = $promotions->sortByDesc('discount_amount')->first();
+
+            if ($promotionDetails->discount_type === 1) {
+                $maxDiscountAmount = $promotionDetails->discount_amount . '%';
+            } else {
+                $maxDiscountAmount = '$' . $promotionDetails->discount_amount;
+            }
+
+            if ($promotions->count() > 1) {
+                $shopPromotions[] = 'Up to ' . $maxDiscountAmount . ' off';
+            }
+
+            foreach ($promotions as $promotion) {
+                if ($promotion->discount_type === 1) {
+                    $discountAmount = $promotion->discount_amount . '%';
+                } else {
+                    $discountAmount = '$' . $promotion->discount_amount;
+                }
+
+                $shopPromotions[] = $discountAmount . ' off orders $' . $promotion->ordered_amount . '+';
+            }
+
+            $promotionDetails = $promotions->sortByDesc('to_date')->first();
+            $remaining_days = Carbon::parse($promotionDetails->to_date)->diffInDays(now());
+        }
+        $brand->promotions = $shopPromotions;
+        $brand->promotion_remaining_days = $remaining_days;
+
 
         return [
             'res' => true,
@@ -336,7 +397,7 @@ class BrandService
                             }
 
                             $productSlug = Str::slug($name, '-');
-                            $qryProduct = Product::where('slug', $productSlug)->first();
+                            $qryProduct = Product::where('slug', $productSlug)->first(['id']);
                             if (empty($qryProduct)) {
                                 $productKey = 'p_' . Str::lower(Str::random(10));
                                 $productSlug = Str::slug($name, '-');
@@ -532,10 +593,31 @@ class BrandService
      */
     public function updateAccount(array $requestData): array
     {
-
-        $user = User::find($requestData['user_id']);
+        $user = auth()->user();
         $user->first_name = $requestData['first_name'];
         $user->last_name = $requestData['last_name'];
+
+        $user->save();
+
+        $brand = $user->brand;
+        $brand->country_code = $requestData['country_code'];
+        $brand->phone_number = $requestData['phone_number'];
+        $brand->save();
+
+        return ['res' => true, 'msg' => "Successfully updated your account", 'data' => ''];
+
+    }
+
+    /**
+     * Update account details of the specified Brand.
+     *
+     * @param array $requestData
+     * @return array
+     */
+    public function changePassword(array $requestData): array
+    {
+
+        $user = auth()->user();
         if (!empty($requestData['new_password'])) {
             if (Hash::check($requestData['old_password'], $user->password)) {
                 $user->password = Hash::make($requestData['new_password']);
@@ -544,13 +626,76 @@ class BrandService
             }
         }
         $user->save();
+        return ['res' => true, 'msg' => "Successfully updated your password", 'data' => ''];
 
-        $brand = Brand::where('user_id', $requestData['user_id'])->first();
-        $brand->country_code = $requestData['country_code'];
-        $brand->phone_number = $requestData['phone_number'];
+    }
+
+    /**
+     * Update packing details of the specified Brand.
+     *
+     * @param Request $request
+     * @return array
+     */
+    public function packingSetting(Request $request): array
+    {
+
+        $user = auth()->user();
+        $brand = $user->brand;
+        $brand->packingImage = $request->packingImage;
+        $brand->PackingOrder = $request->PackingOrder;
         $brand->save();
 
-        return ['res' => true, 'msg' => "Successfully updated your account", 'data' => ''];
+        return ['res' => true, 'msg' => "Successfully updated", 'data' => ''];
+
+    }
+
+    /**
+     * Update Shop Setting  of the specified Brand.
+     *
+     * @param Request $request
+     * @return array
+     */
+    public function shopSettings(Request $request): array
+    {
+
+        $user = auth()->user();
+        $brand = $user->brand;
+        if (!empty($request->added_product)) {
+            $brand->added_product = $request->added_product;
+            $brand->save();
+            return ['res' => true, 'msg' => "Successfully updated", 'data' => ''];
+        }
+        if (!empty($request->previewed_shop_page)) {
+            $brand->previewed_shop_page = $request->previewed_shop_page;
+            $brand->save();
+            return ['res' => true, 'msg' => "Successfully updated", 'data' => ''];
+        }
+        $brand->cad_order_min = $request->cad_order_min;
+        $brand->cad_reorder_min = $request->cad_reorder_min;
+        $brand->first_order_min = $request->first_order_min;
+        $brand->re_order_min = $request->re_order_min;
+        $brand->gbp_order_min = $request->gbp_order_min;
+        $brand->gbp_reorder_min = $request->gbp_reorder_min;
+        $brand->aud_order_min = $request->aud_order_min;
+        $brand->aud_reorder_min = $request->aud_reorder_min;
+        $brand->eur_order_min = $request->eur_order_min;
+        $brand->eur_reorder_min = $request->eur_reorder_min;
+        $brand->sell_to_middle_east = $request->sell_to_middle_east;
+        $brand->sell_to_uk = $request->sell_to_uk;
+        $brand->sell_to_aus = $request->sell_to_aus;
+        $brand->handle_pack_cost = $request->handle_pack_cost;
+        $brand->outside_us = $request->outside_us;
+        $brand->sell_to_online = $request->sell_to_online;
+        $brand->allow_social_sellers = $request->allow_social_sellers;
+        $brand->sell_to_qual_reat = $request->sell_to_qual_reat;
+        $brand->brand_name = $request->brand_name;
+        $brand->prime_cat = $request->prime_cat;
+        $brand->shop_lead_time = $request->shop_lead_time;
+        $brand->pause_from_date = $request->pause_from_date;
+        $brand->pause_to_date = $request->pause_to_date;
+        $brand->save();
+
+        return ['res' => true, 'msg' => "Successfully updated", 'data' => ''];
 
     }
 
@@ -562,13 +707,12 @@ class BrandService
      */
     public function updateShop(array $requestData): array
     {
-        $userId = $requestData['user_id'];
-        $brand = Brand::where('user_id', $userId)->first();
+        $user = auth()->user();
+        $brand = $user->brand;
         $brandId = $brand->id;
 
-        $brand = Brand::updateOrCreate(['user_id' => $requestData['user_id']], Arr::except($requestData, ['email', 'featured_image', 'profile_photo', 'cover_image', 'logo_image']));
+        $brand = Brand::updateOrCreate(['user_id' => $user->id], Arr::except($requestData, ['email', 'featured_image', 'profile_photo', 'cover_image', 'logo_image']));
         if (isset($requestData['email'])) {
-            $user = User::find($userId);
             $user->email = $requestData['email'];
             $user->save();
         }
@@ -605,8 +749,8 @@ class BrandService
      */
     public function updateInfo(array $requestData): array
     {
-
-        $brand = Brand::where('user_id', $requestData['user_id'])->first();
+        $user = auth()->user();
+        $brand = $user->brand;
         if (!filter_var($requestData['profile_photo'], FILTER_VALIDATE_URL)) {
             $requestData['profile_photo'] = $this->imageUpload($brand->id, $requestData['profile_photo'], null, false);
         } else {
@@ -700,30 +844,111 @@ class BrandService
         }
         $totalReviews = $orderQuery->count();
         $orderReviews = $orderQuery->get();
-        if (!empty($orderReviews)) {
+        if ($orderReviews->isNotEmpty()) {
+            $userIds = $orderReviews->pluck('user_id')->toArray();
+            $retailers = Retailer::whereIn('user_id', $userIds)
+                ->get(['user_id', 'store_name'])
+                ->keyBy('user_id');
             foreach ($orderReviews as $orderReview) {
-                $retailer = Retailer::where('user_id', $orderReview->user_id)->first();
-                $reviews[] = array(
-                    'store_name' => $retailer->store_name,
-                    'rate' => $orderReview->rate,
-                    'review' => $orderReview->review,
-                    'created_at' => date("d.m.Y", strtotime($orderReview->created_at)),
-                );
+                $retailer = $retailers[$orderReview->user_id] ?? null;
+
+                if ($retailer) {
+                    $reviews[] = [
+                        'store_name' => $retailer->store_name,
+                        'rate' => $orderReview->rate,
+                        'review' => $orderReview->review,
+                        'created_at' => date("d.m.Y", strtotime($orderReview->created_at)),
+                    ];
+                }
                 $totalRating += $orderReview->rate;
                 if ($orderReview->rate == 5) {
                     $fiveStarReviews += 1;
                 }
             }
         }
-        $overallRating = $totalRating / $totalReviews;
+        $overallRating = $totalReviews == 0 ? 0 : ($totalRating / $totalReviews);
 
         $data = array(
             "reviews" => $reviews,
-            "overallRating" => $overallRating,
+            "overallRating" => round($overallRating, 2),
             "totalReviews" => $totalReviews,
             "fiveStarReviews" => $fiveStarReviews
         );
 
         return ['res' => true, 'msg' => "", 'data' => $data];
+    }
+
+    /**
+     * Get the specified Brand
+     *
+     * @param string $retailerKey
+     * @return array
+     */
+    public function getRetailer(string $retailerKey): array
+    {
+
+
+        $retailer = Retailer::where('retailer_key', $retailerKey)->first();
+        $user = User::find($retailer->user_id);
+
+        // return error if no Brand found
+        if (!$retailer) {
+            return [
+                'res' => false,
+                'msg' => 'Retailer not found !',
+                'data' => ""
+            ];
+        }
+
+        $retailer->first_name = $user->first_name;
+        $retailer->last_name = $user->last_name;
+        $retailer->email = $user->email;
+
+
+        return [
+            'res' => true,
+            'msg' => '',
+            'data' => $retailer
+        ];
+    }
+
+    /**
+     * Update info details of the specified Brand.
+     *
+     * @return array
+     */
+    public function getWidgets(): array
+    {
+        $user = auth()->user();
+        $widgets = [];
+        if ($user) {
+            $widgets = BrandWidget::get();
+            if (!empty($widgets)) {
+                foreach ($widgets as $widget) {
+                    $widgetDetails = Widget::find($widget->widget_id);
+                    $widget->title = $widgetDetails->title;
+                }
+            }
+        }
+
+        return ['res' => true, 'msg' => "", 'data' => $widgets];
+    }
+
+    /**
+     * Get the specified Brand's widget
+     *
+     * @param string $widgetKey
+     * @return array
+     */
+    public function getWidget(string $widgetKey): array
+    {
+
+        $widget = BrandWidget::where('embed_key', $widgetKey)->first();
+
+        return [
+            'res' => true,
+            'msg' => '',
+            'data' => $widget
+        ];
     }
 }
