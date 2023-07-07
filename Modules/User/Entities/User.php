@@ -9,6 +9,7 @@ use Laravel\Passport\HasApiTokens;
 use Modules\Shipping\Entities\Shipping;
 use Modules\Product\Entities\Product;
 use Modules\Brand\Entities\Brand;
+use Modules\Retailer\Entities\Retailer;
 
 class User extends Authenticatable
 {
@@ -55,5 +56,9 @@ class User extends Authenticatable
     public function brand()
     {
         return $this->hasOne(Brand::class);
+    }
+    public function retailer()
+    {
+        return $this->hasOne(Retailer::class);
     }
 }
