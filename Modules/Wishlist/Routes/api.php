@@ -2,8 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 
-use Modules\Wishlist\Http\Controllers\WishlistController;
-use Modules\User\Http\Controllers\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,14 +14,14 @@ use Modules\User\Http\Controllers\UserController;
 |
 */
 
-Route::middleware('auth:sanctum')
+Route::middleware('auth:api')
     ->prefix('wishlist')
     ->name('wishlist.')
     ->group(function () {
-        Route::get('/fetch/{id}', 'WishlistController@fetch')->name('fetch');
+        Route::get('/fetch', 'WishlistController@fetch')->name('fetch');
         Route::post('/add', 'WishlistController@add')->name('add');
         Route::post('/delete', 'WishlistController@delete')->name('delete');
-        Route::get('/fetch-boards/{id}', 'WishlistController@fetchBoards')->name('fetchBoards');
+        Route::get('/fetch-boards', 'WishlistController@fetchBoards')->name('fetchBoards');
         Route::post('/add-board', 'WishlistController@addBoard')->name('addBoard');
         Route::get('/fetch-board/{key}', 'WishlistController@fetchBoard')->name('fetchBoard');
         Route::post('/update-board', 'WishlistController@updateBoard')->name('updateBoard');

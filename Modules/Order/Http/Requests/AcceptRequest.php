@@ -27,7 +27,6 @@ class AcceptRequest extends FormRequest
     public function rules(): array
     {
         return [
-
             'brand_address1' => 'required|regex:/(^[-0-9A-Za-z.,\/ ]+$)/',
             'brand_address2' => 'nullable|regex:/(^[-0-9A-Za-z.,\/ ]+$)/',
             'brand_phone' => ['required', 'digits:10'],
@@ -38,9 +37,7 @@ class AcceptRequest extends FormRequest
             'brand_state' => 'required|integer',
             'brand_town' => 'required|integer',
             'ship_date' => 'nullable',
-            'user_id' => 'required|integer'
-
-        ];
+            ];
     }
 
     /**

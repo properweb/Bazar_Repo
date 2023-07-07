@@ -17,7 +17,7 @@ use Modules\User\Http\Controllers\UserController;
 |
 */
 
-Route::middleware('auth:sanctum')
+Route::middleware('auth:api')
     ->prefix('shippings')
     ->name('shipping.')
     ->group(function () {

@@ -6,6 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Modules\Cart\Entities\Cart;
 use Modules\Cart\Http\Requests\CartRequest;
+use Modules\Cart\Http\Requests\UpdateRequest;
 use Modules\Cart\Http\Services\CartService;
 use Illuminate\Http\Request;
 
@@ -21,34 +22,93 @@ class CartController extends Controller
     }
 
     /**
-     * @param Request $request
+     * Fetch logged user cart
+     *
      * @return JsonResponse
      */
-    public function fetch(Request $request): JsonResponse
+    public function fetch(): JsonResponse
     {
-        $response = $this->cartService->fetch($request);
+
+        $user = auth()->user();
+        if ($user->cannot('view', Cart::class)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
+        $response = $this->cartService->fetch();
+
         return response()->json($response);
     }
 
     /**
-     * @param Request $request
+     * User can add product on their cart
+     *
+     * @param CartRequest $request
      * @return JsonResponse
      */
-    public function add(Request $request): JsonResponse
+    public function add(CartRequest $request): JsonResponse
     {
-        $user = auth('sanctum')->user();
+        $user = auth()->user();
+        if ($user->cannot('create', Cart::class)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'Please login as a retailer',
+                'data' => ""
+            ]);
+        }
 
-        $response = $this->cartService->add($request->all());
+        $response = $this->cartService->add($request);
+
         return response()->json($response);
     }
 
     /**
+     * User can delete product from existing cart
+     *
      * @param Request $request
      * @return JsonResponse
      */
     public function delete(Request $request): JsonResponse
     {
-        $response = $this->cartService->delete($request->id,$request->user_id);
+        $user = auth()->user();
+        $cart = Cart::where('id', $request->id)->first();
+        if ($user->cannot('delete', $cart)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'You are not authorized !',
+                'data' => ""
+            ]);
+        }
+        $response = $this->cartService->delete($request->id);
+
+        return response()->json($response);
+    }
+
+    /**
+     * User can update product from existing cart
+     *
+     * @param UpdateRequest $request
+     * @return JsonResponse
+     */
+    public function update(UpdateRequest $request): JsonResponse
+    {
+        $user = auth()->user();
+        $carts = $request->cart;
+
+        foreach ($carts as $v) {
+            $cart = Cart::where('id', $v['id'])->first();
+            if ($user->cannot('update', $cart)) {
+                return response()->json([
+                    'res' => false,
+                    'msg' => 'You are not authorized !',
+                    'data' => ""
+                ]);
+            }
+        }
+        $response = $this->cartService->update($request);
+
         return response()->json($response);
     }
 
