@@ -215,17 +215,17 @@ class ProductService
 
         $resultArray = [];
         $userId = auth()->user()->id;
-        $products = Product::where('user_id', $userId)
+        $products = Product::with('productVariations')->where('user_id', $userId)
             ->orderBy('order_by', 'ASC')
             ->get();
 
         foreach ($products as $product) {
-            $productVariations = Product::find($product->id)->with('productVariations')->where('status', '1')->get();
+            $productVariations = $product->productVariations()->where('status', '1')->get();
             $productVariationsCount = $productVariations->count();
             if ($productVariationsCount > 0) {
-                $variantMinPrice = $productVariations->productVariations()->min('price');
+                $variantMinPrice = $productVariations->min('price');
                 $price = $variantMinPrice . '+';
-                $variantStock = $productVariations->productVariations()->sum('price');
+                $variantStock = $productVariations->sum('price');
                 $availability = $variantStock > 0 ? 'in stock' : 'out of stock';
             } else {
                 $price = $product->usd_wholesale_price;
