@@ -28,6 +28,7 @@ return new class extends Migration
             $table->mediumText('description')->nullable();
             $table->integer('country')->default('0');
             $table->integer('case_quantity')->default('0');
+            $table->mediumText('option_items')->default('');
             $table->integer('min_order_qty')->default('0');
             $table->string('min_order_qty_type')->nullable();
             $table->string('sku')->nullable();$table->float('amount', 8, 2);
