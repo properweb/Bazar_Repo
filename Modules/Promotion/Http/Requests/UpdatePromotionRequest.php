@@ -27,14 +27,18 @@ class UpdatePromotionRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'promotion_key' => 'required|string',
             'title' => 'required|string',
             'user_id' => 'nullable|integer|exists:users,id',
             'from_date' => 'required|date_format:Y-m-d',
             'to_date' => 'required|date_format:Y-m-d|after_or_equal:from_date',
-            'type' => 'required|in:all,new,return',
-            'ordered_amount' => 'required|numeric|min:1',
+            'type' => 'required|in:1,2,3',
+            'tier' => 'required|in:1,2,3',
+            'country' => 'required|string',
+            'products' => 'required_if:promotion_type,product|array',
+            'ordered_amount' => 'required_if:promotion_type,order|numeric|min:1',
             'discount_amount' => 'required|numeric|min:0',
-            'discount_type' => 'required|in:percent,amount,free',
+            'discount_type' => 'required|in:1,2,3',
         ];
     }
 

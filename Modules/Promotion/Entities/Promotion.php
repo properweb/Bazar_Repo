@@ -9,6 +9,8 @@ class Promotion extends Model {
     //Declare constants
     const CUSTOMER_TYPE = 1;
     const STATUS_ACTIVE = 'active';
+    const STATUS_DEACTIVATED = 'deactivated';
+    const STATUS_COMPLETED = 'completed';
 
     protected $fillable = [
         'title',
@@ -23,8 +25,8 @@ class Promotion extends Model {
         'ordered_amount',
         'discount_amount',
         'free_shipping',
-        'status',
-        'products'
+        'promotion_type',
+        'status'
     ];
 
 }

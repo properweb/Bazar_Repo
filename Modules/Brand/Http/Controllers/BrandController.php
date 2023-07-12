@@ -5,9 +5,9 @@ namespace Modules\Brand\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Str;
 use Modules\Brand\Http\Requests\StoreBrandRequest;
 use Modules\Brand\Http\Requests\UpdateBrandRequest;
+use Modules\Brand\Http\Requests\UpdateBrandInfoRequest;
 use Modules\Brand\Http\Requests\UpdateBrandAccountRequest;
 use Modules\Brand\Http\Requests\UpdateBrandShopRequest;
 use Modules\Brand\Http\Services\BrandService;
@@ -107,16 +107,15 @@ class BrandController extends Controller
     public function updateAccount(UpdateBrandAccountRequest $request): JsonResponse
     {
         $user = auth()->user();
-
-        $brand = Brand::where('user_id', $request->user_id)->first();
+        $brand = Brand::where('user_id', $user->id)->first();
 
         // return error if no Brand found
         if (!$brand) {
-            return [
+            return response()->json([
                 'res' => false,
                 'msg' => 'Brand not found !',
                 'data' => ""
-            ];
+            ]);
         }
 
         // return error if user can not update the brand
@@ -142,15 +141,15 @@ class BrandController extends Controller
     public function updateShop(UpdateBrandShopRequest $request): JsonResponse
     {
         $user = auth()->user();
-        $brand = Brand::where('user_id', $request->user_id)->first();
+        $brand = Brand::where('user_id', $user->id)->first();
 
         // return error if no Brand found
         if (!$brand) {
-            return [
+            return response()->json([
                 'res' => false,
                 'msg' => 'Brand not found !',
                 'data' => ""
-            ];
+            ]);
         }
 
         // return error if user can not update the brand
@@ -161,9 +160,43 @@ class BrandController extends Controller
                 'data' => ""
             ]);
         }
-        $request->brand_slug = Str::slug($request->brand_name, '-');
 
         $response = $this->brandService->updateShop($request->validated());
+
+        return response()->json($response);
+    }
+
+    /**
+     * Update info details of the specified Brand.
+     *
+     * @param UpdateBrandInfoRequest $request
+     * @return JsonResponse
+     */
+    public function updateInfo(UpdateBrandInfoRequest $request): JsonResponse
+    {
+        $user = auth()->user();
+
+        $brand = Brand::where('user_id', $user->id)->first();
+
+        // return error if no Brand found
+        if (!$brand) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'Brand not found !',
+                'data' => ""
+            ]);
+        }
+
+        // return error if user can not update the brand
+        if ($user->cannot('update', $brand)) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'User is not authorized !',
+                'data' => ""
+            ]);
+        }
+
+        $response = $this->brandService->updateInfo($request->validated());
 
         return response()->json($response);
     }
@@ -178,15 +211,15 @@ class BrandController extends Controller
     {
 
         $user = auth()->user();
-        $brand = Brand::where('user_id', $request->user_id)->first();
+        $brand = Brand::where('user_id', $user->id)->first();
 
         // return error if no Brand found
         if (!$brand) {
-            return [
+            return response()->json([
                 'res' => false,
                 'msg' => 'Brand not found !',
                 'data' => ""
-            ];
+            ]);
         }
 
         // return error if user can not update the brand
@@ -212,6 +245,31 @@ class BrandController extends Controller
     {
         $brandCount = Brand::where('go_live', 2)->count();
         $response = ['res' => true, 'msg' => "", 'data' => $brandCount];
+
+        return response()->json($response);
+    }
+
+    /**
+     * Fetch order's reviews.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function orderReviews(Request $request): JsonResponse
+    {
+        $user = auth()->user();
+        $brand = Brand::where('user_id', $user->id)->first();
+
+        // return error if no Brand found
+        if (!$brand) {
+            return response()->json([
+                'res' => false,
+                'msg' => 'Brand not found !',
+                'data' => ""
+            ]);
+        }
+
+        $response = $this->brandService->getOrderReviews($request);
 
         return response()->json($response);
     }

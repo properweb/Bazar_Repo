@@ -57,7 +57,6 @@ class User extends Authenticatable
     {
         return $this->hasOne(Brand::class);
     }
-
     public function retailer()
     {
         return $this->hasOne(Retailer::class);

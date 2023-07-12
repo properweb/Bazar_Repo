@@ -32,10 +32,9 @@ class UpdateBrandAccountRequest extends FormRequest
             'last_name' => 'required|regex:/^[a-zA-Z]+$/u|max:255',
             'country_code' => 'required|numeric',
             'phone_number' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:9',
-            'old_password' => 'sometimes|required',
+            'old_password' => 'sometimes|required_if:new_password',
             'new_password' => [
                 'sometimes',
-                'required',
                 'different:old_password',
                 Password::min(8)
                     ->letters()
@@ -43,8 +42,7 @@ class UpdateBrandAccountRequest extends FormRequest
                     ->numbers()
                     ->symbols()
             ],
-            'confirm_password' => 'sometimes|required|same:new_password'
-
+            'confirm_password' => 'sometimes|same:new_password'
         ];
     }
 
