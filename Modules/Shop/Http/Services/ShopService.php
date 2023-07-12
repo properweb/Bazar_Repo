@@ -50,32 +50,20 @@ class ShopService
             $newProductsCount = User::find($userId)->getAllProducts()->where('status', 'publish')->where('created_at', '>', now()->subDays(7)->endOfDay())->count();
 
             $productCategories = User::find($userId)->getAllProducts()->selectRaw('count(*) as prdct_count, category, categories.title, categories.slug, categories.parent_id')->leftJoin('categories', 'products.category', '=', 'categories.id')->where('products.status', 'publish')->groupBy('products.category')->get();
-            $mainCategories = Category::where('parent_id', 0)->pluck('slug','id');
+
+            $mainCategories = Category::where('parent_id', 0)->pluck('slug', 'id');
+
             foreach ($productCategories as $productCategory) {
                 if ($productCategory->category != 0) {
 
-                    $productSubCategories = User::find($userId)->getAllProducts()->selectRaw("count(*) as prdct_count, sub_category, categories.title, categories.slug")->leftJoin('categories', 'products.sub_category', '=', 'categories.id')->where('products.status', 'publish')->where('category', $productCategory->category)->groupBy('sub_category')->get();
+                    $productSubCategories = $productCategory->selectRaw("count(*) as prdct_count, sub_category, categories.title, categories.slug")->leftJoin('categories', 'products.sub_category', '=', 'categories.id')->where('products.status', 'publish')->where('category', $productCategory->category)->groupBy('sub_category')->get();
                     $subCategories = [];
                     foreach ($productSubCategories as $productSubCategory) {
-                        $subCategories[] = array(
-                            "pcount" => $productSubCategory->prdct_count,
-                            "name" => $productSubCategory->title,
-                            "slug" => $mainCategories[$productCategory->parent_id] . '|' . $productCategory->slug . '|' . $productSubCategory->slug,
-                        );
+                        $subCategories[] = array("pcount" => $productSubCategory->prdct_count, "name" => $productSubCategory->title, "slug" => $mainCategories[$productCategory->parent_id] . '|' . $productCategory->slug . '|' . $productSubCategory->slug,);
                     }
-                    $categoryArray = array(
-                        "pcount" => $productCategory->prdct_count,
-                        "name" => $productCategory->title,
-                        "slug" => $mainCategories[$productCategory->parent_id] . '|' . $productCategory->slug,
-                        "subcategories" => $subCategories
-                    );
+                    $categoryArray = array("pcount" => $productCategory->prdct_count, "name" => $productCategory->title, "slug" => $mainCategories[$productCategory->parent_id] . '|' . $productCategory->slug, "subcategories" => $subCategories);
                 } else {
-                    $categoryArray = array(
-                        "pcount" => $productCategory->prdct_count,
-                        "name" => 'Uncategorized',
-                        "slug" => 'uncategorized',
-                        "subcategories" => []
-                    );
+                    $categoryArray = array("pcount" => $productCategory->prdct_count, "name" => 'Uncategorized', "slug" => 'uncategorized', "subcategories" => []);
                 }
 
                 $categories[] = $categoryArray;
@@ -131,50 +119,16 @@ class ShopService
                     $stock = $productDetails->stock;
                     $usdWholesalePrice = $productDetails->usd_wholesale_price ?? 0;
                     $usdRetailPrice = $productDetails->usd_retail_price ?? 0;
-                    $productOptionsCount = Product::find($productDetails->id)->productVariations()->count();
+                    $productOptionsCount = $productDetails->productVariations()->count();
                     if ($productOptionsCount > 0) {
-                        $productOptionsCount = Product::find($productDetails->id)->productVariations()->where('status', '1')->sum('stock');
+                        $productOptionsCount = $productDetails->productVariations()->where('status', '1')->sum('stock');
                         $stock = $productOptionsCount;
-                        $productFirstVariation = Product::find($productDetails->id)->productVariations()->where('status', '1')->first();
+                        $productFirstVariation = $productDetails->productVariations()->where('status', '1')->first();
                         $usdWholesalePrice = $productFirstVariation->price ?? 0;
                         $usdRetailPrice = $productFirstVariation->retail_price ?? 0;
                     }
 
-                    $productArray[] = array(
-                        'id' => $productDetails->id,
-                        'product_key' => $productDetails->product_key,
-                        'name' => $productDetails->name,
-                        'category' => $productDetails->category,
-                        'status' => $productDetails->status,
-                        'description' => strip_tags($productDetails->description),
-                        'country' => $productDetails->country,
-                        'case_quantity' => $productDetails->case_quantity,
-                        'min_order_qty' => $productDetails->min_order_qty,
-                        'min_order_qty_type' => $productDetails->min_order_qty_type,
-                        'sku' => $productDetails->sku,
-                        'usd_wholesale_price' => $usdWholesalePrice,
-                        'usd_retail_price' => $usdRetailPrice,
-                        'cad_wholesale_price' => $productDetails->cad_wholesale_price,
-                        'cad_retail_price' => $productDetails->cad_retail_price,
-                        'gbr_wholesale_price' => $productDetails->gbr_wholesale_price,
-                        'gbr_retail_price' => $productDetails->gbr_retail_price,
-                        'eur_wholesale_price' => $productDetails->eur_wholesale_price,
-                        'eur_retail_price' => $productDetails->eur_retail_price,
-                        'usd_tester_price' => $productDetails->usd_tester_price,
-                        'fabric_content' => $productDetails->fabric_content,
-                        'care_instruction' => $productDetails->care_instruction,
-                        'season' => $productDetails->season,
-                        'Occasion' => $productDetails->Occasion,
-                        'Aesthetic' => $productDetails->Aesthetic,
-                        'Fit' => $productDetails->Fit,
-                        'Secondary_Occasion' => $productDetails->Secondary_Occasion,
-                        'Secondary_Aesthetic' => $productDetails->Secondary_Aesthetic,
-                        'Secondary_Fit' => $productDetails->Secondary_Fit,
-                        'Preorder' => $productDetails->Preorder,
-                        'slug' => $productDetails->slug,
-                        'featured_image' => $productDetails->featured_image,
-                        'stock' => $stock,
-                        'default_currency' => $productDetails->default_currency
+                    $productArray[] = array('id' => $productDetails->id, 'product_key' => $productDetails->product_key, 'name' => $productDetails->name, 'category' => $productDetails->category, 'status' => $productDetails->status, 'description' => strip_tags($productDetails->description), 'country' => $productDetails->country, 'case_quantity' => $productDetails->case_quantity, 'min_order_qty' => $productDetails->min_order_qty, 'min_order_qty_type' => $productDetails->min_order_qty_type, 'sku' => $productDetails->sku, 'usd_wholesale_price' => $usdWholesalePrice, 'usd_retail_price' => $usdRetailPrice, 'cad_wholesale_price' => $productDetails->cad_wholesale_price, 'cad_retail_price' => $productDetails->cad_retail_price, 'gbr_wholesale_price' => $productDetails->gbr_wholesale_price, 'gbr_retail_price' => $productDetails->gbr_retail_price, 'eur_wholesale_price' => $productDetails->eur_wholesale_price, 'eur_retail_price' => $productDetails->eur_retail_price, 'usd_tester_price' => $productDetails->usd_tester_price, 'fabric_content' => $productDetails->fabric_content, 'care_instruction' => $productDetails->care_instruction, 'season' => $productDetails->season, 'Occasion' => $productDetails->Occasion, 'Aesthetic' => $productDetails->Aesthetic, 'Fit' => $productDetails->Fit, 'Secondary_Occasion' => $productDetails->Secondary_Occasion, 'Secondary_Aesthetic' => $productDetails->Secondary_Aesthetic, 'Secondary_Fit' => $productDetails->Secondary_Fit, 'Preorder' => $productDetails->Preorder, 'slug' => $productDetails->slug, 'featured_image' => $productDetails->featured_image, 'stock' => $stock, 'default_currency' => $productDetails->default_currency
 
                     );
                 }
@@ -182,12 +136,7 @@ class ShopService
         }
 
 
-        $data = array(
-            "categories" => $categories,
-            "allprdcts_count" => $allProductsCount,
-            "newprdcts_count" => $newProductsCount,
-            "products" => $productArray,
-        );
+        $data = array("categories" => $categories, "allprdcts_count" => $allProductsCount, "newprdcts_count" => $newProductsCount, "products" => $productArray,);
 
         return ['res' => true, 'msg' => "", 'data' => $data];
     }
@@ -209,21 +158,20 @@ class ShopService
         $filterLocation = $request->valuesSort ?? [];
         $filterPromotion = $request->valuesSort ?? [];
         $sortType = $request->sortKey;
-        $fetchProducts = Product::where('status', 'publish');
-
+        $fetchProducts = Product::with('productVariations')->where('status', 'publish');
 
         if ($request->main_category) {
             $mainCategory = Category::where('parent_id', 0)->where('status', '1')->where('title', $request->main_category)->first();
+
             if ($mainCategory) {
                 $fetchProducts->where('main_category', $mainCategory->id);
                 $categoriesByMainCategory = Category::where('parent_id', $mainCategory->id)->where('status', '1')->get();
                 if ($categoriesByMainCategory) {
                     foreach ($categoriesByMainCategory as $category) {
-                        $categories[] = array(
-                            "id" => $category->id,
-                            "title" => $category->title,
-                            "image" => $category->image != '' ? asset('public') . '/' . $category->image : asset('public/img/nav-category-image.png'),
-                        );
+                        //$product = $fetchProducts->where('category', $category->id)->inRandomOrder()->first();
+                        $categoryImage = $category->image != '' ? asset('public') . '/' . $category->image : '';
+                        //$categoryImage = $categoryImage == '' ? $product->featured_image : $categoryImage;
+                        $categories[] = array("id" => $category->id, "title" => $category->title, "image" => $categoryImage,);
                     }
                 }
             }
@@ -248,6 +196,7 @@ class ShopService
             $fetchProducts->orderBy('created_at', 'DESC');
         }
         $resultedProducts = $fetchProducts->get();
+        //print_r($resultedProducts);die;
         if ($resultedProducts) {
             foreach ($resultedProducts as $resultedProduct) {
                 $brandDetails = Brand::where('user_id', $resultedProduct->user_id)->first();
@@ -262,35 +211,22 @@ class ShopService
                 $stock = $resultedProduct->stock;
                 $usdWholesalePrice = $resultedProduct->usd_wholesale_price ?? 0;
                 $usdRetailPrice = $resultedProduct->usd_retail_price ?? 0;
-                $productOptionsCount = Product::find($resultedProduct->id)->productVariations()->where('status', '1')->count();
+                //$product = Product::with('productVariations')->find($resultedProduct->id)->where('status', 'publish')->get();
+                //dd($product);
+                $productOptionsCount = $resultedProduct->productVariations()->where('status', '1')->count();
                 if ($productOptionsCount > 0) {
-                    $productOptionsCount = Product::find($resultedProduct->id)->productVariations()->where('status', '1')->sum('stock');
+                    $productOptionsCount = $resultedProduct->productVariations()->where('status', '1')->sum('stock');
                     $stock = $productOptionsCount;
-                    $productFirstVariation = Product::find($resultedProduct->id)->productVariations()->where('status', '1')->first();
+                    $productFirstVariation = $resultedProduct->productVariations()->where('status', '1')->first();
                     $usdWholesalePrice = $productFirstVariation->price ?? 0;
                     $usdRetailPrice = $productFirstVariation->retail_price ?? 0;
                 }
 
-                $products[] = array(
-                    'id' => $resultedProduct->id,
-                    'product_key' => $resultedProduct->product_key,
-                    'name' => $resultedProduct->name,
-                    'slug' => $resultedProduct->slug,
-                    'brand_name' => $brandDetails->brand_name,
-                    'sku' => $resultedProduct->sku,
-                    'usd_wholesale_price' => $usdWholesalePrice,
-                    'usd_retail_price' => $usdRetailPrice,
-                    'featured_image' => $resultedProduct->featured_image,
-                    'stock' => $stock,
-                    'default_currency' => $resultedProduct->default_currency
-                );
+                $products[] = array('id' => $resultedProduct->id, 'product_key' => $resultedProduct->product_key, 'name' => $resultedProduct->name, 'slug' => $resultedProduct->slug, 'brand_name' => $brandDetails->brand_name, 'sku' => $resultedProduct->sku, 'usd_wholesale_price' => $usdWholesalePrice, 'usd_retail_price' => $usdRetailPrice, 'featured_image' => $resultedProduct->featured_image, 'stock' => $stock, 'default_currency' => $resultedProduct->default_currency);
 
             }
         }
-        $data = array(
-            "products" => $products,
-            "categories" => $categories,
-        );
+        $data = array("products" => $products, "categories" => $categories,);
 
         return ['res' => true, 'msg' => "", 'data' => $data];
     }
@@ -368,33 +304,16 @@ class ShopService
                 }
                 break;
         }
-        echo  $allProductQuery;die;
         $products = $allProductQuery->get();
         if ($products) {
-            foreach ($products as $productDetails) {
+            $countryIds = collect($products)->pluck('country')->unique()->toArray();
+            $countries = Country::whereIn('id', $countryIds)->select('name as value', 'id')->get()->toArray();
 
-                if (!array_key_exists($productDetails->country, $brands)) {
-                    $countryDetails = Country::find($productDetails->country);
-                    $countries[$productDetails->country] = array(
-                        "id" => $productDetails->country,
-                        "value" => $countryDetails->name
-                    );
-                }
-
-                if (!array_key_exists($productDetails->user_id, $brands)) {
-                    $brandDetails = Brand::where('user_id', $productDetails->user_id)->first();
-                    $brands[$productDetails->user_id] = array(
-                        "id" => $productDetails->user_id,
-                        "value" => $brandDetails->brand_name
-                    );
-                }
-            }
+            $brandIds = collect($products)->pluck('user_id')->unique()->toArray();
+            $brands = Brand::whereIn('user_id', $brandIds)->select('brand_name as value', 'user_id as id')->get()->toArray();
         }
 
-        $data = array(
-            "brands" => array_values($brands),
-            "countries" => array_values($countries),
-        );
+        $data = array("brands" => $brands, "countries" => $countries,);
 
         return ['res' => true, 'msg' => "", 'data' => $data];
     }
@@ -410,11 +329,11 @@ class ShopService
 
         $data = array();
         $user = auth()->user();
-        $productDetails = Product::find($productId);
-
+        $productDetails = Product::with('productWishlist', 'productVariations', 'productPrepacks')->find($productId);
+        //dd($productDetails);
         if ($productDetails) {
             if ($user) {
-                $wishList = Product::find($productDetails->id)->productWishlist()->where('user_id', $user->id)->where('cart_id', null)->first();
+                $wishList = $productDetails->productWishlist()->where('user_id', $user->id)->where('cart_id', null)->first();
             }
             if (!empty($wishList)) {
                 $wishlistId = $wishList->id;
@@ -444,16 +363,9 @@ class ShopService
             }
 
             $promotionDiscountAmount = 0;
-            $promotion = Promotion::where('user_id', $productDetails->user_id)
-                ->where('promotion_type', 'product')
-                ->where('status', 'active')
-                ->where('from_date', '<=', date('Y-m-d'))
-                ->where('to_date', '>=', date('Y-m-d'))
-                ->first();
+            $promotion = Promotion::where('user_id', $productDetails->user_id)->where('promotion_type', 'product')->where('status', 'active')->where('from_date', '<=', date('Y-m-d'))->where('to_date', '>=', date('Y-m-d'))->first();
             if ($promotion) {
-                $productPromotion = PromotionProduct::where('promotion_id', $promotion->id)
-                    ->where('product_id', $productDetails->id)
-                    ->first();
+                $productPromotion = PromotionProduct::where('promotion_id', $promotion->id)->where('product_id', $productDetails->id)->first();
                 if ($productPromotion) {
                     $discountedPrice = $productDetails->usd_wholesale_price * ($promotion->discount_amount / 100);
                     $promotionDiscountAmount = $productDetails->usd_wholesale_price - round($discountedPrice, 2);
@@ -462,22 +374,10 @@ class ShopService
 
             $data['discounted_price'] = $promotionDiscountAmount;
             //shop-wide promotion banner
-            $promotions = Promotion::where('user_id', $productDetails->user_id)
-                ->where('promotion_type', 'order')
-                ->where('status', 'active')
-                ->where('from_date', '<=', date('Y-m-d'))
-                ->where('to_date', '>=', date('Y-m-d'))
-                ->orderBy('discount_amount', 'ASC')
-                ->get();
+            $promotions = Promotion::where('user_id', $productDetails->user_id)->where('promotion_type', 'order')->where('status', 'active')->where('from_date', '<=', date('Y-m-d'))->where('to_date', '>=', date('Y-m-d'))->orderBy('discount_amount', 'ASC')->get();
             $shopPromotion = '';
             if (!empty($promotions)) {
-                $promotionDetails = Promotion::where('user_id', $productDetails->user_id)
-                    ->where('promotion_type', 'order')
-                    ->where('status', 'active')
-                    ->where('from_date', '<=', date('Y-m-d'))
-                    ->where('to_date', '>=', date('Y-m-d'))
-                    ->orderBy('discount_amount', 'DESC')
-                    ->first();
+                $promotionDetails = Promotion::where('user_id', $productDetails->user_id)->where('promotion_type', 'order')->where('status', 'active')->where('from_date', '<=', date('Y-m-d'))->where('to_date', '>=', date('Y-m-d'))->orderBy('discount_amount', 'DESC')->first();
                 if ($promotionDetails) {
                     if ($promotionDetails->discount_type === 1) {
                         $maxDiscountAmount = $promotionDetails->discount_amount . '%';
@@ -498,22 +398,18 @@ class ShopService
             $images = array();
             if (!empty($productImages)) {
                 foreach ($productImages as $img) {
-                    $images[] = array(
-                        'image_id' => $img->id,
-                        'image' => $img->images,
-                        'feature_key' => $img->feature_key,
-                    );
+                    $images[] = array('image_id' => $img->id, 'image' => $img->images, 'feature_key' => $img->feature_key,);
                 }
             }
             $data['images'] = $images;
             $data['videos'] = $productVideos;
-            $productVariations = Product::find($productDetails->id)->productVariations()->where('status', '1')->get();
-            $productPrepacks = ProductPrepack::where('product_id', $productDetails->id)->where('active', '1')->get();
+            $productVariations = $productDetails->productVariations()->where('status', '1')->get();
+            $productPrepacks = $productDetails->productPrepacks()->where('active', '1')->get();
             if (!empty($productPrepacks)) {
                 $prepackVar = array();
                 foreach ($productPrepacks as $key => $var) {
                     if ($user) {
-                        $preWishList = Product::find($productDetails->id)->productWishlist()->where('user_id', $user->id)->where('cart_id', null)->where('variant_id', $var->id)->first();
+                        $preWishList = $productDetails->productWishlist()->where('user_id', $user->id)->where('cart_id', null)->where('variant_id', $var->id)->first();
                     }
                     if (!empty($preWishList)) {
                         $preWishListId = $preWishList->id;
@@ -521,18 +417,7 @@ class ShopService
                         $preWishListId = '';
                     }
 
-                    $prepackVar[] = array(
-                        'id' => $var->id,
-                        'style' => $var->style,
-                        'pack_name' => $var->pack_name,
-                        'size_ratio' => $var->size_ratio,
-                        'size_range' => $var->size_range,
-                        'packs_price' => $var->packs_price,
-                        'active' => $var->active,
-                        'created_at' => $var->created_at,
-                        'updated_at' => $var->updated_at,
-                        'variationWishId' => $preWishListId
-                    );
+                    $prepackVar[] = array('id' => $var->id, 'style' => $var->style, 'pack_name' => $var->pack_name, 'size_ratio' => $var->size_ratio, 'size_range' => $var->size_range, 'packs_price' => $var->packs_price, 'active' => $var->active, 'created_at' => $var->created_at, 'updated_at' => $var->updated_at, 'variationWishId' => $preWishListId);
 
 
                 }
@@ -563,7 +448,7 @@ class ShopService
                     }
                     $values_str = implode('_', $values);
                     if ($user) {
-                        $variationWishList = Product::find($productDetails->id)->productWishlist()->where('user_id', $user->id)->where('cart_id', null)->where('variant_id', $var->id)->first();
+                        $variationWishList = $productDetails->productWishlist()->where('user_id', $user->id)->where('cart_id', null)->where('variant_id', $var->id)->first();
                     }
                     if (!empty($variationWishList)) {
                         $variationWishId = $variationWishList->id;
@@ -578,24 +463,7 @@ class ShopService
                         }
                     }
 
-                    $variations[$values_str] = array(
-                        'variant_id' => $var->id,
-                        'option1' => ucfirst(strtolower($var->options1)),
-                        'option2' => ucfirst(strtolower($var->options2)),
-                        'option3' => ucfirst(strtolower($var->options3)),
-                        'value1' => $var->value1,
-                        'value2' => $var->value2,
-                        'value3' => $var->value3,
-                        'sku' => $var->sku,
-                        'wholesale_price' => $var->price,
-                        'retail_price' => $var->retail_price,
-                        'inventory' => $var->stock,
-                        'preview_images' => $var->image,
-                        'swatch_image' => $var->swatch_image,
-                        'values' => $values,
-                        'variationWishId' => $variationWishId,
-                        'discounted_price' => $promotionDiscountAmount
-                    );
+                    $variations[$values_str] = array('variant_id' => $var->id, 'option1' => ucfirst(strtolower($var->options1)), 'option2' => ucfirst(strtolower($var->options2)), 'option3' => ucfirst(strtolower($var->options3)), 'value1' => $var->value1, 'value2' => $var->value2, 'value3' => $var->value3, 'sku' => $var->sku, 'wholesale_price' => $var->price, 'retail_price' => $var->retail_price, 'inventory' => $var->stock, 'preview_images' => $var->image, 'swatch_image' => $var->swatch_image, 'values' => $values, 'variationWishId' => $variationWishId, 'discounted_price' => $promotionDiscountAmount);
                     if ($var->options1 != null && $var->value1 != null) {
                         $option = ucfirst(strtolower($var->options1));
                         $allvariations[$key][$option] = $var->value1;
@@ -695,10 +563,7 @@ class ShopService
                     if ($option == 'Color') {
                         $variationColors = $swatches;
                     }
-                    $variationOptions[] = array(
-                        'name' => $option,
-                        'options' => $values
-                    );
+                    $variationOptions[] = array('name' => $option, 'options' => $values);
                 }
             }
             $data['options'] = $options;
@@ -706,42 +571,38 @@ class ShopService
             $data['variation_colors'] = $variationColors;
             $relatedProducts = [];
             if ($user) {
-                $relatedProducts = Product::where('user_id', $productDetails->user_id)->where('id', '!=', $productDetails->id)->where('main_category', $productDetails->main_category)->where('status', 'publish')->inRandomOrder()->limit(9)->get();
+                $relatedProducts = Product::with('productVariations')->where('user_id', $productDetails->user_id)->where('id', '!=', $productDetails->id)->where('main_category', $productDetails->main_category)->where('status', 'publish')->inRandomOrder()->limit(9)->get();
+                if ($relatedProducts->isNotEmpty()) {
+                    foreach ($relatedProducts as $relatedProduct) {
+                        $productOptionsCount = $relatedProduct->productVariations()->where('status', '1')->count();
+                        if ($productOptionsCount > 0) {
+                            $productStock = $relatedProduct->productVariations()->where('status', '1')->sum('stock');
+                            $relatedProduct->stock = $productStock;
+                        }
+                    }
+                }
             }
             $data['related_products'] = $relatedProducts;
 
-            $recentViewedProdutcs = [];
+
+            $recentViewedProducts = [];
             if ($user) {
                 $retailerDet = User::where('id', $user->id)->where('role', 'retailer')->first();
                 if ($retailerDet) {
-                    $recent_views = UserRecentView::where('user_id', $user->id)->where('product_id', '!=', $productDetails->id)->orderBy('id', 'DESC')->get();
-                    if ($recent_views) {
-                        foreach ($recent_views as $view) {
-                            $productDet = Product::find($view->product_id);
-                            if ($productDet) {
-
-                                $recentViewedProdutcs[] = array(
-                                    'id' => $productDet->id,
-                                    'product_key' => $productDet->product_key,
-                                    'name' => $productDet->name,
-                                    'status' => $productDet->status,
-                                    'country' => $productDet->country,
-                                    'case_quantity' => $productDet->case_quantity,
-                                    'min_order_qty' => $productDet->min_order_qty,
-                                    'min_order_qty_type' => $productDet->min_order_qty_type,
-                                    'sku' => $productDet->sku,
-                                    'usd_wholesale_price' => $productDet->usd_wholesale_price,
-                                    'usd_retail_price' => $productDet->usd_retail_price,
-                                    'cad_wholesale_price' => $productDet->cad_wholesale_price,
-                                    'cad_retail_price' => $productDet->cad_retail_price,
-                                    'gbr_wholesale_price' => $productDet->gbr_wholesale_price,
-                                    'gbr_retail_price' => $productDet->gbr_retail_price,
-                                    'eur_wholesale_price' => $productDet->eur_wholesale_price,
-                                    'eur_retail_price' => $productDet->eur_retail_price,
-                                    'usd_tester_price' => $productDet->usd_tester_price,
-                                    'slug' => $productDet->slug,
-                                    'featured_image' => $productDet->featured_image,
-                                    'stock' => $productDet->stock
+                    $recentViews = UserRecentView::where('user_id', $user->id)->where('product_id', '!=', $productDetails->id)->orderBy('id', 'DESC')->get();
+                    if ($recentViews) {
+                        $productIds = collect($recentViews)->pluck('product_id')->unique()->toArray();
+                        $products = Product::with('productVariations')->whereIn('id', $productIds)->get();
+                        if ($products->isNotEmpty()) {
+                            foreach ($products as $product) {
+                                $productOptionsCount = $relatedProduct->productVariations()->where('status', '1')->count();
+                                if ($productOptionsCount > 0) {
+                                    $productStock = $relatedProduct->productVariations()->where('status', '1')->sum('stock');
+                                    $stock = $productStock;
+                                } else {
+                                    $stock = $product->stock;
+                                }
+                                $recentViewedProducts[] = array('id' => $product->id, 'product_key' => $product->product_key, 'name' => $product->name, 'status' => $product->status, 'country' => $product->country, 'case_quantity' => $product->case_quantity, 'min_order_qty' => $product->min_order_qty, 'min_order_qty_type' => $product->min_order_qty_type, 'sku' => $product->sku, 'usd_wholesale_price' => $product->usd_wholesale_price, 'usd_retail_price' => $product->usd_retail_price, 'cad_wholesale_price' => $product->cad_wholesale_price, 'cad_retail_price' => $product->cad_retail_price, 'gbr_wholesale_price' => $product->gbr_wholesale_price, 'gbr_retail_price' => $product->gbr_retail_price, 'eur_wholesale_price' => $product->eur_wholesale_price, 'eur_retail_price' => $product->eur_retail_price, 'usd_tester_price' => $product->usd_tester_price, 'slug' => $product->slug, 'featured_image' => $product->featured_image, 'stock' => $stock
 
                                 );
                             }
@@ -763,7 +624,7 @@ class ShopService
                     }
                 }
             }
-            $data['rcntviwd_produtcs'] = $recentViewedProdutcs;
+            $data['rcntviwd_produtcs'] = $recentViewedProducts;
 
             return ['res' => true, 'msg' => "", 'data' => $data];
         } else {
@@ -779,16 +640,11 @@ class ShopService
     public function getNewBrands(): array
     {
         $data = [];
-        $brandUsers = Brand::leftJoin('users', 'brands.user_id', '=', 'users.id')->where('users.role','brand')->where('users.created_at','>', now()->subDays(45)->endOfDay())->where('brands.go_live','2')->select('brands.*')->get();
+        $brandUsers = Brand::leftJoin('users', 'brands.user_id', '=', 'users.id')->where('users.role', 'brand')->where('users.created_at', '>', now()->subDays(45)->endOfDay())->where('brands.go_live', '2')->select('brands.*')->get();
         if ($brandUsers) {
             foreach ($brandUsers as $brand) {
                 if ($brand) {
-                    $data[] = array(
-                        'brand_key' => $brand->bazaar_direct_link,
-                        'brand_id' => $brand->id,
-                        'brand_name' => $brand->brand_name,
-                        'brand_logo' => $brand->logo_image != '' ? asset('public') . '/' . $brand->logo_image : asset('public/img/logo-image.png'),
-                    );
+                    $data[] = array('brand_key' => $brand->bazaar_direct_link, 'brand_id' => $brand->id, 'brand_name' => $brand->brand_name, 'brand_logo' => $brand->logo_image != '' ? asset('public') . '/' . $brand->logo_image : asset('public/img/logo-image.png'),);
                 }
             }
         }
@@ -806,31 +662,16 @@ class ShopService
         $product = [];
         $getBrand = [];
 
-        $results = Product::leftJoin('categories as main', 'products.main_category', '=', 'main.id')
-            ->leftJoin('categories as sub', 'products.category', '=', 'sub.id')
-            ->leftJoin('categories as child', 'products.sub_category', '=', 'child.id')
-            ->where('products.status', 'publish')
-            ->where('products.name', 'like', '%'.$request->search.'%')
-            ->orWhere('main.title', 'like', '%'.$request->search.'%' )
-            ->orWhere('sub.title', 'like', '%'.$request->search.'%' )
-            ->orWhere('child.title', 'like', '%'.$request->search.'%' )
-            ->get(['products.name']);
+        $results = Product::leftJoin('categories as main', 'products.main_category', '=', 'main.id')->leftJoin('categories as sub', 'products.category', '=', 'sub.id')->leftJoin('categories as child', 'products.sub_category', '=', 'child.id')->where('products.status', 'publish')->where('products.name', 'like', '%' . $request->search . '%')->orWhere('main.title', 'like', '%' . $request->search . '%')->orWhere('sub.title', 'like', '%' . $request->search . '%')->orWhere('child.title', 'like', '%' . $request->search . '%')->get(['products.name']);
         if ($results) {
             foreach ($results as $result) {
-                $product[] = array(
-                    'name' => $result->name,
-                );
+                $product[] = array('name' => $result->name,);
             }
         }
-        $brands = Brand::where('brand_name', 'like', '%'.$request->search.'%')
-            ->get();
+        $brands = Brand::where('brand_name', 'like', '%' . $request->search . '%')->get();
         if ($brands) {
             foreach ($brands as $brand) {
-                $getBrand[] = array(
-                    'name' => $brand->brand_name,
-                    'bazaar_direct_link'=> $brand->bazaar_direct_link,
-                    'brand_logo' => $brand->logo_image != '' ? asset('public') . '/' . $brand->logo_image : asset('public/img/logo-image.png'),
-                );
+                $getBrand[] = array('name' => $brand->brand_name, 'bazaar_direct_link' => $brand->bazaar_direct_link, 'brand_logo' => $brand->logo_image != '' ? asset('public') . '/' . $brand->logo_image : asset('public/img/logo-image.png'),);
             }
         }
 
@@ -846,44 +687,31 @@ class ShopService
     public function searchResult(object $request): array
     {
         $products = [];
-        $results = Product::leftJoin('categories as main', 'products.main_category', '=', 'main.id')
-            ->leftJoin('categories as sub', 'products.category', '=', 'sub.id')
-            ->leftJoin('categories as child', 'products.sub_category', '=', 'child.id')
-            ->where('products.status', 'publish')
-            ->where('products.name', 'like', '%'.$request->search.'%')
-            ->orWhere('main.title', 'like', '%'.$request->search.'%' )
-            ->orWhere('sub.title', 'like', '%'.$request->search.'%' )
-            ->orWhere('child.title', 'like', '%'.$request->search.'%' )
-            ->get();
+        $results = Product::with('productVariations')->leftJoin('categories as main', 'products.main_category', '=', 'main.id')->leftJoin('categories as sub', 'products.category', '=', 'sub.id')->leftJoin('categories as child', 'products.sub_category', '=', 'child.id')->where('products.status', 'publish')->where('products.name', 'like', '%' . $request->search . '%')->orWhere('main.title', 'like', '%' . $request->search . '%')->orWhere('sub.title', 'like', '%' . $request->search . '%')->orWhere('child.title', 'like', '%' . $request->search . '%')->get();
+
+        $brandIds = collect($results)->pluck('user_id')->unique()->toArray();
+        $brands = Brand::whereIn('user_id', $brandIds)->pluck('brand_name', 'user_id')->toArray();
+
         if (!empty($results)) {
             foreach ($results as $resultedProduct) {
-                $brandDetails = Brand::where('user_id', $resultedProduct->user_id)->first();
+                $brandName = "";
+                if (array_key_exists($resultedProduct->user_id, $brands)) {
+                    $brandName = $brands[$resultedProduct->user_id] ?? null;
+                }
                 $stock = $resultedProduct->stock;
                 $usdWholesalePrice = $resultedProduct->usd_wholesale_price ?? 0;
                 $usdRetailPrice = $resultedProduct->usd_retail_price ?? 0;
-                $productVariations = Product::find($resultedProduct->id)->productVariations()->where('status', '1')->get();
+                $productVariations = $resultedProduct->productVariations()->where('status', '1')->get();
                 $productOptionsCount = $productVariations->count();
                 if ($productOptionsCount > 0) {
-                    $productOptionsCount =  Product::find($resultedProduct->id)->productVariations()->where('status', '1')->sum('stock');
+                    $productOptionsCount = $resultedProduct->productVariations()->where('status', '1')->sum('stock');
                     $stock = $productOptionsCount;
-                    $productFirstVariation =  Product::find($resultedProduct->id)->productVariations()->where('status', '1')->first();
+                    $productFirstVariation = $resultedProduct->productVariations()->where('status', '1')->first();
                     $usdWholesalePrice = $productFirstVariation->price ?? 0;
                     $usdRetailPrice = $productFirstVariation->retail_price ?? 0;
                 }
 
-                $products[] = array(
-                    'id' => $resultedProduct->id,
-                    'product_key' => $resultedProduct->product_key,
-                    'name' => $resultedProduct->name,
-                    'slug' => $resultedProduct->slug,
-                    'brand_name' => $brandDetails->brand_name,
-                    'sku' => $resultedProduct->sku,
-                    'usd_wholesale_price' => $usdWholesalePrice,
-                    'usd_retail_price' => $usdRetailPrice,
-                    'featured_image' => $resultedProduct->featured_image,
-                    'stock' => $stock,
-                    'default_currency' => $resultedProduct->default_currency
-                );
+                $products[] = array('id' => $resultedProduct->id, 'product_key' => $resultedProduct->product_key, 'name' => $resultedProduct->name, 'slug' => $resultedProduct->slug, 'brand_name' => $brandName, 'sku' => $resultedProduct->sku, 'usd_wholesale_price' => $usdWholesalePrice, 'usd_retail_price' => $usdRetailPrice, 'featured_image' => $resultedProduct->featured_image, 'stock' => $stock, 'default_currency' => $resultedProduct->default_currency);
 
             }
         }
@@ -931,14 +759,7 @@ class ShopService
                     $categoryType = 'main-category';
                 }
 
-                $data[] = array(
-                    "id" => $featuredCategory->id,
-                    "title" => $featuredCategory->title,
-                    "main_category" => $mainCategory,
-                    "category" => $category,
-                    "cat_type" => $categoryType,
-                    "image" => $featuredCategory->image != '' ? asset('public') . '/' . $featuredCategory->image : asset('public/img/featured-brand-image.png'),
-                );
+                $data[] = array("id" => $featuredCategory->id, "title" => $featuredCategory->title, "main_category" => $mainCategory, "category" => $category, "cat_type" => $categoryType, "image" => $featuredCategory->image != '' ? asset('public') . '/' . $featuredCategory->image : asset('public/img/featured-brand-image.png'),);
 
             }
         }
@@ -976,28 +797,17 @@ class ShopService
         $product = Product::where('product_key', $request->product_key)->first();
         $brand = Brand::where('user_id', $product->user_id)->first();
         $orderReviewQuery = DB::raw("(SELECT * FROM order_reviews WHERE status='1') as r");// Raw query is needed as nested query using for this function with alias.
-        $orderQuery = DB::table('orders as o')
-            ->select('r.*')
-            ->join($orderReviewQuery, 'r.order_id', '=', 'o.id')
-            ->where('o.brand_id', $brand->id);
+        $orderQuery = DB::table('orders as o')->select('r.*')->join($orderReviewQuery, 'r.order_id', '=', 'o.id')->where('o.brand_id', $brand->id);
         $totalReviewsCount = $orderQuery->count();
         $orderReviews = $orderQuery->paginate(5);
         if (!empty($orderReviews)) {
             foreach ($orderReviews as $orderReview) {
                 $retailer = Retailer::where('user_id', $orderReview->user_id)->first();
-                $reviews[] = array(
-                    'store_name' => $retailer->store_name,
-                    'rate' => $orderReview->rate,
-                    'review' => $orderReview->review,
-                    'created_at' => date("d.m.Y", strtotime($orderReview->created_at)),
-                );
+                $reviews[] = array('store_name' => $retailer->store_name, 'rate' => $orderReview->rate, 'review' => $orderReview->review, 'created_at' => date("d.m.Y", strtotime($orderReview->created_at)),);
             }
         }
 
-        $data = array(
-            "reviews" => $reviews,
-            "total_reviews" => $totalReviewsCount
-        );
+        $data = array("reviews" => $reviews, "total_reviews" => $totalReviewsCount);
 
         return ['res' => true, 'msg' => "", 'data' => $data];
     }

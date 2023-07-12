@@ -52,8 +52,10 @@ class ShippingService
      */
     public function getShipping(): array
     {
-        $shippings = User::find(auth()->user()->id)->getAllShippings()->leftJoin('countries', 'shippings.country', '=', 'countries.id')
-            ->select('shippings.*', 'countries.name AS shipping_country')->get();
+        //$shippings = User::find(auth()->user()->id)->getAllShippings()->leftJoin('countries', 'shippings.country', '=', 'countries.id')->select('shippings.*', 'countries.name AS shipping_country')->get();
+
+        $shippings = User::with(['getAllShippings' => function ($query) {$query->leftJoin('countries', 'shippings.country', '=', 'countries.id')->select('shippings.*', 'countries.name AS shipping_country');}])->find(auth()->user()->id)->getAllShippings;
+
         $data = [];
         if (!empty($shippings)) {
             foreach ($shippings as $shipping) {
