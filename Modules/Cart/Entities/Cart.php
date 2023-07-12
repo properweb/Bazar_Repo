@@ -3,11 +3,10 @@
 namespace Modules\Cart\Entities;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Modules\Product\Entities\Product;
 
 class Cart extends Model {
 
-    protected $table = 'carts';
     protected $fillable = [
         'brand_id',
         'product_id',
@@ -22,4 +21,9 @@ class Cart extends Model {
         'quantity',
         'amount'
     ];
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
 }
