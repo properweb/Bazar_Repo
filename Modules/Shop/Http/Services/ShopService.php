@@ -464,7 +464,6 @@ class ShopService
                             $promotionDiscountAmount = $var->price - round($discountedPrice, 2);
                         }
                     }
-
                     $variations[$values_str] = array('variant_id' => $var->id, 'option1' => ucfirst(strtolower($var->options1)), 'option2' => ucfirst(strtolower($var->options2)), 'option3' => ucfirst(strtolower($var->options3)), 'value1' => $var->value1, 'value2' => $var->value2, 'value3' => $var->value3, 'sku' => $var->sku, 'wholesale_price' => $var->price, 'retail_price' => $var->retail_price, 'inventory' => $var->stock, 'preview_images' => $var->image, 'swatch_image' => $var->swatch_image, 'values' => $values, 'variationWishId' => $variationWishId, 'discounted_price' => $promotionDiscountAmount);
                     if ($var->options1 != null && $var->value1 != null) {
                         $option = ucfirst(strtolower($var->options1));
