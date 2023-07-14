@@ -44,12 +44,14 @@ class ShopService
         $brandDetails = Brand::where('bazaar_direct_link', $request->brand_id)->where('go_live', '2')->first();
         if ($brandDetails) {
             $userId = $brandDetails->user_id;
-            //all products count
-            $allProductsCount = User::find($userId)->getAllProducts()->where('status', 'publish')->count();
-            //new products count
-            $newProductsCount = User::find($userId)->getAllProducts()->where('status', 'publish')->where('created_at', '>', now()->subDays(7)->endOfDay())->count();
-
-            $productCategories = User::find($userId)->getAllProducts()->selectRaw('count(*) as prdct_count, category, categories.title, categories.slug, categories.parent_id')->leftJoin('categories', 'products.category', '=', 'categories.id')->where('products.status', 'publish')->groupBy('products.category')->get();
+            $user = User::with('getAllProducts')->find($userId);
+            $allProductsCount = $user->getAllProducts()->where('status', 'publish')->count();
+            $newProductsCount = $user->getAllProducts()
+                ->where('status', 'publish')
+                ->where('created_at', '>', now()->subDays(7)->endOfDay())
+                ->count();
+            $productCategories = $user->getAllProducts()
+                ->selectRaw('count(*) as prdct_count, category, categories.title, categories.slug, categories.parent_id')->leftJoin('categories', 'products.category', '=', 'categories.id')->where('products.status', 'publish')->groupBy('products.category')->get();
 
             $mainCategories = Category::where('parent_id', 0)->pluck('slug', 'id');
 
