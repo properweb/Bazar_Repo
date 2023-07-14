@@ -10,6 +10,9 @@ use Modules\Brand\Entities\Brand;
 use Modules\Product\Entities\Product;
 use Modules\Product\Entities\ProductVariation;
 use Modules\Product\Entities\ProductPrepack;
+use Modules\Promotion\Entities\Promotion;
+use Modules\Promotion\Entities\PromotionProduct;
+use Illuminate\Support\Facades\DB;
 
 class CartService
 {
@@ -35,7 +38,7 @@ class CartService
     {
 
         $userId = auth()->user()->id;
-        $product = Product::find($request->product_id);
+        $product = Product::with('productVariations','productPrepacks')->find($request->product_id);
         $productType = 'SINGLE_PRODUCT';
         $productName = $product->name;
         $productSKU = $product->sku;
@@ -52,10 +55,11 @@ class CartService
         $preID = $request->prepack_id;
 
         if (!empty($getVariant)) {
-            $variant = ProductVariation::find($getVariant);
+            $variant = $product->productVariations()->find($getVariant);
             $variantId = $variant->id;
             if (!empty($request->openSizingArray)) {
                 $productType = 'OPEN_SIZING';
+
             }
             if (!empty($request->prepack_id)) {
                 $productType = 'PREPACK';
@@ -73,9 +77,7 @@ class CartService
             }
         }
 
-
         if ($alreadyCart) {
-
             $alreadyCart->quantity = $alreadyCart->quantity + (int)$request->quantity;
             $alreadyCart->amount = $product->price + $alreadyCart->amount;
 
@@ -91,13 +93,13 @@ class CartService
                     if (!empty($request->openSizingArray)) {
                         foreach ($request->openSizingArray as $size) {
                             if ($variant->options1 == 'Size') {
-                                $sizeVariant = ProductVariation::where('product_id', $product->id)->where('options1', "Size")->where('value1', $size['value'])->where('value2', $variant->value2)->where('value3', $variant->value3)->first();
+                                $sizeVariant = $product->productPrepacks()->where('product_id', $product->id)->where('options1', "Size")->where('value1', $size['value'])->where('value2', $variant->value2)->where('value3', $variant->value3)->first();
                             }
                             if ($variant->options2 == 'Size') {
-                                $sizeVariant = ProductVariation::where('product_id', $product->id)->where('options2', "Size")->where('value2', $size['value'])->where('value1', $variant->value1)->where('value3', $variant->value3)->first();
+                                $sizeVariant = $product->productVariations()->where('product_id', $product->id)->where('options2', "Size")->where('value2', $size['value'])->where('value1', $variant->value1)->where('value3', $variant->value3)->first();
                             }
                             if ($variant->options3 == 'Size') {
-                                $sizeVariant = ProductVariation::where('product_id', $product->id)->where('options3', "Size")->where('value3', $size['value'])->where('value2', $variant->value2)->where('value1', $variant->value1)->first();
+                                $sizeVariant = $product->productVariations()->where('product_id', $product->id)->where('options3', "Size")->where('value3', $size['value'])->where('value2', $variant->value2)->where('value1', $variant->value1)->first();
                             }
                             $ord_qty = $referenceArr[$sizeVariant->id] ?? 0;
                             $new_qty = $ord_qty + $size['qty'];
@@ -134,7 +136,7 @@ class CartService
                     $alreadyCart->reference = serialize($optionsArr);
                 }
                 if ($productType == 'PREPACK') {
-                    $pPackVariant = ProductPrepack::where('id', $preID)->first();
+                    $pPackVariant = $product->productPrepacks()->where('id', $preID)->first();
                     $alreadyCart->price = $pPackVariant->packs_price;
                     $alreadyCart->style_name = $pPackVariant->style;
                     $alreadyCart->style_group_name = $pPackVariant->size_ratio . ';' . $pPackVariant->size_range;
@@ -181,13 +183,13 @@ class CartService
                     if (!empty($request->openSizingArray)) {
                         foreach ($request->openSizingArray as $size) {
                             if ($variant->options1 == 'Size') {
-                                $sizeVariant = ProductVariation::where('product_id', $product->id)->where('options1', "Size")->where('value1', $size['value'])->where('value2', $variant->value2)->where('value3', $variant->value3)->first();
+                                $sizeVariant = $product->productVariations()->where('product_id', $product->id)->where('options1', "Size")->where('value1', $size['value'])->where('value2', $variant->value2)->where('value3', $variant->value3)->first();
                             }
                             if ($variant->options2 == 'Size') {
-                                $sizeVariant = ProductVariation::where('product_id', $product->id)->where('options2', "Size")->where('value2', $size['value'])->where('value1', $variant->value1)->where('value3', $variant->value3)->first();
+                                $sizeVariant = $product->productVariations()->where('product_id', $product->id)->where('options2', "Size")->where('value2', $size['value'])->where('value1', $variant->value1)->where('value3', $variant->value3)->first();
                             }
                             if ($variant->options3 == 'Size') {
-                                $sizeVariant = ProductVariation::where('product_id', $product->id)->where('options3', "Size")->where('value3', $size['value'])->where('value2', $variant->value2)->where('value1', $variant->value1)->first();
+                                $sizeVariant = $product->productVariations()->where('product_id', $product->id)->where('options3', "Size")->where('value3', $size['value'])->where('value2', $variant->value2)->where('value1', $variant->value1)->first();
                             }
                             if (!empty($sizeVariant->stock) < $cart->quantity || $sizeVariant->stock <= 0) {
                                 return [
@@ -226,7 +228,7 @@ class CartService
                     $cart->variant_id = $request->variant_id;
                 }
                 if ($productType == 'PREPACK') {
-                    $pPackVariant = ProductPrepack::where('id', $preID)->first();
+                    $pPackVariant = $product->productPrepacks()->where('id', $preID)->first();
                     $cart->price = $pPackVariant->packs_price;
                     $cart->style_name = $pPackVariant->style;
                     $cart->style_group_name = $pPackVariant->size_ratio . ';' . $pPackVariant->size_range;
@@ -247,7 +249,7 @@ class CartService
                     $cart->style_name = rtrim(implode(',', $styleArr), ',');
                     $cart->style_group_name = rtrim(implode(',', $styleGrpArr), ',');
                     $cart->reference = $variant->id;
-                    $cart->variant_id = $getVariant;
+                    $cart->variant_id = $request->variant_id;
                 }
             } else {
                 $cart->price = $product->usd_wholesale_price;
@@ -264,85 +266,6 @@ class CartService
         }
 
         return ['res' => true, 'msg' => 'Product successfully added to cart', 'data' => ""];
-    }
-
-    /**
-     * User can view his cart
-     *
-     * @return array
-     */
-    public function fetch(): array
-    {
-        $cartCount = 0;
-        $cartArr = [];
-        $id = auth()->user()->id;
-        $user = User::find($id);
-        if ($user) {
-            $cartCount = Cart::where('user_id', $id)->where('order_id', null)->sum('quantity');
-            if ($cartCount > 0) {
-                $brandArr = Cart::where('user_id', $id)->where('order_id', null)->groupBy('brand_id')->get()->toArray();
-            }
-        }
-        if (!empty($brandArr)) {
-            foreach ($brandArr as $brandK => $brandV) {
-                $brand = Brand::where('user_id', $brandV['brand_id'])->first();
-                $cartArr[$brandK]['brand_key'] = $brand->brand_key;
-                $cartArr[$brandK]['brand_id'] = $brand->user_id;
-                $cartArr[$brandK]['brand_name'] = $brand->brand_name;
-                $cartArr[$brandK]['brand_logo'] = $brand->logo_image != '' ? asset('public') . '/' . $brand->logo_image : asset('public/img/logo-image.png');
-                $alreadyOrdered = Order::where('brand_id', $brand->user_id)->where('user_id', $user->id)->count();
-                $cartArr[$brandK]['brand_min'] = $alreadyOrdered > 0 ? $brand->re_order_min : $brand->first_order_min;
-                $prdArr = Cart::where('user_id', $id)->where('order_id', null)->where('brand_id', $brandV['brand_id'])->get()->toArray();
-                if (!empty($prdArr)) {
-                    foreach ($prdArr as $prdK => $prdV) {
-                        $product = Product::find($prdV['product_id']);
-                        $cartArr[$brandK]['products'][$prdK]['id'] = $prdV['id'];
-                        $cartArr[$brandK]['products'][$prdK]['product_id'] = $product->id;
-                        $cartArr[$brandK]['products'][$prdK]['product_name'] = $product->name;
-                        $cartArr[$brandK]['products'][$prdK]['product_price'] = $prdV['price'];
-                        $cartArr[$brandK]['products'][$prdK]['product_qty'] = $prdV['quantity'];
-                        $cartArr[$brandK]['products'][$prdK]['style_name'] = $prdV['style_name'];
-                        $cartArr[$brandK]['products'][$prdK]['style_group_name'] = $prdV['style_group_name'];
-                        $cartArr[$brandK]['products'][$prdK]['type'] = $prdV['type'];
-                        $cartArr[$brandK]['products'][$prdK]['product_image'] = $product->featured_image != '' ? $product->featured_image : asset('public/img/logo-image.png');
-                    }
-                }
-            }
-        }
-
-        $data = array(
-            'cart_count' => $cartCount,
-            'cart_arr' => $cartArr,
-        );
-
-        $response = ['res' => true, 'msg' => '', 'data' => $data];
-
-        return ($response);
-    }
-
-    /**
-     * User can delete product from his cart
-     *
-     * @param $id
-     * @return array
-     */
-    public function delete($id): array
-    {
-        $cart = Cart::where('id', $id)->first();
-        if (empty($cart)) {
-            return [
-                'res' => false,
-                'msg' => 'Error please try again',
-                'data' => ""
-            ];
-        }
-        $cart->delete();
-
-        return [
-            'res' => true,
-            'msg' => 'Cart successfully removed',
-            'data' => ""
-        ];
     }
 
     /**
@@ -390,6 +313,117 @@ class CartService
         return [
             'res' => true,
             'msg' => '',
+            'data' => ""
+        ];
+    }
+
+    /**
+     * User can view his cart
+     *
+     * @return array
+     */
+    public function fetch(): array
+    {
+        $cartCount = 0;
+        $cartArr = [];
+        $id = auth()->user()->id;
+        $user = User::find($id);
+        if ($user) {
+            $cartCount = Cart::where('user_id', $id)->where('order_id', null)->sum('quantity');
+            if ($cartCount > 0) {
+                $brandArr = Cart::with('product')->where('user_id', $id)->where('order_id', null)->groupBy('brand_id')->get();
+            }
+        }
+        if (!empty($brandArr)) {
+            $brandId = collect($brandArr)->pluck('brand_id')->unique()->toArray();
+            $brands = Brand::whereIn('id', $brandId)->get()->keyBy('user_id');
+            foreach ($brandArr as $brandK => $brand) {
+                $brandDetails =$brands[$brand->brand_id];
+                $cartArr[$brandK]['brand_key'] = $brandDetails->brand_key;
+                $cartArr[$brandK]['brand_id'] = $brandDetails->user_id;
+                $cartArr[$brandK]['brand_name'] = $brandDetails->brand_name;
+                $cartArr[$brandK]['brand_logo'] = $brandDetails->logo_image != '' ? asset('public') . '/' . $brandDetails->logo_image : asset('public/img/logo-image.png');
+                $alreadyOrdered = Order::where('brand_id', $brandDetails->user_id)->where('user_id', $user->id)->count();
+                $cartArr[$brandK]['brand_min'] = $alreadyOrdered > 0 ? $brandDetails->re_order_min : $brandDetails->first_order_min;
+                $prdArr = $brand->product()->where('user_id', $brand->brand_id)->get()->toArray();
+                $totalAmount = 0;
+                if (!empty($prdArr)) {
+                    $productIds = collect($prdArr)->pluck('id')->unique()->toArray();
+                    $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+                    foreach ($prdArr as $prdK => $prdV) {
+                        $product = $products[$prdV['id']];
+                        $cartArr[$brandK]['products'][$prdK]['id'] = $brand->id;
+                        $cartArr[$brandK]['products'][$prdK]['product_id'] = $product->id;
+                        $cartArr[$brandK]['products'][$prdK]['product_name'] = $product->name;
+                        $cartArr[$brandK]['products'][$prdK]['product_price'] = $brand->price;
+                        $cartArr[$brandK]['products'][$prdK]['product_qty'] = $brand->quantity;
+                        $cartArr[$brandK]['products'][$prdK]['min_order_qty'] = $product->min_order_qty;
+                        $cartArr[$brandK]['products'][$prdK]['style_name'] = $brand->style_name;
+                        $cartArr[$brandK]['products'][$prdK]['style_group_name'] = $brand->style_group_name;
+                        $cartArr[$brandK]['products'][$prdK]['type'] = $brand->type;
+                        $cartArr[$brandK]['products'][$prdK]['product_image'] = $product->featured_image != '' ? $product->featured_image : asset('public/img/logo-image.png');
+                        $totalAmount += $brand->price * $brand->quantity;
+                    }
+                }
+                $promotion = Promotion::where('user_id', $brandDetails->id)
+                    ->where('promotion_type', 'order')
+                    ->where('status', 'active')
+                    ->where('from_date', '<=', date('Y-m-d'))
+                    ->where('to_date', '>=', date('Y-m-d'))
+                    ->where('ordered_amount', '<=', $totalAmount)
+                    ->orderBy('ordered_amount', 'DESC')
+                    ->first();
+                $promotionDiscountText = '';
+                $promotionDiscountAmount = 0;
+                $promotionDiscountedAmount = $totalAmount;
+                if ($promotion) {
+                    $promotionDiscountAmount = $totalAmount * ($promotion->discount_amount / 100);
+                    $promotionDiscountedAmount = $totalAmount - round($promotionDiscountAmount, 2);
+                    if ($promotion->discount_type === 1) {
+                        $discountAmountText = $promotion->discount_amount . '%';
+                    } else {
+                        $discountAmountText = '$' . $promotion->discount_amount;
+                    }
+                    $promotionDiscountText = 'shopwide (' . $discountAmountText . ' off)';
+                }
+                $cartArr[$brandK]['total_amount'] = $totalAmount;
+                $cartArr[$brandK]['discount_text'] = $promotionDiscountText;
+                $cartArr[$brandK]['discount_amount'] = $promotionDiscountAmount;
+                $cartArr[$brandK]['discounted_amount'] = $promotionDiscountedAmount;
+            }
+        }
+
+        $data = array(
+            'cart_count' => $cartCount,
+            'cart_arr' => $cartArr,
+        );
+
+        $response = ['res' => true, 'msg' => '', 'data' => $data];
+
+        return ($response);
+    }
+
+    /**
+     * User can delete product from his cart
+     *
+     * @param $id
+     * @return array
+     */
+    public function delete($id): array
+    {
+        $cart = Cart::where('id', $id)->first();
+        if (empty($cart)) {
+            return [
+                'res' => false,
+                'msg' => 'Error please try again',
+                'data' => ""
+            ];
+        }
+        $cart->delete();
+
+        return [
+            'res' => true,
+            'msg' => 'Cart successfully removed',
             'data' => ""
         ];
     }
