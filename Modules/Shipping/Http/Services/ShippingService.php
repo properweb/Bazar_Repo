@@ -21,7 +21,6 @@ class ShippingService
      */
     public function create(array $requestData): array
     {
-
         $shipping = $this->createShipping($requestData);
         return [
             'res' => true,
@@ -53,15 +52,17 @@ class ShippingService
      */
     public function getShipping(): array
     {
-        $shippings = Shipping::where('user_id', auth()->user()->id)->get();
+        //$shippings = User::find(auth()->user()->id)->getAllShippings()->leftJoin('countries', 'shippings.country', '=', 'countries.id')->select('shippings.*', 'countries.name AS shipping_country')->get();
+
+        $shippings = User::with(['getAllShippings' => function ($query) {$query->leftJoin('countries', 'shippings.country', '=', 'countries.id')->select('shippings.*', 'countries.name AS shipping_country');}])->find(auth()->user()->id)->getAllShippings;
+
         $data = [];
         if (!empty($shippings)) {
             foreach ($shippings as $shipping) {
-                $country = Country::where('id', $shipping->country)->first();
                 $data[] = array(
                     'id' => $shipping->id,
                     'name' => $shipping->name,
-                    'country' => $country->name,
+                    'country' => $shipping->shipping_country,
                     'street' => $shipping->street,
                     'suite' => $shipping->suite,
                     'state' => $shipping->state,
@@ -71,7 +72,6 @@ class ShippingService
                 );
             }
         }
-
         return ['res' => true, 'msg' => "", 'data' => $data];
     }
 
@@ -83,7 +83,6 @@ class ShippingService
      */
     public function details($requestData): array
     {
-
         $shipping = Shipping::where('id', $requestData->id)->first();
         $data = '';
         if (!empty($shipping)) {
@@ -100,8 +99,6 @@ class ShippingService
                 'zip' => $shipping->zip,
             );
         }
-
-
         return ['res' => true, 'msg' => "", 'data' => $data];
     }
 
@@ -114,7 +111,6 @@ class ShippingService
      */
     public function update(array $shippingData,int $id): array
     {
-
         $name = $shippingData['name'];
         $country = $shippingData['country'];
         $street = $shippingData['street'];
@@ -134,8 +130,6 @@ class ShippingService
             'phoneCode' => $phoneCode
         );
         Shipping::where('id', $id)->update($data);
-
-
         return [
             'res' => true,
             'msg' => 'Updated Successfully',
@@ -153,7 +147,6 @@ class ShippingService
     {
         $shipping = Shipping::where('id', $id)->first();
         if (empty($shipping)) {
-
             return [
                 'res' => false,
                 'msg' => 'Shipping not found !',
@@ -161,7 +154,6 @@ class ShippingService
             ];
         }
         $shipping->delete();
-
         return [
             'res' => true,
             'msg' => 'Shipping Address successfully deleted',
