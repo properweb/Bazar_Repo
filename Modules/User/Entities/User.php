@@ -10,6 +10,8 @@ use Modules\Shipping\Entities\Shipping;
 use Modules\Product\Entities\Product;
 use Modules\Brand\Entities\Brand;
 use Modules\Retailer\Entities\Retailer;
+use Modules\Cart\Entities\Cart;
+
 
 class User extends Authenticatable
 {
@@ -49,16 +51,24 @@ class User extends Authenticatable
     {
         return $this->hasMany(Shipping::class);
     }
+
     public function getAllProducts()
     {
         return $this->hasMany(Product::class);
     }
+
     public function brand()
     {
         return $this->hasOne(Brand::class);
     }
+
     public function retailer()
     {
         return $this->hasOne(Retailer::class);
+    }
+
+    public function getCart()
+    {
+        return $this->hasMany(Cart::class);
     }
 }

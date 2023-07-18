@@ -473,7 +473,7 @@ class OrderController extends Controller
         $user = auth()->user();
         $order = Order::where('order_number', $request->order_number)->first();
 
-        if ($user->cannot('update', $order)) {
+        if ($user->cannot('view', $order)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
@@ -483,7 +483,7 @@ class OrderController extends Controller
 
         if ($request->products) {
             foreach ($request->products as $product) {
-                $cartItem = Cart::where('order_id', $order->id)->where('product_id', $product)->first();
+                $cartItem = Cart::where('order_id', $order->id)->where('product_id', $product['product_id'])->first();
                 if (!$cartItem) {
                     return response()->json([
                         'res' => false,

@@ -13,6 +13,10 @@ class Country extends Model
         'phonecode'
     ];
 
+    public function states()
+    {
+        return $this->hasMany(State::class);
+    }
 }
 
 
