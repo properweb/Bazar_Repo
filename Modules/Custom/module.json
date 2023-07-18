@@ -1,0 +1,11 @@
+{
+    "name": "Custom",
+    "alias": "custom",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Custom\\Providers\\CustomServiceProvider"
+    ],
+    "files": []
+}

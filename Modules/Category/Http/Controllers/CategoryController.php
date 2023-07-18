@@ -2,72 +2,66 @@
 
 namespace Modules\Category\Http\Controllers;
 
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Redis;
-use Modules\Category\Entities\Category;
-use DB;
+use Illuminate\Http\JsonResponse;
+use Modules\Category\Http\Services\CategoryService;
+
 
 class CategoryController extends Controller
 {
-    public function __construct()
+    private CategoryService $categoryService;
+
+    public function __construct(CategoryService $categoryService)
     {
-        Redis::connection();
+        $this->categoryService = $categoryService;
     }
 
-    public function index()
+    /**
+     * Get list of categories
+     *
+     * @return JsonResponse
+     */
+    public function fetchCategories(): JsonResponse
     {
-
-        $existredis = Redis::exists("allcategory");
-        if ($existredis > 0) {
-            $cachedcategory = Redis::get("allcategory");
-            $category = json_decode($cachedcategory, false);
-            $response = ['res' => true, 'msg' => "", 'data' => $category];
-        } else {
-            $categories = DB::table('category AS r')
-                ->leftJoin('category AS e', 'e.id', '=', 'r.parent_id')
-                ->leftJoin('category AS l', 'r.id', '=', 'l.parent_id')
-                ->select('e.name AS parent_name',
-                    'e.id AS parent_id',
-                    'r.id AS child_id',
-                    'r.name AS child_name',
-                    'l.id AS last_id',
-                    'l.name AS last_name')
-                ->where('l.parent_id', '>', 0)
-                ->where('e.status', '=', 0)
-                ->where('r.status', '=', 0)
-                ->where('l.status', '=', 0)
-                ->get();
-            $allcategory = [];
-            if (count($categories) > 0) {
-                foreach ($categories as $var) {
-                    $allcategory[] = array(
-                        'category' => $var->parent_name . '->' . $var->child_name . '->' . $var->last_name,
-                        'last_id' => $var->last_id
-                    );
-                }
-            }
-            $category = Redis::set('allcategory', json_encode($allcategory));
-            $response = ['res' => true, 'msg' => "", 'data' => $allcategory];
-        }
-
+        $response = $this->categoryService->getCategories();
 
         return response()->json($response);
     }
-    public function parentCategory() {
 
-        $qry = Category::where('parent_id',0)->where('status',0)->orderBy('name', 'ASC')->get();
-        $allCategory = array();
-        if (count($qry) > 0) {
-            foreach ($qry as $var) {
-                $allCategory[] = array(
-                    'category' => $var->name,
-                    'cat_id' => $var->id
-                );
-            }
-        }
-        $response = ['res' => true, 'msg' => "", 'data' => $allCategory];
+    /**
+     * Get list of categories featured in home page
+     *
+     * @return JsonResponse
+     */
+    public function fetchFeaturedCategories(): JsonResponse
+    {
+        $response = $this->categoryService->getFeaturedCategories();
+
         return response()->json($response);
     }
 
+    /**
+     * Get list of categories shown in product
+     *
+     * @return JsonResponse
+     */
+    public function fetchProductCategories(): JsonResponse
+    {
+        $response = $this->categoryService->getProductCategories();
 
+        return response()->json($response);
+    }
+
+    /**
+     * Get list of only main categories
+     *
+     * @return JsonResponse
+     */
+    public function fetchParentCategories(): JsonResponse
+    {
+        $response = $this->categoryService->getParentCategories();
+
+        return response()->json($response);
+    }
 }

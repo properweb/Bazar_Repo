@@ -9,22 +9,23 @@ use Modules\Product\Entities\ProductVariation;
 use Modules\Product\Entities\ProductImage;
 use Modules\Product\Entities\ProductPrepack;
 use Modules\Product\Entities\Category;
+use Modules\Wordpress\Entities\Store;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
-
-
+use Modules\Custom\Http\Services\CustomService;
 
 class ProductService
 {
+    protected Product $product;
     private $productAbsPath = "";
     private $productRelPath = "";
-    protected Product $product;
-
+    private $customService = "";
 
     public function __construct()
     {
         $this->productAbsPath = public_path('uploads/products');
         $this->productRelPath = asset('public') . '/uploads/products/';
+        $this->customService = new CustomService();
     }
 
     /**
@@ -36,12 +37,18 @@ class ProductService
 
     public function fetch($request): array
     {
-
+        $userId = auth()->user()->id;
         $resultArray = [];
-        $productsCount = Product::where('user_id', $request->user_id)->count();
-        $publishCount = Product::where('user_id', $request->user_id)->where('status', 'publish')->count();
-        $unpublishedCount = Product::where('user_id', $request->user_id)->where('status', 'unpublish')->count();
-        $query = Product::where('user_id', $request->user_id);
+        $productsCounts = Product::selectRaw('status, count(*) as count')
+            ->where('user_id', $userId)
+            ->groupBy('status')
+            ->get()
+            ->pluck('count', 'status');
+        $allProductsCount = $productsCounts->sum();
+        $publishedProductsCount = $productsCounts->get('publish', 0);
+        $unpublishedProductsCount = $productsCounts->get('unpublish', 0);
+
+        $query = Product::with('productVariations')->where('user_id', $userId);
         switch ($request->status) {
             case 'publish':
                 $query->where('status', 'publish');
@@ -68,49 +75,135 @@ class ProductService
             $query->where('name', 'Like', '%' . $request->search_key . '%');
         }
         $products = $query->paginate(10);
-        foreach ($products as $v) {
-            $productVariations = ProductVariation::where('product_id', $v->id)->where('status', '1')->get();
+        foreach ($products as $product) {
+            $productVariations = $product->productVariations()->where('status', '1')->get();
             $productVariationsCount = $productVariations->count();
             if ($productVariationsCount > 0) {
-                $variantMinPrice = ProductVariation::where('product_id', $v->id)->min('price');
+                $variantMinPrice = $product->productVariations()->min('price');
                 $price = $variantMinPrice . '+';
-                $variantStock = ProductVariation::where('product_id', $v->id)->sum('price');
+                $variantStock = $product->productVariations()->sum('price');
                 $availability = $variantStock > 0 ? 'in stock' : 'out of stock';
             } else {
-                $price = $v->usd_wholesale_price;
-                $availability = $v->stock > 0 ? 'in stock' : 'out of stock';
+                $price = $product->usd_wholesale_price;
+                $availability = $product->stock > 0 ? 'in stock' : 'out of stock';
             }
             $resultArray[] = array(
-                'id' => $v->id,
-                'product_key' => $v->product_key,
-                'name' => $v->name,
-                'category' => $v->category,
-                'status' => $v->status,
-                'sku' => $v->sku,
-                'usd_wholesale_price' => $v->usd_wholesale_price,
-                'usd_retail_price' => $v->usd_retail_price,
-                'slug' => $v->slug,
-                'featured_image' => $v->featured_image,
-                'stock' => $v->stock,
-                'default_currency' => $v->default_currency,
+                'id' => $product->id,
+                'product_key' => $product->product_key,
+                'name' => $product->name,
+                'category' => $product->category,
+                'status' => $product->status,
+                'sku' => $product->sku,
+                'usd_wholesale_price' => $product->usd_wholesale_price,
+                'usd_retail_price' => $product->usd_retail_price,
+                'slug' => $product->slug,
+                'featured_image' => $product->featured_image,
+                'stock' => $product->stock,
+                'default_currency' => $product->default_currency,
                 'options_count' => $productVariationsCount > 0 ? $productVariationsCount : 1,
                 'price' => $price,
                 'availability' => $availability,
-                'website' => $v->website,
-                'import_type' => $v->import_type,
+                'website' => $product->website,
+                'import_type' => $product->import_type,
             );
         }
 
         $data = array(
             "products" => $resultArray,
-            "pblshprdcts_count" => $publishCount,
-            "unpblshprdcts_count" => $unpublishedCount,
-            "allprdcts_count" => $productsCount
+            "pblshprdcts_count" => $publishedProductsCount,
+            "unpblshprdcts_count" => $unpublishedProductsCount,
+            "allprdcts_count" => $allProductsCount
         );
 
 
         return ['res' => true, 'msg' => "", 'data' => $data];
     }
+
+    /**
+     * Fetch All products By logged brand
+     *
+     * @return array
+     */
+
+    public function getProducts(): array
+    {
+        $userId = auth()->user()->id;
+        $data = [];
+        $products = Product::with('productVariations', 'productPrepacks')->where('user_id', $userId)->where('status', 'publish')->get();
+        foreach ($products as $product) {
+            $productStock = $product->stock;
+            $productVariations = $product->productVariations()->where('status', '1')->where('stock', '>', '0')->get();
+            $productVariationsCount = $productVariations->count();
+            if ($productVariationsCount > 0) {
+                $variantMinPrice = $product->productVariations()->min('price');
+                $price = $variantMinPrice . '+';
+                $variantStock = $product->productVariations()->sum('stock');
+                $availability = $variantStock > 0 ? 'in stock' : 'out of stock';
+                $productStock += $variantStock;
+            } else {
+                $price = $product->usd_wholesale_price;
+                $availability = $product->stock > 0 ? 'in stock' : 'out of stock';
+            }
+            $variations = [];
+            if (!empty($productVariations)) {
+                foreach ($productVariations as $pv) {
+                    $image = !empty($pv->image) ? $pv->image : $product->featured_image;
+                    $sku = !empty($pv->sku) ? $pv->sku : $product->sku;
+                    $stock = !empty($pv->stock) ? $pv->stock : $product->stock;
+                    $variableArr = [];
+                    if (!empty($pv->value1)) {
+                        $variableArr[] = $pv->value1;
+                    }
+                    if (!empty($pv->value2)) {
+                        $variableArr[] = $pv->value2;
+                    }
+                    if (!empty($pv->value3)) {
+                        $variableArr[] = $pv->value3;
+                    }
+                    $variations[] = array(
+                        'id' => $product->id,
+                        'usd_wholesale_price' => $pv->price,
+                        'usd_retail_price' => $pv->retail_price,
+                        'variant_id' => $pv->id,
+                        'variant' => implode('/', $variableArr),
+                        'name' => $pv->name,
+                        'sku' => $sku,
+                        'featured_image' => $image,
+                        'stock' => $stock
+                    );
+                }
+            }
+            $prepacks = [];
+            $prepacks = $product->productPrepacks()->where('active', '1')->get(['id', 'style', 'pack_name', 'size_ratio', 'size_range', 'packs_price', 'active', 'created_at', 'updated_at'])->toArray();
+
+            if ($productStock > 0) {
+                $data[] = array(
+                    'id' => $product->id,
+                    'product_key' => $product->product_key,
+                    'name' => $product->name,
+                    'category' => $product->category,
+                    'status' => $product->status,
+                    'sku' => $product->sku,
+                    'usd_wholesale_price' => $product->usd_wholesale_price,
+                    'usd_retail_price' => $product->usd_retail_price,
+                    'slug' => $product->slug,
+                    'featured_image' => $product->featured_image,
+                    'stock' => $product->stock,
+                    'default_currency' => $product->default_currency,
+                    'options_count' => $productVariationsCount > 0 ? $productVariationsCount : 1,
+                    'variations' => $variations,
+                    'prepacks' => $prepacks,
+                    'price' => $price,
+                    'availability' => $availability,
+                    'website' => $product->website,
+                    'import_type' => $product->import_type,
+                );
+            }
+        }
+
+        return ['res' => true, 'msg' => "", 'data' => $data];
+    }
+
     /**
      * Fetch Arrange Product List
      *
@@ -121,66 +214,68 @@ class ProductService
     {
 
         $resultArray = [];
-        $products = Product::where('user_id', $request->user_id)
+        $userId = auth()->user()->id;
+        $products = Product::with('productVariations')->where('user_id', $userId)
             ->orderBy('order_by', 'ASC')
             ->get();
 
-        foreach ($products as $v) {
-            $productVariations = ProductVariation::where('product_id', $v->id)->where('status', '1')->get();
+        foreach ($products as $product) {
+            $productVariations = $product->productVariations()->where('status', '1')->get();
             $productVariationsCount = $productVariations->count();
             if ($productVariationsCount > 0) {
-                $variantMinPrice = ProductVariation::where('product_id', $v->id)->min('price');
+                $variantMinPrice = $productVariations->min('price');
                 $price = $variantMinPrice . '+';
-                $variantStock = ProductVariation::where('product_id', $v->id)->sum('price');
+                $variantStock = $productVariations->sum('price');
                 $availability = $variantStock > 0 ? 'in stock' : 'out of stock';
             } else {
-                $price = $v->usd_wholesale_price;
-                $availability = $v->stock > 0 ? 'in stock' : 'out of stock';
+                $price = $product->usd_wholesale_price;
+                $availability = $product->stock > 0 ? 'in stock' : 'out of stock';
             }
             $resultArray[] = array(
-                'id' => $v->id,
-                'product_key' => $v->product_key,
-                'import_type' => $v->import_type,
-                'name' => $v->name,
-                'category' => $v->category,
-                'status' => $v->status,
-                'description' => strip_tags($v->description),
-                'country' => $v->country,
-                'case_quantity' => $v->case_quantity,
-                'min_order_qty' => $v->min_order_qty,
-                'min_order_qty_type' => $v->min_order_qty_type,
-                'sku' => $v->sku,
-                'usd_wholesale_price' => $v->usd_wholesale_price,
-                'usd_retail_price' => $v->usd_retail_price,
-                'cad_wholesale_price' => $v->cad_wholesale_price,
-                'cad_retail_price' => $v->cad_retail_price,
-                'eur_wholesale_price' => $v->eur_wholesale_price,
-                'eur_retail_price' => $v->eur_retail_price,
-                'usd_tester_price' => $v->usd_tester_price,
-                'fabric_content' => $v->fabric_content,
-                'care_instruction' => $v->care_instruction,
-                'season' => $v->season,
-                'Occasion' => $v->Occasion,
-                'Aesthetic' => $v->Aesthetic,
-                'Fit' => $v->Fit,
-                'Secondary_Occasion' => $v->Secondary_Occasion,
-                'Secondary_Aesthetic' => $v->Secondary_Aesthetic,
-                'Secondary_Fit' => $v->Secondary_Fit,
-                'Preorder' => $v->Preorder,
-                'slug' => $v->slug,
-                'featured_image' => $v->featured_image,
-                'stock' => $v->stock,
-                'default_currency' => $v->default_currency,
+                'id' => $product->id,
+                'product_key' => $product->product_key,
+                'import_type' => $product->import_type,
+                'name' => $product->name,
+                'category' => $product->category,
+                'status' => $product->status,
+                'description' => strip_tags($product->description),
+                'country' => $product->country,
+                'case_quantity' => $product->case_quantity,
+                'min_order_qty' => $product->min_order_qty,
+                'min_order_qty_type' => $product->min_order_qty_type,
+                'sku' => $product->sku,
+                'usd_wholesale_price' => $product->usd_wholesale_price,
+                'usd_retail_price' => $product->usd_retail_price,
+                'cad_wholesale_price' => $product->cad_wholesale_price,
+                'cad_retail_price' => $product->cad_retail_price,
+                'eur_wholesale_price' => $product->eur_wholesale_price,
+                'eur_retail_price' => $product->eur_retail_price,
+                'usd_tester_price' => $product->usd_tester_price,
+                'fabric_content' => $product->fabric_content,
+                'care_instruction' => $product->care_instruction,
+                'season' => $product->season,
+                'Occasion' => $product->Occasion,
+                'Aesthetic' => $product->Aesthetic,
+                'Fit' => $product->Fit,
+                'Secondary_Occasion' => $product->Secondary_Occasion,
+                'Secondary_Aesthetic' => $product->Secondary_Aesthetic,
+                'Secondary_Fit' => $product->Secondary_Fit,
+                'Preorder' => $product->Preorder,
+                'slug' => $product->slug,
+                'featured_image' => $product->featured_image,
+                'stock' => $product->stock,
+                'default_currency' => $product->default_currency,
                 'options_count' => $productVariationsCount > 0 ? $productVariationsCount : 1,
                 'variations_count' => $productVariationsCount,
                 'price' => $price,
                 'availability' => $availability,
-                'website' => $v->website,
+                'website' => $product->website,
             );
         }
 
         return ['res' => true, 'msg' => "", 'data' => $resultArray];
     }
+
     /**
      * Fetching product inventory by Logged brand
      *
@@ -191,15 +286,14 @@ class ProductService
     {
 
         $resultArray = [];
+        $userId = auth()->user()->id;
         $productVariationsTbl = DB::raw("(SELECT product_id as vProductId,id as variant_id,value1,value2,value3,sku as vSku,stock as vStock,image as vImage
 		FROM product_variations WHERE status='1') as pv");// Raw query is needed as nested query using for this function with alias.
         $products_sql = DB::table('products as p')
             ->select('p.*', 'pv.*')
             ->leftjoin($productVariationsTbl, 'pv.vProductId', '=', 'p.id')
-            ->where('p.user_id', $request->user_id)
+            ->where('p.user_id', $userId)
             ->orderBy('p.order_by', 'ASC');
-
-
         $allProductsCount = $products_sql->count();
         if (!empty($request->status)) {
             switch ($request->status) {
@@ -224,7 +318,7 @@ class ProductService
         $isProductQuery = DB::table('products as p')
             ->select('p.*', 'pv.*')
             ->leftjoin($productVariationsTbl, 'pv.vProductId', '=', 'p.id')
-            ->where('p.user_id', $request->user_id)
+            ->where('p.user_id', $userId)
             ->where(function ($isProductQuery) {
                 $isProductQuery->where('p.stock', '>', 0)
                     ->orWhere('pv.vStock', '>', 0);
@@ -234,34 +328,34 @@ class ProductService
         $osProductQuery = DB::table('products as p')
             ->select('p.*', 'pv.*')
             ->leftjoin($productVariationsTbl, 'pv.vProductId', '=', 'p.id')
-            ->where('p.user_id', $request->user_id)->where('p.stock', '<', 1)->where('pv.vStock', '<', 1);
+            ->where('p.user_id', $userId)->where('p.stock', '<', 1)->where('pv.vStock', '<', 1);
         $outStockProductsCount = $osProductQuery->count();
 
 
         $products = $products_sql->paginate(10);
 
-        foreach ($products as $v) {
-            $image = !empty($v->vImage) ? $v->vImage : $v->featured_image;
-            $sku = !empty($v->vSku) ? $v->vSku : $v->sku;
-            $stock = !empty($v->vStock) ? $v->vStock : $v->stock;
+        foreach ($products as $product) {
+            $image = !empty($product->vImage) ? $product->vImage : $product->featured_image;
+            $sku = !empty($product->vSku) ? $product->vSku : $product->sku;
+            $stock = !empty($product->vStock) ? $product->vStock : $product->stock;
             $variableArr = [];
-            if (!empty($v->value1)) {
-                $variableArr[] = $v->value1;
+            if (!empty($product->value1)) {
+                $variableArr[] = $product->value1;
             }
-            if (!empty($v->value2)) {
-                $variableArr[] = $v->value2;
+            if (!empty($product->value2)) {
+                $variableArr[] = $product->value2;
             }
-            if (!empty($v->value3)) {
-                $variableArr[] = $v->value3;
+            if (!empty($product->value3)) {
+                $variableArr[] = $product->value3;
             }
             $resultArray[] = array(
-                'id' => $v->id,
-                'variant_id' => $v->variant_id,
+                'id' => $product->id,
+                'variant_id' => $product->variant_id,
                 'variant' => implode('/', $variableArr),
-                'name' => $v->name,
+                'name' => $product->name,
                 'sku' => $sku,
                 'featured_image' => $image,
-                'stock' => $stock
+                'stock' => $stock,
             );
         }
 
@@ -275,6 +369,7 @@ class ProductService
         return ['res' => true, 'msg' => "", 'data' => $data];
 
     }
+
     /**
      * Create New Product By logged Brand
      *
@@ -298,7 +393,7 @@ class ProductService
         $lastInsertId = $product->id;
 
         if (!empty($request->file('video_url'))) {
-            foreach ($request->file('video_url') as  $file) {
+            foreach ($request->file('video_url') as $file) {
                 $fileName = rand() . time() . '.' . $file->extension();
                 $file->move($this->productAbsPath, $fileName);
                 $video = new Video();
@@ -327,8 +422,11 @@ class ProductService
             ->update([
                 'feature_key' => 1
             ]);
-        $productImage = ProductImage::where('product_id', $lastInsertId)->where('image_sort', $featuredKey)->first();
+
+        $product = Product::with('productImages')->where('id', $lastInsertId)->first();
+        $productImage = $product->productImages()->where('image_sort', $featuredKey)->first();
         $featuredImage = $productImage->images;
+
         Product::where('id', $lastInsertId)
             ->update([
                 'featured_image' => $featuredImage
@@ -351,7 +449,7 @@ class ProductService
             }
         }
 
-        $variations = json_decode($request->variations, true);
+        $variations = $request->variations;
 
         if (is_countable($variations) && count($variations) > 0) {
             foreach ($variations as $vars) {
@@ -367,7 +465,7 @@ class ProductService
                 $variationData['swatch_image'] = $sImage;
                 $variationData['image'] = $vImage;
                 $variationData['product_id'] = $lastInsertId;
-                $variationData['price'] = $vars['wholesale_price'];
+                $variationData['price'] = $vars['usd_wholesale_price'];
                 $variationData['options1'] = $vars['option1'];
                 $variationData['options2'] = $vars['option2'];
                 $variationData['options3'] = $vars['option3'];
@@ -375,7 +473,7 @@ class ProductService
                 $variationData['value1'] = $vars['value1'];
                 $variationData['value2'] = $vars['value2'];
                 $variationData['value3'] = $vars['value3'];
-                $variationData['retail_price'] = $vars['retail_price'];
+                $variationData['retail_price'] = $vars['usd_retail_price'];
                 $variationData['cad_wholesale_price'] = $vars['cad_wholesale_price'] ?? 0;
                 $variationData['cad_retail_price'] = $vars['cad_retail_price'] ?? 0;
                 $variationData['gbp_wholesale_price'] = $vars['gbp_wholesale_price'] ?? 0;
@@ -396,15 +494,15 @@ class ProductService
                 $variationData['weight_unit'] = $vars['weight_unit'];
                 $variationData['tariff_code'] = $vars['tariff_code'];
 
-                $productVariation = new ProductVariation();
-                $productVariation->fill($variationData);
-                $productVariation->save();
+                $productVariations = new productVariations();
+                $productVariations->fill($variationData);
+                $productVariations->save();
 
             }
         }
 
         if ($request->sell_type == 3) {
-            $prePacks = json_decode($request->pre_packs, true);
+            $prePacks = $request->pre_packs;
             if ($prePacks) {
                 Product::where('id', $lastInsertId)
                     ->update([
@@ -432,6 +530,401 @@ class ProductService
             'data' => ''
         ];
     }
+
+    /**
+     * Function of get variables from request
+     *
+     * @param $request
+     * @return array
+     */
+    private function variables($request): array
+    {
+        $mainCategory = '';
+        $category = '';
+        $subCategory = $request->product_type;
+        $userId = auth()->user()->id;
+        $subCategoryDetails = Category::where('id', $subCategory)->first();
+        if (!empty($subCategoryDetails)) {
+            $categoryDetails = Category::where('id', $subCategoryDetails->parent_id)->first();
+            $category = $categoryDetails->id;
+            $mainCategory = $categoryDetails->parent_id;
+        }
+        $productKey = 'p_' . Str::lower(Str::random(10));
+        $productSlug = Str::slug($request->product_name);
+        $description = $request->description;
+        $productMade = $request->product_made;
+
+        return array(
+            'usd_wholesale_price' => $request->usd_wholesale_price ?? 0,
+            'usd_retail_price' => $request->usd_retail_price ?? 0,
+            'cad_wholesale_price' => $request->cad_wholesale_price ?? 0,
+            'cad_retail_price' => $request->cad_retail_price ?? 0,
+            'gbp_wholesale_price' => $request->gbp_wholesale_price ?? 0,
+            'gbp_retail_price' => $request->gbp_retail_price ?? 0,
+            'eur_wholesale_price' => $request->eur_wholesale_price ?? 0,
+            'eur_retail_price' => $request->eur_retail_price ?? 0,
+            'aud_wholesale_price' => $request->aud_wholesale_price ?? 0,
+            'aud_retail_price' => $request->aud_retail_price ?? 0,
+            'usd_tester_price' => $request->testers_price ?? 0,
+            'shipping_tariff_code' => $request->shipping_tariff_code ?? 0,
+            'case_quantity' => $request->order_case_qty ?? 0,
+            'min_order_qty' => $request->order_min_case_qty ?? 0,
+            'stock' => $request->shipping_inventory ?? 0,
+            'option_type' => $request->option_type ?? '',
+            'option_items' => $request->option_items ?? '',
+            'colorOptionItems' => $request->colorOptionItems,
+            'dimension_unit' => $request->dimension_unit ?? 0,
+            'is_bestseller' => $request->is_bestseller ?? 0,
+            'shipping_height' => $request->shipping_height ?? 0,
+            'shipping_length' => $request->shipping_length ?? 0,
+            'shipping_weight' => $request->shipping_weight ?? 0,
+            'shipping_width' => $request->shipping_width ?? 0,
+            'weight_unit' => $request->weight_unit ?? 0,
+            'reatailers_inst' => $request->reatailers_inst ?? '',
+            'reatailer_input_limit' => $request->reatailer_input_limit ?? 0,
+            'retailer_min_qty' => $request->retailer_min_qty ?? 0,
+            'retailer_add_charge' => $request->retailer_add_charge ?? 0,
+            'product_shipdate' => date('Y-m-d', strtotime($request->product_shipdate)) ?? '',
+            'product_endshipdate' => date('Y-m-d', strtotime($request->product_endshipdate)) ?? '',
+            'product_deadline' => date('Y-m-d', strtotime($request->product_deadline)) ?? '',
+            'out_of_stock' => $request->out_of_stock ?? 0,
+            'outside_us' => $request->outside_us == 'true' ? 1 : 0,
+            'product_key' => $productKey,
+            'slug' => $productSlug,
+            'description' => $description,
+            'keep_product' => $request->keep_product ?? 0,
+            'country' => $productMade,
+            'name' => $request->product_name,
+            'main_category' => $mainCategory,
+            'category' => $category,
+            'sub_category' => $subCategory,
+            'tariff_code' => $request->shipping_tariff_code,
+            'options_available' => $request->options_available,
+            'user_id' => $userId,
+            'status' => 'publish',
+            'sku' => $request->shipping_sku
+        );
+    }
+
+    /**
+     * Update product by ID
+     *
+     * @param $request
+     * @return array
+     */
+    public function update($request): array
+    {
+        $productId = $request->id;
+        $product = Product::with('productImages', 'productVariations')->where('id', $productId)->first();
+        if (!$product) {
+            return [
+                'res' => false,
+                'msg' => 'Product not found !',
+                'data' => ""
+            ];
+        }
+        $variables = $this->variables($request);
+        $sellType = $request->sell_type ?: 1;
+        $prepackType = $sellType == 3 ? $request->prepack_type : 1;
+
+        $variables['sell_type'] = $sellType;
+        $variables['prepack_type'] = $prepackType;
+        $variables['id'] = $productId;
+        $product->update($variables);
+
+        if (!empty($request->file('video_url'))) {
+            foreach ($request->file('video_url') as $file) {
+                $fileName = rand() . time() . '.' . $file->extension();
+                $file->move($this->productAbsPath, $fileName);
+                $video = new Video();
+                $video->product_id = $productId;
+                $video->video_url = $this->productRelPath . $fileName;
+                $video->save();
+            }
+        }
+
+        $variationImages = [];
+        $prev_product_images = $product->productImages;
+        if (!empty($prev_product_images)) {
+            foreach ($prev_product_images as $previmg) {
+                $variationImages[] = $previmg->images;
+            }
+        }
+
+        $featuredKey = isset($request->featured_image) && !empty($request->featured_image) ? (int)$request->featured_image : 0;
+
+        $checkImage = $product->productImages()->orderBy('image_sort', 'desc')->first();
+        if (!empty($checkImage)) {
+            $imageKey = $checkImage->image_sort + 1;
+        } else {
+            $imageKey = 0;
+        }
+
+        if (!empty($request->file('product_images'))) {
+            foreach ($request->file('product_images') as $key => $file) {
+                $fileName = rand() . time() . '.' . $file->extension();
+                $file->move($this->productAbsPath, $fileName);
+                $productImages = new ProductImage();
+                $productImages->product_id = $productId;
+                $productImages->images = $this->productRelPath . $fileName;
+                $productImages->image_sort = $imageKey + $key;
+                $productImages->feature_key = 0;
+                $productImages->save();
+                $variationImages[] = $this->productRelPath . $fileName;
+            }
+        }
+
+        ProductImage::where('product_id', $productId)
+            ->update([
+                'feature_key' => 0
+            ]);
+
+        ProductImage::where('image_sort', $featuredKey)->where('product_id', $productId)
+            ->update([
+                'feature_key' => 1
+            ]);
+        $productImage = $product->productImages()->where('image_sort', $featuredKey)->first();
+        $featuredImage = $productImage->images;
+        Product::where('id', $productId)
+            ->update([
+                'featured_image' => $featuredImage
+            ]);
+        $productFeatureImage = $product->productImages()->where('feature_key', '1')->first();
+        Product::where('id', $productId)->update(array('featured_image' => $productFeatureImage->images));
+        $optionTypes = explode(',', $request->option_type);
+        $colorKey = in_array('Color', $optionTypes) ? (int)(array_search("Color", $optionTypes)) + 1 : 0;
+        $colors = [];
+        $swatches = [];
+        $colorOptions = json_decode($request->colorOptionItems, true);
+
+        if (is_countable($colorOptions) && count($colorOptions) > 0) {
+            foreach ($colorOptions as $color) {
+                if (!in_array($color['name'], $colors)) {
+                    $colors[] = $color['name'];
+                    $swatchImage = $color["img"];
+
+                    if (!empty($swatchImage) && filter_var($swatchImage, FILTER_VALIDATE_URL) === false) {
+                        $uploadedImage = $this->image64Upload($swatchImage);
+                        $swatches[] = $uploadedImage;
+                    } else {
+                        $swatches[] = $swatchImage;
+                    }
+                }
+            }
+        }
+
+        $variations = $request->variations;
+
+        if (!empty($variations)) {
+            //ProductVariation::where('product_id', $productId)->delete();
+
+            foreach ($variations as $vars) {
+                $sImage = '';
+                if (is_countable($colorOptions) && count($colorOptions) > 0 && $colorKey > 0) {
+                    $colorVal = $vars['value' . $colorKey];
+                    $sColorKey = in_array($colorVal, $colors) ? array_search($colorVal, $colors) : 0;
+                    $sImage = $swatches[$sColorKey];
+                }
+
+
+                if (isset($vars["image_index"])) {
+                    $imageIndex = (int)$vars["image_index"];
+                    $vImage = $variationImages[$imageIndex] ?? '';
+                } else {
+                    $vImage = $vars['preview_images'];
+                }
+
+                if ($vars['status'] == 'published') {
+                    if (isset($vars['variant_id'])) {
+                        $productVriation = ProductVariation::where('id', $vars['variant_id'])->first();
+
+                        $variationData['price'] = $vars['usd_wholesale_price'];
+                        $variationData['options1'] = $vars['option1'];
+                        $variationData['options2'] = $vars['option2'];
+                        $variationData['options3'] = $vars['option3'];
+                        $variationData['sku'] = $vars['sku'];
+                        $variationData['value1'] = $vars['value1'];
+                        $variationData['value2'] = $vars['value2'];
+                        $variationData['value3'] = $vars['value3'];
+                        $variationData['retail_price'] = $vars['usd_retail_price'];
+                        $variationData['cad_wholesale_price'] = $vars['cad_wholesale_price'] ?? 0;
+                        $variationData['cad_retail_price'] = $vars['cad_retail_price'] ?? 0;
+                        $variationData['gbp_wholesale_price'] = $vars['gbp_wholesale_price'] ?? 0;
+                        $variationData['gbp_retail_price'] = $vars['gbp_retail_price'] ?? 0;
+                        $variationData['eur_wholesale_price'] = $vars['eur_wholesale_price'] ?? 0;
+                        $variationData['eur_retail_price'] = $vars['eur_retail_price'] ?? 0;
+                        $variationData['aud_wholesale_price'] = $vars['aud_wholesale_price'] ?? 0;
+                        $variationData['aud_retail_price'] = $vars['aud_retail_price'] ?? 0;
+                        $variationData['stock'] = $vars['inventory'];
+                        $variationData['weight'] = $vars['weight'];
+                        $variationData['length'] = $vars['length'];
+                        $variationData['length_unit'] = $vars['length_unit'];
+                        $variationData['width_unit'] = $vars['width_unit'];
+                        $variationData['height_unit'] = $vars['height_unit'];
+                        $variationData['width'] = $vars['width'];
+                        $variationData['height'] = $vars['height'];
+                        $variationData['dimension_unit'] = $vars['dimension_unit'];
+                        $variationData['weight_unit'] = $vars['weight_unit'];
+
+                        $productVriation->update($variationData);
+
+                        $pVariantDetails = ProductVariation::where('id', $vars['variant_id'])->first();
+                        $syncs = Store::where('website', $pVariantDetails->website)->first();
+                        $extendUrl = '&action=update_stock&product_id=' . $pVariantDetails->website_product_id . '&stock=' . $vars['inventory'] . '&variation_data_id=' . $pVariantDetails->variation_id;
+                        $this->customService->curlCall('GET', $syncs->api_key, $syncs->api_password, $syncs->website, $extendUrl);
+
+                    } else {
+                        $variationData['variant_key'] = 'v_' . Str::lower(Str::random(10));
+                        $variationData['swatch_image'] = $sImage;
+                        $variationData['image'] = $vImage;
+                        $variationData['product_id'] = $productId;
+                        $variationData['price'] = $vars['usd_wholesale_price'];
+                        $variationData['options1'] = $vars['option1'];
+                        $variationData['options2'] = $vars['option2'];
+                        $variationData['options3'] = $vars['option3'];
+                        $variationData['sku'] = $vars['sku'];
+                        $variationData['value1'] = $vars['value1'];
+                        $variationData['value2'] = $vars['value2'];
+                        $variationData['value3'] = $vars['value3'];
+                        $variationData['retail_price'] = $vars['usd_retail_price'];
+                        $variationData['cad_wholesale_price'] = $vars['cad_wholesale_price'] ?? 0;
+                        $variationData['cad_retail_price'] = $vars['cad_retail_price'] ?? 0;
+                        $variationData['gbp_wholesale_price'] = $vars['gbp_wholesale_price'] ?? 0;
+                        $variationData['gbp_retail_price'] = $vars['gbp_retail_price'] ?? 0;
+                        $variationData['eur_wholesale_price'] = $vars['eur_wholesale_price'] ?? 0;
+                        $variationData['eur_retail_price'] = $vars['eur_retail_price'] ?? 0;
+                        $variationData['aud_wholesale_price'] = $vars['aud_wholesale_price'] ?? 0;
+                        $variationData['aud_retail_price'] = $vars['aud_retail_price'] ?? 0;
+                        $variationData['stock'] = $vars['inventory'];
+                        $variationData['weight'] = $vars['weight'];
+                        $variationData['length'] = $vars['length'];
+                        $variationData['length_unit'] = $vars['length_unit'];
+                        $variationData['width_unit'] = $vars['width_unit'];
+                        $variationData['height_unit'] = $vars['height_unit'];
+                        $variationData['width'] = $vars['width'];
+                        $variationData['height'] = $vars['height'];
+                        $variationData['dimension_unit'] = $vars['dimension_unit'];
+                        $variationData['weight_unit'] = $vars['weight_unit'];
+                        $variationData['tariff_code'] = $vars['tariff_code'];
+
+                        $productVariations = new productVariations();
+                        $productVariations->fill($variationData);
+                        $productVariations->save();
+                    }
+                }
+            }
+        } else {
+            $productDetails = Product::where('id', $productId)->get()->first();
+            if ($productDetails->website != "") {
+                $syncs = Store::where('website', $productDetails->website)->get()->first();
+                $request['api_key'] = $syncs->api_key;
+                $request['api_password'] = $syncs->api_password;
+                $request['store_url'] = $syncs->website;
+                $extendUrl = '&action=update_stock&product_id=' . $productDetails->product_id . '&stock=' . $variables['stock'];
+
+                $this->customService->curlCall('GET', $syncs->api_key, $syncs->api_password, $syncs->website, $extendUrl);
+            }
+        }
+
+        if (is_countable($variations) && count($variations) == 1) {
+            Product::where('id', $productId)->update(array("stock" => $variations[0]['inventory']));
+        }
+        if (is_countable($variations) && count($variations) == 0) {
+
+            $product->productVariations()->update(array('status' => 2));
+
+        }
+
+        if ($variables['options_available'] == 0) {
+            ProductVariation::where('product_id', $productId)->delete();
+            ProductPrepack::where('product_id', $productId)->delete();
+        }
+
+        if ($sellType == 3) {
+            $prePacks = $request->pre_packs;
+            if (!empty($prePacks)) {
+                Product::where('id', $productId)->update(array('sell_type' => '3'));
+                foreach ($prePacks as $prePack) {
+
+                    if (isset($prePack['id']) && !empty($prePack['id'])) {
+                        if (isset($prePack['status']) && $prePack['status'] == 'deleted') {
+                            ProductPrepack::where('id', $prePack['id'])->delete();
+                        } else {
+                            $packsPrice = $prePack['packs_price'] && !in_array($prePack['packs_price'], array('', 'undefined', 'null')) ? $prePack['packs_price'] : 0;
+                            ProductPrepack::where('id', $prePack['id'])
+                                ->update([
+                                    'style' => $prePack['style'],
+                                    'pack_name' => $prePack['pack_name'],
+                                    'size_ratio' => $prePack['size_ratio'],
+                                    'size_range' => $prePack['size_range_value'],
+                                    'packs_price' => $packsPrice,
+                                    'active' => $prePack['active']
+
+                                ]);
+                        }
+                    } else {
+                        if (isset($prePack['status']) && $prePack['status'] == 'published') {
+                            $packData['product_id'] = $productId;
+                            $packData['style'] = $prePack['style'];
+                            $packData['pack_name'] = $prePack['pack_name'];
+                            $packData['size_ratio'] = $prePack['size_ratio'];
+                            $packData['size_range'] = $prePack['size_range_value'];
+                            $packData['packs_price'] = $prePack['packs_price'] ?? 0;
+                            $packData['active'] = $prePack['active'];
+                            $productPrepack = new ProductPrepack();
+                            $productPrepack->fill($packData);
+                            $productPrepack->save();
+                        }
+                    }
+                }
+            }
+        }
+        if ($sellType <> 3) {
+            ProductPrepack::where('product_id', $productId)->delete();
+        }
+
+        return ['res' => true, 'msg' => "Updated Successfully", 'data' => ""];
+    }
+
+    /**
+     * Function of image upload
+     *
+     * @param $image
+     * @return string
+     */
+
+    private function image64Upload($image): string
+    {
+        $image_64 = $image;
+        $replace = substr($image_64, 0, strpos($image_64, ',') + 1);
+        $image_64 = str_replace($replace, '', $image_64);
+        $image_64 = str_replace(' ', '+', $image_64);
+        $imageName = Str::random(10) . '.' . 'png';
+        File::put($this->productAbsPath . "/" . $imageName, base64_decode($image_64));
+
+        return $this->productRelPath . $imageName;
+    }
+
+    /**
+     * Delete product by logged brand
+     *
+     * @param $request
+     * @return array
+     */
+    public function delete($request): array
+    {
+        $ids = explode(",", $request->id);
+        Product::whereIn('id', $ids)->delete();
+        ProductImage::where('product_id', $request->id)->delete();
+        ProductVariation::where('product_id', $request->id)->delete();
+        ProductPrepack::where('product_id', $request->id)->delete();
+        Video::where('product_id', $request->id)->delete();
+
+        return ['res' => true, 'msg' => "Deleted Successfully", 'data' => ""];
+
+
+    }
+
     /**
      * Product Details for respected product
      *
@@ -450,8 +943,11 @@ class ProductService
         $nextProductId = $nextProduct ? $nextProduct->id : 0;
         $brandDetails = Product::where('user_id', $products->user_id)->first();
         $bazaarDirectLink = $brandDetails->bazaar_direct_link;
-        $productImages = ProductImage::where('product_id', $request->id)->get();
-        $productVideos = Video::where('product_id', $request->id)->get()->toArray();
+
+        $product = Product::with('productImages', 'productVideos')->where('user_id', $products->user_id)->first();
+        $productImages = $product->productImages;
+        $productVideos = $product->productVideos;
+
         $allImage = [];
         if (!empty($productImages)) {
             foreach ($productImages as $img) {
@@ -462,12 +958,15 @@ class ProductService
                 );
             }
         }
-        $productVariations = ProductVariation::where('product_id', $request->id)->where('status', '1')->get();
-        $productPrepacks = ProductPrepack::where('product_id', $request->id)->get();
+
+        $getProducts = Product::with('productPrepacks', 'productVariations', 'productFeatureImage')->where('id', $request->id)->first();
+        $productVariations = $getProducts->productVariations;
+        $productPrepacks = $getProducts->productPrepacks;
+
         $prePacks = [];
         $prepackSizeRanges = [];
         if (!empty($productPrepacks)) {
-            foreach ($productPrepacks as  $pPVal) {
+            foreach ($productPrepacks as $pPVal) {
                 if (!in_array($pPVal->size_range, $prepackSizeRanges)) {
                     $prepackSizeRanges[] = $pPVal->size_range;
                 }
@@ -630,12 +1129,12 @@ class ProductService
                 $values[2][] = (object)["display" => $value3, "value" => $value3];
             }
         }
+        $featuredImage = $getProducts->productFeatureImage()->where('feature_key', '1')->first();
 
-
-        $featuredImage = ProductImage::where('product_id', $request->id)->where('feature_key', '1')->get()->first();
         $featuredImageKey = ($featuredImage) ? $featuredImage->image_sort : 0;
 
         if ($products) {
+
             $resultArray[] = array(
                 'id' => $products->id,
                 'bazaar_direct_link' => $bazaarDirectLink,
@@ -657,6 +1156,8 @@ class ProductService
                 'gbp_wholesale_price' => $products->gbp_wholesale_price,
                 'gbp_retail_price' => $products->gbp_retail_price,
                 'usd_tester_price' => $products->usd_tester_price,
+                'aud_wholesale_price' => $products->aud_wholesale_price,
+                'aud_retail_price' => $products->aud_retail_price,
                 'fabric_content' => $products->fabric_content,
                 'care_instruction' => $products->care_instruction,
                 'season' => $products->season,
@@ -673,7 +1174,7 @@ class ProductService
                 'allimage' => $allImage,
                 'allvariations' => $allVariations,
                 'option_type' => $options,
-                'option_value' => $values,
+                'option_value' => json_decode($products->option_items, true),
                 'swatches' => $swatches,
                 'dimension_unit' => $products->dimension_unit,
                 'is_bestseller' => $products->is_bestseller,
@@ -701,241 +1202,13 @@ class ProductService
                 'pre_packs' => $prePacks,
                 'prev_product_id' => $prevProductId,
                 'next_product_id' => $nextProductId,
+                'colorOptionItems' => json_decode($products->colorOptionItems, true)
             );
         }
 
         return ['res' => true, 'msg' => "", 'data' => $resultArray];
     }
-    /**
-     * Update product by ID
-     *
-     * @param $request
-     * @return array
-     */
-    public function update($request): array
-    {
-        $productId = $request->id;
-        $product = Product::where('id', $productId)->first();
-        if (!$product) {
-            return [
-                'res' => false,
-                'msg' => 'Product not found !',
-                'data' => ""
-            ];
-        }
-        $variables = $this->variables($request);
-        $sellType = $request->sell_type ?: 1;
-        $prepackType = $sellType == 3 ? $request->prepack_type : 1;
 
-        $variables['sell_type'] = $sellType;
-        $variables['prepack_type'] = $prepackType;
-        $variables['id'] = $productId;
-        $product->update($variables);
-
-
-
-        if (!empty($request->file('video_url'))) {
-            foreach ($request->file('video_url') as  $file) {
-                $fileName = rand() . time() . '.' . $file->extension();
-                $file->move($this->productAbsPath, $fileName);
-                $video = new Video();
-                $video->product_id = $productId;
-                $video->video_url = $this->productRelPath . $fileName;
-                $video->save();
-            }
-        }
-
-        $variationImages = [];
-        $prev_product_images = ProductImage::where('product_id', $productId)->get();
-        if (!empty($prev_product_images)) {
-            foreach ($prev_product_images as $previmg) {
-                $variationImages[] = $previmg->images;
-            }
-        }
-
-        $featuredKey = isset($request->featured_image) && !empty($request->featured_image) ? (int)$request->featured_image : 0;
-
-        $checkImage = ProductImage::where('product_id', $productId)->orderBy('image_sort', 'desc')->first();
-        if (!empty($checkImage)) {
-            $imageKey = $checkImage->image_sort + 1;
-        } else {
-            $imageKey = 0;
-        }
-
-        if (!empty($request->file('product_images'))) {
-            foreach ($request->file('product_images') as $key => $file) {
-                $fileName = rand() . time() . '.' . $file->extension();
-                $file->move($this->productAbsPath, $fileName);
-                $productImages = new ProductImage();
-                $productImages->product_id = $productId;
-                $productImages->images = $this->productRelPath . $fileName;
-                $productImages->image_sort = $imageKey + $key;
-                $productImages->feature_key = 0;
-                $productImages->save();
-                $variationImages[] = $this->productRelPath . $fileName;
-            }
-        }
-
-        ProductImage::where('product_id', $productId)
-            ->update([
-                'feature_key' => 0
-            ]);
-
-        ProductImage::where('image_sort', $featuredKey)->where('product_id', $productId)
-            ->update([
-                'feature_key' => 1
-            ]);
-        $productImage = ProductImage::where('product_id', $productId)->where('image_sort', $featuredKey)->first();
-        $featuredImage = $productImage->images;
-        Product::where('id', $productId)
-            ->update([
-                'featured_image' => $featuredImage
-            ]);
-        $productFeatureImage = ProductImage::where('product_id', $productId)->where('feature_key', '1')->first();
-        Product::where('id', $productId)->update(array('featured_image' => $productFeatureImage->images));
-        $optionTypes = explode(',', $request->option_type);
-        $colorKey = in_array('Color', $optionTypes) ? (int)(array_search("Color", $optionTypes)) + 1 : 0;
-        $colors = [];
-        $swatches = [];
-        $colorOptions = json_decode($request->colorOptionItems, true);
-
-
-        if (is_countable($colorOptions) && count($colorOptions) > 0) {
-            foreach ($colorOptions as $color) {
-                if (!in_array($color['name'], $colors)) {
-                    $colors[] = $color['name'];
-                    $swatchImage = $color["img"];
-
-                    if (!empty($swatchImage) && filter_var($swatchImage, FILTER_VALIDATE_URL) === false) {
-                        $uploadedImage = $this->image64Upload($swatchImage);
-                        $swatches[] = $uploadedImage;
-                    } else {
-                        $swatches[] = $swatchImage;
-                    }
-                }
-            }
-        }
-
-        $variations = json_decode($request->variations, true);
-
-        if (!empty($variations)) {
-            ProductVariation::where('product_id', $productId)->delete();
-
-            foreach ($variations as $vars) {
-                $sImage = '';
-                if (count($colorOptions) > 0 && $colorKey > 0) {
-                    $colorVal = $vars['value' . $colorKey];
-                    $sColorKey = in_array($colorVal, $colors) ? array_search($colorVal, $colors) : 0;
-                    $sImage = $swatches[$sColorKey];
-                }
-
-
-                if (isset($vars["image_index"])) {
-                    $imageIndex = (int)$vars["image_index"];
-                    $vImage = $variationImages[$imageIndex] ?? '';
-                } else {
-                    $vImage = $vars['preview_images'];
-                }
-
-                if ($vars['status'] == 'published') {
-                    $variationData['variant_key'] = 'v_' . Str::lower(Str::random(10));
-                    $variationData['swatch_image'] = $sImage;
-                    $variationData['image'] = $vImage;
-                    $variationData['product_id'] = $productId;
-                    $variationData['price'] = $vars['usd_wholesale_price'];
-                    $variationData['options1'] = $vars['option1'];
-                    $variationData['options2'] = $vars['option2'];
-                    $variationData['options3'] = $vars['option3'];
-                    $variationData['sku'] = $vars['sku'];
-                    $variationData['value1'] = $vars['value1'];
-                    $variationData['value2'] = $vars['value2'];
-                    $variationData['value3'] = $vars['value3'];
-                    $variationData['retail_price'] = $vars['usd_retail_price'];
-                    $variationData['cad_wholesale_price'] = $vars['cad_wholesale_price'] ?? 0;
-                    $variationData['cad_retail_price'] = $vars['cad_retail_price'] ?? 0;
-                    $variationData['gbp_wholesale_price'] = $vars['gbp_wholesale_price'] ?? 0;
-                    $variationData['gbp_retail_price'] = $vars['gbp_retail_price'] ?? 0;
-                    $variationData['eur_wholesale_price'] = $vars['eur_wholesale_price'] ?? 0;
-                    $variationData['eur_retail_price'] = $vars['eur_retail_price'] ?? 0;
-                    $variationData['aud_wholesale_price'] = $vars['aud_wholesale_price'] ?? 0;
-                    $variationData['aud_retail_price'] = $vars['aud_retail_price'] ?? 0;
-                    $variationData['stock'] = $vars['inventory'];
-                    $variationData['weight'] = $vars['weight'];
-                    $variationData['length'] = $vars['length'];
-                    $variationData['length_unit'] = $vars['length_unit'];
-                    $variationData['width_unit'] = $vars['width_unit'];
-                    $variationData['height_unit'] = $vars['height_unit'];
-                    $variationData['width'] = $vars['width'];
-                    $variationData['height'] = $vars['height'];
-                    $variationData['dimension_unit'] = $vars['dimension_unit'];
-                    $variationData['weight_unit'] = $vars['weight_unit'];
-                    $variationData['tariff_code'] = $vars['tariff_code'];
-
-                    $productVariation = new ProductVariation();
-                    $productVariation->fill($variationData);
-                    $productVariation->save();
-                }
-            }
-        }
-        if (is_countable($variations) && count($variations) == 1) {
-            Product::where('id', $productId)->update(array("stock" => $variations[0]['inventory']));
-        }
-        if (is_countable($variations) && count($variations) == 0) {
-
-            ProductVariation::where('product_id', $productId)->update(array('status' => 2));
-        }
-
-        if($variables['options_available']==0)
-        {
-            ProductVariation::where('product_id', $productId)->delete();
-            ProductPrepack::where('product_id', $productId)->delete();
-        }
-
-        if ($sellType == 3) {
-            $prePacks = json_decode($request->pre_packs, true);
-            if (!empty($prePacks)) {
-                Product::where('id', $productId)->update(array('sell_type' => '3'));
-                foreach ($prePacks as $prePack) {
-
-                    if (isset($prePack['id']) && !empty($prePack['id'])) {
-                        if (isset($prePack['status']) && $prePack['status'] == 'deleted') {
-                            ProductPrepack::where('id', $prePack['id'])->delete();
-                        } else {
-                            $packsPrice = $prePack['packs_price'] && !in_array($prePack['packs_price'], array('', 'undefined', 'null')) ? $prePack['packs_price'] : 0;
-                            ProductPrepack::where('id', $prePack['id'])
-                                ->update([
-                                    'style' => $prePack['style'],
-                                    'pack_name' => $prePack['pack_name'],
-                                    'size_ratio' => $prePack['size_ratio'],
-                                    'size_range' => $prePack['size_range_value'],
-                                    'packs_price' => $packsPrice,
-                                    'active' => $prePack['active']
-
-                                ]);
-                        }
-                    } else {
-
-                        $packData['product_id'] = $productId;
-                        $packData['style'] = $prePack['style'];
-                        $packData['pack_name'] = $prePack['pack_name'];
-                        $packData['size_ratio'] = $prePack['size_ratio'];
-                        $packData['size_range'] = $prePack['size_range_value'];
-                        $packData['packs_price'] = $prePack['packs_price'] ?? 0;
-                        $packData['active'] = $prePack['active'];
-                        $productPrepack = new ProductPrepack();
-                        $productPrepack->fill($packData);
-                        $productPrepack->save();
-                    }
-                }
-            }
-        }
-        if($sellType<>3)
-        {
-            ProductPrepack::where('product_id', $productId)->delete();
-        }
-
-        return ['res' => true, 'msg' => "Updated Successfully", 'data' => ""];
-    }
     /**
      * Change status like published, Unpublished of products
      *
@@ -947,11 +1220,11 @@ class ProductService
         $ids = explode(",", $request->id);
         if ($request->status == 'publish') {
             $errorMsg = 0;
-            $productDetails = Product::where('id', $request->id)->first();
-            $resImages = ProductImage::where('product_id', $productDetails->id)->get();
+            $productDetails = Product::with('productImages', 'productVariations')->where('id', $request->id)->first();
+            $resImages = $productDetails->productImages;
             $usdWholesalePrice = (float)$productDetails->usd_wholesale_price;
             $usdRetailPrice = (float)$productDetails->usd_retail_price;
-            $productVariations = ProductVariation::where('product_id', $request->id)->where('status', '1')->get();
+            $productVariations = $productDetails->productVariations()->where('status', '1')->get();
             $productVariationsCount = $productVariations->count();
             if ($productVariationsCount > 0) {
                 $productVariations->toArray();
@@ -996,25 +1269,7 @@ class ProductService
 
         return $response;
     }
-    /**
-     * Delete product by logged brand
-     *
-     * @param $request
-     * @return array
-     */
-    public function delete($request): array
-    {
-        $ids = explode(",", $request->id);
-        Product::whereIn('id', $ids)->delete();
-        ProductImage::where('product_id', $request->id)->delete();
-        ProductVariation::where('product_id', $request->id)->delete();
-        ProductPrepack::where('product_id', $request->id)->delete();
-        Video::where('product_id', $request->id)->delete();
 
-        return ['res' => true, 'msg' => "Deleted Successfully", 'data' => ""];
-
-
-    }
     /**
      * Delete product image by respected product and image id
      *
@@ -1029,6 +1284,7 @@ class ProductService
 
 
     }
+
     /**
      * Delete product video by respected product and image id
      *
@@ -1043,6 +1299,7 @@ class ProductService
 
 
     }
+
     /**
      * Update product sorting by logged brand
      *
@@ -1061,6 +1318,7 @@ class ProductService
 
         return ['res' => true, 'msg' => "", 'data' => ""];
     }
+
     /**
      * Inventory stock by product
      *
@@ -1070,130 +1328,21 @@ class ProductService
 
     public function updateStock($request): array
     {
-        if ($request->variant_id)
-        {
+        if ($request->variant_id) {
             ProductVariation::where('id', $request->variant_id)->update(array('stock' => $request->stock));
-        }
-        else
-        {
+            $pVariantDetails = ProductVariation::where('id', $request->variant_id)->get()->first();
+            $syncs = Store::where('website', $pVariantDetails->website)->get()->first();
+            $extendUrl = '&action=update_stock&product_id=' . $pVariantDetails->website_product_id . '&stock=' . $request->stock . '&variation_data_id=' . $pVariantDetails->variation_id;
+            $this->customService->curlCall('GET', $syncs->api_key, $syncs->api_password, $syncs->website, $extendUrl);
+        } else {
             Product::where('id', $request->id)->update(array('stock' => $request->stock));
+            $product = Product::where('id', $request->id)->get()->first();
+            $syncs = Store::where('website', $product->website)->get()->first();
+            $extendUrl = '&action=update_stock&product_id=' . $product->product_id . '&stock=' . $request->stock;
+            $this->customService->curlCall('GET', $syncs->api_key, $syncs->api_password, $syncs->website, $extendUrl);
         }
 
         return ['res' => true, 'msg' => "", 'data' => ""];
-    }
-
-    /**
-     * Function of image upload
-     *
-     * @param $image
-     * @return string
-     */
-
-    private function image64Upload($image): string
-    {
-        $image_64 = $image;
-        $replace = substr($image_64, 0, strpos($image_64, ',') + 1);
-        $image_64 = str_replace($replace, '', $image_64);
-        $image_64 = str_replace(' ', '+', $image_64);
-        $imageName = Str::random(10) . '.' . 'png';
-        File::put($this->productAbsPath . "/" . $imageName, base64_decode($image_64));
-
-        return $this->productRelPath . $imageName;
-    }
-    /**
-     * Function of get variables from request
-     *
-     * @param $request
-     * @return array
-     */
-   private function variables($request): array
-   {
-       $mainCategory = '';
-       $category = '';
-       $subCategory = $request->product_type;
-       $subCategoryDetails = Category::where('id', $subCategory)->first();
-       if (!empty($subCategoryDetails)) {
-           $categoryDetails = Category::where('id', $subCategoryDetails->parent_id)->first();
-           $category = $categoryDetails->id;
-           $mainCategory = $categoryDetails->parent_id;
-       }
-       $productKey = 'p_' . Str::lower(Str::random(10));
-       $productSlug = Str::slug($request->product_name);
-       $description = $request->description;
-       $productMade = $request->product_made;
-
-       return array(
-           'usd_wholesale_price' => $request->usd_wholesale_price ?? 0,
-           'usd_retail_price' => $request->usd_retail_price ?? 0,
-           'cad_wholesale_price' => $request->cad_wholesale_price ?? 0,
-           'cad_retail_price' => $request->cad_retail_price ?? 0,
-           'gbp_wholesale_price' => $request->gbp_wholesale_price ?? 0,
-           'gbp_retail_price' => $request->gbp_retail_price ?? 0,
-           'eur_wholesale_price' => $request->eur_wholesale_price ?? 0,
-           'eur_retail_price' => $request->eur_retail_price ?? 0,
-           'aud_wholesale_price' => $request->aud_wholesale_price ?? 0,
-           'aud_retail_price' => $request->aud_retail_price ?? 0,
-           'usd_tester_price' => $request->testers_price ?? 0,
-           'shipping_tariff_code' => $request->shipping_tariff_code ?? 0,
-           'case_quantity' => $request->order_case_qty ?? 0,
-           'min_order_qty' => $request->order_min_case_qty ?? 0,
-           'stock' => $request->shipping_inventory ?? 0,
-           'dimension_unit' => $request->dimension_unit ?? 0,
-           'is_bestseller' => $request->is_bestseller ?? 0,
-           'shipping_height' => $request->shipping_height ?? 0,
-           'shipping_length' => $request->shipping_length ?? 0,
-           'shipping_weight' => $request->shipping_weight ?? 0,
-           'shipping_width' => $request->shipping_width ?? 0,
-           'weight_unit' => $request->weight_unit ?? 0,
-           'reatailers_inst' => $request->reatailers_inst ?? '',
-           'reatailer_input_limit' => $request->reatailer_input_limit ?? 0,
-           'retailer_min_qty' => $request->retailer_min_qty ?? 0,
-           'retailer_add_charge' => $request->retailer_add_charge ?? 0,
-           'product_shipdate' => date('Y-m-d', strtotime($request->product_shipdate)) ?? '',
-           'product_endshipdate' => date('Y-m-d', strtotime($request->product_endshipdate)) ?? '',
-           'product_deadline' => date('Y-m-d', strtotime($request->product_deadline)) ?? '',
-           'out_of_stock' => $request->out_of_stock ?? 0,
-           'outside_us' => $request->outside_us == 'true' ? 1 : 0,
-           'product_key' => $productKey,
-           'slug' => $productSlug,
-           'description' => $description,
-           'keep_product' => $request->keep_product ?? 0,
-           'country' => $productMade,
-           'name' => $request->product_name,
-           'main_category' => $mainCategory,
-           'category' => $category,
-           'sub_category' => $subCategory,
-           'tariff_code' => $request->shipping_tariff_code,
-           'options_available' => $request->options_available,
-           'user_id' => $request->user_id,
-           'status' => 'publish',
-           'sku' => $request->shipping_sku
-       );
-   }
-
-   /**
-     * Convert price from api for other currency from USD
-    *
-     * @param Request $request
-     * @return JsonResponse
-     */
-    public function convertPrice(Request $request): JsonResponse
-    {
-        $response = '';
-        $req_url = 'https://api.exchangerate.host/latest?base=USD&symbols=USD,CAD,GBP,AUD,EUR&places=2&amount=' . $request;
-        $response_json = file_get_contents($req_url);
-        if (false !== $response_json) {
-            try {
-                $response_obj = json_decode($response_json);
-                if ($response_obj->success === true) {
-                    $response = ['res' => true, 'msg' => "", 'data' => $response_obj->rates];
-                }
-            } catch (\Exception $e) {
-                $response = ['res' => false, 'msg' => "Something went wrong", 'data' => ""];
-            }
-        }
-
-        return $response;
     }
 
 }

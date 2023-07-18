@@ -51,10 +51,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(Shipping::class);
     }
+
     public function getAllProducts()
     {
         return $this->hasMany(Product::class);
     }
+
     public function brand()
     {
         return $this->hasOne(Brand::class);
@@ -64,6 +66,7 @@ class User extends Authenticatable
     {
         return $this->hasOne(Retailer::class);
     }
+
     public function getCart()
     {
         return $this->hasMany(Cart::class);

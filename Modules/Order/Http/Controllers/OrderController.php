@@ -13,6 +13,7 @@ use Modules\Order\Http\Requests\AcceptRequest;
 use Modules\Order\Http\Requests\ChangeRequest;
 use Modules\Order\Http\Services\OrderService;
 use Modules\Order\Http\Requests\StoreReturnRequest;
+use Modules\Cart\Entities\Cart;
 
 class OrderController extends Controller
 {
@@ -77,7 +78,7 @@ class OrderController extends Controller
     public function updateBilling(OrderRequest $request): JsonResponse
     {
         $user = auth()->user();
-        if ($user->cannot('update', Order::class)) {
+        if ($user->cannot('viewAny', Order::class)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
@@ -472,12 +473,25 @@ class OrderController extends Controller
         $user = auth()->user();
         $order = Order::where('order_number', $request->order_number)->first();
 
-        if ($user->cannot('update', $order)) {
+        if ($user->cannot('view', $order)) {
             return response()->json([
                 'res' => false,
                 'msg' => 'User is not authorized !',
                 'data' => ""
             ]);
+        }
+
+        if ($request->products) {
+            foreach ($request->products as $product) {
+                $cartItem = Cart::where('order_id', $order->id)->where('product_id', $product['product_id'])->first();
+                if (!$cartItem) {
+                    return response()->json([
+                        'res' => false,
+                        'msg' => 'Order can not be returned!',
+                        'data' => ""
+                    ]);
+                }
+            }
         }
 
         $response = $this->orderService->createReturnOrder($request->validated());

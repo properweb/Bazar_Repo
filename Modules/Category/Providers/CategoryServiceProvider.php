@@ -3,7 +3,6 @@
 namespace Modules\Category\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Database\Eloquent\Factory;
 
 class CategoryServiceProvider extends ServiceProvider
 {
