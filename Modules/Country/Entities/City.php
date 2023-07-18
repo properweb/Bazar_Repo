@@ -4,18 +4,15 @@ namespace Modules\Country\Entities;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Country extends Model
+class City extends Model
 {
 
     protected $fillable = [
-        'shortname',
         'name',
-        'phonecode'
+        'state_id'
     ];
-    public function states()
+    public function state()
     {
-        return $this->hasMany(State::class);
+        return $this->belongsTo(State::class);
     }
 }
-
-

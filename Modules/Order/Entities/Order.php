@@ -3,6 +3,12 @@
 namespace Modules\Order\Entities;
 
 use Illuminate\Database\Eloquent\Model;
+use Modules\Brand\Entities\Brand;
+use Modules\Product\Entities\Product;
+use Modules\Cart\Entities\Cart;
+use Modules\Country\Entities\City;
+use Modules\User\Entities\User;
+use Modules\Order\Entities\OrderReview;
 
 class Order extends Model {
 
@@ -49,4 +55,24 @@ class Order extends Model {
         'brand_state',
         'brand_town'
     ];
+    public function carts()
+    {
+        return $this->hasMany(Cart::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function brand()
+    {
+        return $this->belongsTo(Brand::class,'brand_id','user_id');
+    }
+
+    public function orderReview()
+    {
+        return $this->hasOne(OrderReview::class);
+    }
+
 }
